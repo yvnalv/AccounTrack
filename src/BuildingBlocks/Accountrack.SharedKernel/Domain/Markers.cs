@@ -28,9 +28,20 @@ public interface ISoftDeletable
     Guid? DeletedBy { get; set; }
 }
 
-/// <summary>Tenancy ownership (ADR-0004). Enforced by global query filters.</summary>
-public interface ITenantOwned
+/// <summary>
+/// Belongs to a tenant (ADR-0004) but is not scoped to a single company — e.g. Users and Roles.
+/// Enforced by a tenant-only global query filter.
+/// </summary>
+public interface ITenantScoped
 {
     Guid TenantId { get; set; }
+}
+
+/// <summary>
+/// Belongs to a tenant AND a company (the majority of business data). Enforced by a
+/// tenant + company global query filter.
+/// </summary>
+public interface ITenantOwned : ITenantScoped
+{
     Guid CompanyId { get; set; }
 }

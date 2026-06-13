@@ -1,13 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!--
-    Architecture-fitness tests (ADR-0023). These fail the build when a clean-architecture
-    boundary is violated (e.g. Domain referencing EF Core, or Application referencing
-    Infrastructure). New modules add their own boundary assertions here.
-  -->
   <PropertyGroup>
-    <RootNamespace>Accountrack.ArchitectureTests</RootNamespace>
-    <AssemblyName>Accountrack.ArchitectureTests</AssemblyName>
+    <RootNamespace>Accountrack.Identity.UnitTests</RootNamespace>
+    <AssemblyName>Accountrack.Identity.UnitTests</AssemblyName>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
@@ -16,14 +11,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-    <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
     <PackageReference Include="FluentAssertions" Version="6.12.1" />
+    <PackageReference Include="NSubstitute" Version="5.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
-    <ProjectReference Include="..\..\src\BuildingBlocks\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
-    <ProjectReference Include="..\..\src\BuildingBlocks\Accountrack.Infrastructure.Common\Accountrack.Infrastructure.Common.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Accountrack.Identity.Domain\Accountrack.Identity.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Accountrack.Identity.Application\Accountrack.Identity.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Accountrack.Identity.Infrastructure\Accountrack.Identity.Infrastructure.csproj" />

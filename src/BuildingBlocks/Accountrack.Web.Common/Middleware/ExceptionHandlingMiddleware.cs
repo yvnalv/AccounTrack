@@ -1,8 +1,10 @@
 using System.Text.Json;
-using Accountrack.Api.Contracts;
+using Accountrack.Web.Common.Contracts;
 using FluentValidation;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
-namespace Accountrack.Api.Middleware;
+namespace Accountrack.Web.Common.Middleware;
 
 /// <summary>
 /// Translates unhandled exceptions into the standard failure envelope (ERROR_HANDLING.md).
@@ -11,8 +13,7 @@ namespace Accountrack.Api.Middleware;
 /// </summary>
 public sealed class ExceptionHandlingMiddleware
 {
-    private static readonly JsonSerializerOptions JsonOptions =
-        new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;

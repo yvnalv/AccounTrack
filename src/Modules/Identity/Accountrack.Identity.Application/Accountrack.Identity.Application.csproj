@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Identity.Application: auth use cases (commands/queries), validators, ports.
+    Depends on Identity.Domain, SharedKernel, and Application.Abstractions.
+    No EF Core, no ASP.NET (ADR-0002/0023).
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Identity.Application</RootNamespace>
+    <AssemblyName>Accountrack.Identity.Application</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="FluentValidation" Version="11.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Accountrack.Identity.Domain\Accountrack.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

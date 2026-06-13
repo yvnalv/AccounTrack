@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Identity.Domain: users, roles, permissions, refresh tokens and their invariants.
+    Depends only on the SharedKernel (ADR-0002). No EF, no ASP.NET, no other module.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Identity.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Identity.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

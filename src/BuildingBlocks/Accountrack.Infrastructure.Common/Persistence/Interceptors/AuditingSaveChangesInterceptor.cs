@@ -82,29 +82,36 @@ public sealed class AuditingSaveChangesInterceptor : SaveChangesInterceptor
 
     private void StampTenancy(EntityEntry<Entity> entry)
     {
-        if (entry.Entity is not ITenantOwned owned)
+        if (entry.Entity is not ITenantScoped scoped)
         {
             return;
         }
 
         if (entry.State == EntityState.Added)
         {
-            if (!_tenant.IsSet)
+            if (_tenant.IsSet)
             {
-                throw new InvalidOperationException(
-                    "Cannot persist a tenant-owned entity without an established tenant context.");
+                scoped.TenantId = _tenant.TenantId;
+                if (scoped is ITenantOwned owned)
+                {
+                    owned.CompanyId = _tenant.CompanyId;
+                }
             }
-
-            owned.TenantId = _tenant.TenantId;
-            owned.CompanyId = _tenant.CompanyId;
+            else if (scoped.TenantId == Guid.Empty)
+            {
+                // Allowed only when a TenantId is set explicitly (e.g. startup seeding /
+                // reviewed admin paths — MULTI_TENANCY.md §6).
+                throw new InvalidOperationException(
+                    "Cannot persist a tenant-scoped entity without an established tenant context " +
+                    "or an explicit TenantId.");
+            }
         }
-        else if (entry.State is EntityState.Modified or EntityState.Deleted && _tenant.IsSet)
+        else if (entry.State is EntityState.Modified or EntityState.Deleted
+                 && _tenant.IsSet
+                 && scoped.TenantId != _tenant.TenantId)
         {
             // Defense against detached-entity tampering (MULTI_TENANCY.md §6).
-            if (owned.TenantId != _tenant.TenantId)
-            {
-                throw new InvalidOperationException("Tenant mismatch on a tracked entity.");
-            }
+            throw new InvalidOperationException("Tenant mismatch on a tracked entity.");
         }
     }
 }

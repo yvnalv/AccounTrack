@@ -58,7 +58,7 @@ public class LayeringTests
     {
         var result = Types.InAssembly(InfrastructureCommon)
             .ShouldNot()
-            .HaveDependencyOn("Microsoft.AspNetCore")
+            .HaveDependencyOnAny(ArchNamespaces.Web)
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(

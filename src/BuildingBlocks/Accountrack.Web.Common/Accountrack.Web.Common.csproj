@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Web.Common: shared ASP.NET presentation building blocks used by the host and every module's
+    Api layer — the standard response envelope, Result-to-HTTP mapping, and error middleware
+    (API_SPEC.md, ERROR_HANDLING.md).
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Web.Common</RootNamespace>
+    <AssemblyName>Accountrack.Web.Common</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="11.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

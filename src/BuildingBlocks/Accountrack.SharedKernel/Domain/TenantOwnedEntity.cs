@@ -6,13 +6,11 @@ namespace Accountrack.SharedKernel.Domain;
 /// ambient tenant context and enforced by global query filters (docs/MULTI_TENANCY.md).
 /// Application code must never set these manually.
 /// </summary>
-public abstract class TenantOwnedEntity : Entity, ITenantOwned
+public abstract class TenantOwnedEntity : TenantScopedEntity, ITenantOwned
 {
     protected TenantOwnedEntity() { }
 
     protected TenantOwnedEntity(Guid id) : base(id) { }
-
-    public Guid TenantId { get; set; }
 
     public Guid CompanyId { get; set; }
 }

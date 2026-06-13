@@ -43,10 +43,14 @@ public abstract class BaseDbContext : DbContext
             // Optimistic concurrency token (ADR-0021).
             modelBuilder.Entity(clr).Property(nameof(Entity.RowVersion)).IsRowVersion();
 
-            // Global query filters.
+            // Global query filters (most specific first).
             if (typeof(TenantOwnedEntity).IsAssignableFrom(clr))
             {
-                InvokeGeneric(nameof(ApplyTenantFilter), clr, modelBuilder);
+                InvokeGeneric(nameof(ApplyTenantOwnedFilter), clr, modelBuilder);
+            }
+            else if (typeof(TenantScopedEntity).IsAssignableFrom(clr))
+            {
+                InvokeGeneric(nameof(ApplyTenantScopedFilter), clr, modelBuilder);
             }
             else
             {
@@ -69,7 +73,15 @@ public abstract class BaseDbContext : DbContext
         modelBuilder.Entity<TEntity>().HasQueryFilter(e => !e.IsDeleted);
     }
 
-    private void ApplyTenantFilter<TEntity>(ModelBuilder modelBuilder)
+    private void ApplyTenantScopedFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : TenantScopedEntity
+    {
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
+            !e.IsDeleted
+            && e.TenantId == CurrentTenantId);
+    }
+
+    private void ApplyTenantOwnedFilter<TEntity>(ModelBuilder modelBuilder)
         where TEntity : TenantOwnedEntity
     {
         modelBuilder.Entity<TEntity>().HasQueryFilter(e =>

@@ -1,8 +1,6 @@
-namespace Accountrack.Api.Contracts;
+namespace Accountrack.Web.Common.Contracts;
 
-/// <summary>
-/// The standard success response envelope (CLAUDE.md API Response Standard, API_SPEC.md §2).
-/// </summary>
+/// <summary>The standard success response envelope (CLAUDE.md API Response Standard, API_SPEC.md §2).</summary>
 public sealed record ApiResponse<T>(bool Success, T Data)
 {
     public static ApiResponse<T> Ok(T data) => new(true, data);
