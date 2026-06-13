@@ -9,6 +9,8 @@ using Accountrack.AuditLog.Api;
 using Accountrack.AuditLog.Infrastructure;
 using Accountrack.CompanyManagement.Api;
 using Accountrack.CompanyManagement.Infrastructure;
+using Accountrack.Inventory.Api;
+using Accountrack.Inventory.Infrastructure;
 using Accountrack.MasterData.Api;
 using Accountrack.MasterData.Infrastructure;
 using Accountrack.Identity.Api;
@@ -42,6 +44,7 @@ builder.Services.AddCompanyModule(builder.Configuration);
 builder.Services.AddAuditLogModule(builder.Configuration);
 builder.Services.AddAccountingModule(builder.Configuration);
 builder.Services.AddMasterDataModule(builder.Configuration);
+builder.Services.AddInventoryModule(builder.Configuration);
 
 // Accept/emit enums as strings in JSON (nicer API ergonomics).
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -103,6 +106,7 @@ app.MapCompanyEndpoints();
 app.MapAuditEndpoints();
 app.MapAccountingEndpoints();
 app.MapMasterDataEndpoints();
+app.MapInventoryEndpoints();
 
 // Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
@@ -117,6 +121,7 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     await app.Services.InitializeIdentityModuleAsync(migrate);
     await app.Services.InitializeAccountingModuleAsync(migrate, seedDev, DateTime.UtcNow.Year);
     await app.Services.InitializeMasterDataModuleAsync(migrate, seedDev);
+    await app.Services.InitializeInventoryModuleAsync(migrate);
 }
 
 app.Run();

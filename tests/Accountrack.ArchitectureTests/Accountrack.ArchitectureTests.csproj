@@ -37,6 +37,9 @@
     <ProjectReference Include="..\..\src\Modules\Accounting\Accountrack.Accounting.Infrastructure\Accountrack.Accounting.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\MasterData\Accountrack.MasterData.Application\Accountrack.MasterData.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\MasterData\Accountrack.MasterData.Infrastructure\Accountrack.MasterData.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\Accountrack.Inventory.Domain\Accountrack.Inventory.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\Accountrack.Inventory.Application\Accountrack.Inventory.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\Accountrack.Inventory.Infrastructure\Accountrack.Inventory.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

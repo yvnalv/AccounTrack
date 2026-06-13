@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Inventory.Application</RootNamespace>
+    <AssemblyName>Accountrack.Inventory.Application</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="FluentValidation" Version="11.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Accountrack.Inventory.Domain\Accountrack.Inventory.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\Modules.Contracts\Accountrack.Modules.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Inventory.Domain: the stock ledger and moving-average costing. Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Inventory.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Inventory.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

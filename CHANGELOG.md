@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-06-13 13:44:53 UTC]
+
+CHG-0010 — Inventory engine (slice 1): ledger + moving-average costing
+
+- Implemented the **Inventory** backbone. Verified end-to-end against a real database: received
+  10@100 then 10@120 → on-hand 20 @ avg 110; issued 5 → cost 550 (avg unchanged); over-issue
+  rejected (BR-INV-3); on-hand value 15×110=1650; full stock card; all ledger writes auto-audited.
+- **Domain:** `InventoryTransaction` (immutable, append-only, the source of truth — ADR-0014),
+  `StockCostBucket` (moving weighted-average per Company×Warehouse×Product — ADR-0015 with
+  receive/issue math + negative-stock guard), `MovementType`/`MovementSource`, errors.
+- **Application:** `IInventoryLedger` + `InventoryLedgerService` (receive/issue, returns cost
+  applied for future COGS posting); Receive / Adjust (in/out) / Transfer commands (cost travels
+  between warehouses); on-hand and stock-card queries.
+- **Infrastructure:** `InventoryDbContext` (own `inventory` schema) + configs (decimal precision,
+  unique bucket per company×warehouse×product), repositories, DI, design-time factory,
+  `InitialInventory` migration (verified on real SQL Server).
+- **Api:** `POST /api/v1/stock/receipts|adjustments|transfers`, `GET /api/v1/stock/on-hand|card`
+  — gated by Inventory.View / Inventory.Adjust / Inventory.Transfer.
+- **Tests:** 11 Inventory unit tests (moving-average math incl. fractional + negative-stock; ledger
+  service receive/issue/insufficient) + Inventory architecture-boundary tests. Full suite now 88, green.
+- **Scope:** slice 1. Slice 2 (next for inventory): GL posting on stock moves (Dr/Cr Inventory/COGS/
+  Variance via the accounting engine), stock opname, the per-company negative-stock setting, and
+  back-dating recompute. Atomic cross-module posting (Sales issue + COGS) is designed when Sales lands.
+- See [docs/INVENTORY_DESIGN.md](docs/INVENTORY_DESIGN.md), [docs/MODULES.md](docs/MODULES.md).
+
+---
+
 ## [2026-06-13 13:23:30 UTC]
 
 CHG-0009 — Master Data module (products, parties, warehouses, tax codes)
