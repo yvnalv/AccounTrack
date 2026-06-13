@@ -17,40 +17,48 @@ scope for MVP, but every module is designed to be extractable later (ADR-0007, A
 
 ## 2. Solution Layout
 
+Legend: ✅ implemented · ◻️ planned.
+
 ```
 Accountrack.sln
+├── Directory.Build.props                # ✅ shared TFM (net8.0), nullable, warnings-as-errors
 ├── src/
 │   ├── BuildingBlocks/
-│   │   ├── Accountrack.SharedKernel/        # Money, Entity base, audit, domain-event base, Result
-│   │   ├── Accountrack.Application.Abstractions/  # CQRS interfaces, behaviors, tenant context
-│   │   └── Accountrack.Infrastructure.Common/     # EF base DbContext, interceptors, outbox
+│   │   ├── Accountrack.SharedKernel/             # ✅ Entity / TenantScopedEntity / TenantOwnedEntity,
+│   │   │                                         #    Money, Result/Error, PagedResult, domain-event base,
+│   │   │                                         #    AuditEntry, audit/soft-delete/tenancy markers
+│   │   ├── Accountrack.Application.Abstractions/ # ✅ CQRS contracts, behaviors, ambient-context ports
+│   │   ├── Accountrack.Infrastructure.Common/    # ✅ EF base DbContext, audit/auditing interceptors, outbox msg
+│   │   └── Accountrack.Web.Common/               # ✅ response envelope, Result→HTTP mapping, error middleware
 │   ├── Modules/
-│   │   ├── Identity/
-│   │   │   ├── Accountrack.Identity.Domain
-│   │   │   ├── Accountrack.Identity.Application
-│   │   │   ├── Accountrack.Identity.Infrastructure
-│   │   │   └── Accountrack.Identity.Api           # endpoint module (carter/minimal or controllers)
-│   │   ├── CompanyManagement/   (same 4 layers)
-│   │   ├── MasterData/
-│   │   ├── Sales/
-│   │   ├── Purchasing/
-│   │   ├── Inventory/
-│   │   ├── Accounting/
-│   │   ├── Approval/
-│   │   ├── AuditLog/
-│   │   ├── Notification/
-│   │   └── Reporting/
-│   ├── Modules.Contracts/        # public integration-event + service contracts per module
+│   │   ├── Identity/            # ✅ Domain / Application / Infrastructure / Api
+│   │   ├── CompanyManagement/   # ✅ Domain / Application / Infrastructure / Api
+│   │   ├── AuditLog/            # ✅ Application / Infrastructure / Api (no Domain — read-side over AuditEntry)
+│   │   ├── Approval/            # ◻️ planned
+│   │   ├── Notification/        # ◻️ planned
+│   │   ├── MasterData/          # ◻️ planned (Phase 2)
+│   │   ├── Sales/               # ◻️ planned (Phase 2)
+│   │   ├── Purchasing/          # ◻️ planned (Phase 2)
+│   │   ├── Inventory/           # ◻️ planned (Phase 2)
+│   │   ├── Accounting/          # ◻️ planned (Phase 2)
+│   │   └── Reporting/           # ◻️ planned (Phase 2)
+│   ├── Modules.Contracts/        # ◻️ planned — created when the first cross-module contract is needed
 │   └── Bootstrapper/
-│       └── Accountrack.Api/      # composition root: DI, pipeline, module registration, host
+│       └── Accountrack.Api/      # ✅ composition root: DI, pipeline, auth, module registration, host
 ├── tests/
-│   ├── <Module>.UnitTests
-│   ├── <Module>.IntegrationTests
-│   └── Accountrack.ArchitectureTests
-└── frontend/                     # Vue 3 + TS SPA (see DEPLOYMENT.md)
+│   ├── Accountrack.ArchitectureTests        # ✅ NetArchTest boundary rules (per module)
+│   ├── Accountrack.Identity.UnitTests        # ✅
+│   ├── Accountrack.CompanyManagement.UnitTests  # ✅
+│   ├── Accountrack.AuditLog.UnitTests        # ✅
+│   └── <Module>.IntegrationTests            # ◻️ planned (Testcontainers)
+└── frontend/                     # ◻️ planned — Vue 3 + TS SPA (discuss design before building)
 ```
 
 > Module names map 1:1 to the modules in `CLAUDE.md`. Each module is independently testable.
+> Module folders use the assembly prefix `Accountrack.<Module>.*`; Company Management uses
+> `Accountrack.CompanyManagement.*` to avoid a `Company` type/namespace collision.
+> The AuditLog module omits a Domain project because its aggregate (`AuditEntry`) is a shared
+> kernel primitive written by all modules (ADR-0026); the module is read-side only.
 
 ## 3. Clean Architecture Layers (per module)
 
@@ -117,7 +125,7 @@ Hard rules (ADR-0007):
 |---|---|
 | Multi-tenancy | Ambient `ITenantContext` + EF global query filters (MULTI_TENANCY.md) |
 | Soft delete | `IsDeleted` global filter; never physical delete (ADR-0006) |
-| Audit log | EF `SaveChanges` interceptor capturing before/after (ADR-0006) |
+| Audit log | EF `SaveChanges` interceptor capturing before/after into one shared `audit.AuditEntries` table, atomic with the change (ADR-0006/0026) |
 | Auth | JWT + rotating refresh, RBAC, company scope (SECURITY.md, ADR-0019/0020) |
 | Concurrency | `RowVersion` optimistic concurrency (ADR-0021) |
 | Idempotency | Inbox/idempotency keys on posting handlers (ADR-0021) |

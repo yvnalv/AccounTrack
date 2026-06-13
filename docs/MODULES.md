@@ -6,6 +6,22 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 > Dependency note: "depends on" means consumes another module's **contract or events** — never
 > its tables (ADR-0007).
 
+## Implementation Status
+
+| Module | Status | Notes |
+|---|---|---|
+| Identity | ✅ Implemented | auth (JWT + rotating refresh), RBAC + SoD permissions, users, company grants |
+| Company Management | ✅ Implemented | tenants, companies, company settings; dev tenant/company seeder |
+| Audit Log | ✅ Implemented | automatic atomic before/after capture (ADR-0026), tenant-scoped read API |
+| Approval Workflow | ◻️ Planned | next |
+| Process Tracker | ◻️ Planned | |
+| Notification | ◻️ Planned | |
+| Master Data | ◻️ Planned | Phase 2 |
+| Sales / Purchasing / Inventory / Accounting / Reporting | ◻️ Planned | Phase 2 |
+| Manufacturing | ◻️ Planned | Phase 3 |
+
+(Authoritative change history is in [`../CHANGELOG.md`](../CHANGELOG.md).)
+
 ## Foundation Modules
 
 ### Identity

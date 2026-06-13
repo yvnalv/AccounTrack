@@ -36,20 +36,41 @@ keeps schemas independently migratable and extraction-ready.
 ## 2. Shared Kernel (applies to all business entities)
 
 ```
-BaseEntity                       TenantOwnedEntity : BaseEntity
-├── Id            : guid (PK)     ├── (all BaseEntity)
-├── CreatedAt     : datetime2     ├── TenantId   : guid   (indexed, leading)
-├── CreatedBy     : guid          └── CompanyId  : guid   (indexed)
-├── UpdatedAt     : datetime2?
-├── UpdatedBy     : guid?        Money (value object, owned)
-├── DeletedAt     : datetime2?    ├── Amount       : decimal(19,4)
-├── DeletedBy     : guid?         └── CurrencyCode : char(3)
-├── IsDeleted     : bit
+Entity (BaseEntity)              TenantScopedEntity : Entity        TenantOwnedEntity : TenantScopedEntity
+├── Id            : guid (PK)     ├── (all Entity)                   ├── (all TenantScopedEntity)
+├── CreatedAt     : datetime2     └── TenantId : guid (indexed)      └── CompanyId : guid (indexed)
+├── CreatedBy     : guid
+├── UpdatedAt     : datetime2?    Money (value object, owned)        Inheritance:
+├── UpdatedBy     : guid?         ├── Amount       : decimal(19,4)     Entity → TenantScopedEntity → TenantOwnedEntity
+├── DeletedAt     : datetime2?    └── CurrencyCode : char(3)
+├── DeletedBy     : guid?
+├── IsDeleted     : bit          PagedResult<T> (query helper: Items, Page, PageSize, TotalItems)
 └── RowVersion    : rowversion   (mutable docs only)
 ```
 
+Three entity bases (marker interfaces `ITenantScoped` ⊂ `ITenantOwned`):
+- **Entity** — not tenant-owned (rare; cross-tenant/system data). Soft-delete filter only.
+- **TenantScopedEntity** — belongs to a tenant but not a single company (e.g. Users, Roles,
+  Companies). Tenant-only query filter.
+- **TenantOwnedEntity** — belongs to a tenant **and** a company (most business data). Tenant +
+  company query filter.
+
 Stamping of tenancy + audit fields is automatic (SaveChanges interceptor); application code does
-not set them.
+not set them. Query filters and `RowVersion` are applied by convention in `BaseDbContext`.
+
+### AuditEntry (shared, append-only — ADR-0026)
+A SharedKernel primitive (not an `Entity`; never soft-deleted/updated) mapped to a single
+`audit.AuditEntries` table that every module context can write to in the same transaction as a
+change. The AuditLog module's context owns the table's migration; all other module contexts map it
+with `ExcludeFromMigrations()`.
+```
+AuditEntry
+├── Id : guid (PK)        ├── EntityType : nvarchar(200)   ├── ChangesJson : nvarchar(max)  (before/after)
+├── TenantId : guid        ├── EntityId   : nvarchar(128)   ├── UserId      : guid
+├── CompanyId : guid?      ├── Action     : int {Insert,Update,Delete}   ├── TimestampUtc : datetime2
+└── CorrelationId : nvarchar(128)?
+   indexes: (TenantId, EntityType, EntityId), (TimestampUtc)
+```
 
 ## 3. Core Tables by Module (logical)
 

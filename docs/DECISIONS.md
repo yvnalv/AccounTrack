@@ -37,6 +37,7 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0024 | Configurable posting rules (account determination) | Accepted | 2026-06-13 |
 | 0025 | Changelog policy (reverse-chronological, immutable, CHG-NNNN, UTC) | Accepted | 2026-06-13 |
 | 0026 | Atomic audit capture into one shared audit table | Accepted | 2026-06-13 |
+| 0027 | Build with the .NET 9 SDK while targeting net8.0 | Accepted | 2026-06-13 |
 
 ---
 
@@ -410,3 +411,21 @@ atomic table (chosen).
 **Consequences.** (+) Complete, atomic, single-table audit that is simple to query; verified
 end-to-end (login change captured). (−) Every module context maps the shared table (one line via
 `BaseDbContext`); audited "after" values intentionally exclude the stamped audit fields.
+
+---
+
+## ADR-0027: Build with the .NET 9 SDK while targeting net8.0
+
+- **Status:** Accepted — **Date:** 2026-06-13
+
+**Context.** CLAUDE.md mandates .NET 8 (non-negotiable #1), but the development/build machine has
+only the .NET 9 SDK installed. The .NET 9 SDK builds and runs `net8.0` projects.
+
+**Decision.** All projects target **`net8.0`** (set once in `Directory.Build.props`); the .NET 9
+SDK is used to build and run. No `global.json` pins the SDK. The API host sets
+`<RollForward>LatestMajor</RollForward>` so it runs on the installed .NET 9 runtime when the .NET 8
+runtime is absent. EF Core and ASP.NET packages are pinned to the 8.0.x line.
+
+**Consequences.** (+) Honors the .NET 8 target/runtime contract while remaining buildable on the
+available toolchain; CI can install either SDK ≥ 8. (−) Roll-forward means local runs may execute
+on the 9 runtime; production should install the .NET 8 runtime (or accept documented roll-forward).

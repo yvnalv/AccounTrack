@@ -7,20 +7,26 @@ accounting/inventory engines before the transactional modules that depend on the
 ## Phase 1 — Foundation (Platform)
 
 Goal: a secure, multi-tenant, auditable platform with no business modules yet.
+Status legend: ✅ done · 🔜 next · ◻️ planned. (See `../CHANGELOG.md` for detail.)
 
-1. **Solution skeleton** — modular-monolith layout, shared kernel (Money, base entity, audit,
+1. ✅ **Solution skeleton** — modular-monolith layout, shared kernel (Money, entity bases, audit,
    domain-event base, Result), base DbContext (tenant + soft-delete filters, audit interceptor,
    RowVersion), CQRS pipeline, error middleware, architecture-fitness tests. (ARCHITECTURE.md)
-2. **Identity** — users, RBAC permission catalog + roles, JWT + rotating refresh tokens,
-   login/logout. (SECURITY.md)
-3. **Company Management** — tenants, companies, company settings, user→company grants; tenant
-   context middleware. (MULTI_TENANCY.md)
-4. **Audit Log** — SaveChanges interceptor capturing before/after; security events.
-5. **Approval Workflow** (engine) + **Process Tracker** + **Notification** (in-app + email).
-6. **Cross-tenant isolation test suite** (permanent). (MULTI_TENANCY.md §9)
+2. ✅ **Identity** — users, RBAC permission catalog + roles, JWT + rotating refresh tokens,
+   login/logout, company grants. (SECURITY.md)
+3. ✅ **Company Management** — tenants, companies, company settings; HttpContext-backed tenant
+   context. (MULTI_TENANCY.md)
+4. ✅ **Audit Log** — SaveChanges interceptor capturing before/after into a shared audit table
+   (ADR-0026); tenant-scoped read API.
+5. 🔜 **Approval Workflow** (engine) + **Process Tracker** + **Notification** (in-app + email).
+6. ◻️ **Cross-tenant isolation test suite** (permanent, integration). (MULTI_TENANCY.md §9)
 
 Exit criteria: a user can be created, assigned roles, log in, switch between granted companies,
 and every change is audited; isolation tests green.
+
+> Note: the cross-tenant isolation suite (item 6) is integration-level (Testcontainers) and is
+> still outstanding — tenant isolation is currently enforced and covered by unit/architecture
+> tests, with the dedicated integration suite to follow.
 
 ## Phase 2 — Core ERP
 

@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-13 12:35:38 UTC]
+
+CHG-0007 — Sync design docs with implemented foundation
+
+- Documentation-only pass to bring the design docs in line with the implemented modules
+  (CLAUDE.md "documentation must remain synchronized").
+- **ARCHITECTURE.md:** updated the solution layout with implemented/planned (✅/◻️) markers, the
+  new `Web.Common` building block, the `CompanyManagement` naming note, and why AuditLog has no
+  Domain project; noted atomic shared-table audit in the cross-cutting table.
+- **DATABASE.md:** documented the three entity bases (`Entity` / `TenantScopedEntity` /
+  `TenantOwnedEntity`), `PagedResult<T>`, and the shared append-only `AuditEntry` / `audit.AuditEntries`
+  table (ADR-0026).
+- **MODULES.md:** added an implementation-status table.
+- **ROADMAP.md:** checked off Phase 1 items 1–4; flagged the cross-tenant integration test suite
+  as still outstanding.
+- **DECISIONS.md:** added [ADR-0027](docs/DECISIONS.md) (build with the .NET 9 SDK while targeting
+  net8.0).
+- No code changes.
+
+---
+
 ## [2026-06-13 12:25:32 UTC]
 
 CHG-0006 — Audit Log module (automatic, atomic before/after capture)
