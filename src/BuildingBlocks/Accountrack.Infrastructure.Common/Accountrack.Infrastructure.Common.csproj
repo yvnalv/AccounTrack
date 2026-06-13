@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Infrastructure.Common: shared persistence building blocks for every module's
+    Infrastructure layer — base DbContext, audit/tenant/soft-delete interceptor and global
+    query filters (docs/MULTI_TENANCY.md, DATABASE.md), and the transactional outbox (ADR-0007).
+    EF Core lives ONLY in Infrastructure (never in Domain/Application — enforced by ADR-0023).
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Infrastructure.Common</RootNamespace>
+    <AssemblyName>Accountrack.Infrastructure.Common</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+    <ProjectReference Include="..\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

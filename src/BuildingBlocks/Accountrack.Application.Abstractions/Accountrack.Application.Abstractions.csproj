@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Application.Abstractions: CQRS contracts, ambient-context ports, and pipeline behaviors
+    shared by every module's Application layer. Depends only on SharedKernel + framework
+    abstractions. Must NOT reference EF Core, ASP.NET, or Infrastructure (ADR-0002/0023).
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Application.Abstractions</RootNamespace>
+    <AssemblyName>Accountrack.Application.Abstractions</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="FluentValidation" Version="11.10.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

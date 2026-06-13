@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    SharedKernel: domain primitives shared by all modules.
+    Intentionally has NO external/runtime dependencies (ADR-0002 dependency rule).
+    Must never reference EF Core, ASP.NET, or any module.
+    Common settings (TFM, nullable, warnings-as-errors) come from Directory.Build.props.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.SharedKernel</RootNamespace>
+    <AssemblyName>Accountrack.SharedKernel</AssemblyName>
+  </PropertyGroup>
+
+</Project>

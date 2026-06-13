@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Accountrack.Api: the composition root / host for the modular monolith (ARCHITECTURE.md §2).
+    Wires DI, the request pipeline, error handling, and module registration.
+    RollForward=LatestMajor lets the net8.0 app run on a newer installed runtime when the
+    .NET 8 runtime is absent (this machine has the .NET 9 SDK; target stays net8.0).
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Api</RootNamespace>
+    <AssemblyName>Accountrack.Api</AssemblyName>
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="FluentValidation" Version="11.10.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\Accountrack.Infrastructure.Common\Accountrack.Infrastructure.Common.csproj" />
+  </ItemGroup>
+
+</Project>

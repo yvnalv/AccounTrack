@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    Common build settings for all Accountrack projects.
+    Honors CLAUDE.md non-negotiable #1 (.NET 8) and CODING_STANDARDS.md
+    (nullable on, warnings-as-errors). The installed SDK may be newer; projects
+    still target net8.0.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <Company>Accountrack</Company>
+    <Product>Accountrack</Product>
+  </PropertyGroup>
+
+</Project>
