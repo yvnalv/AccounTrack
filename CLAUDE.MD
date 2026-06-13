@@ -763,6 +763,7 @@ Project docs Structure:
 /
 ├── CLAUDE.md
 ├── README.md
+├── CHANGELOG.md
 └── docs/
 ├── README.md            (docs index)
 ├── PRD.md
@@ -805,6 +806,59 @@ Whenever a major change occurs:
 * Update Decisions
 
 Documentation must remain synchronized with implementation.
+
+### CHANGELOG Rules
+
+`CHANGELOG.md` (repository root) is the project's immutable historical record. A task is not
+complete until `CHANGELOG.md` has been updated.
+
+**Ordering**
+
+* Reverse chronological order — newest entries at the top, oldest at the bottom.
+* New entries are inserted directly below the `# Accountrack Changelog` heading and above all
+  previous entries. Never append to the bottom.
+* Historical entries are immutable: never edit, reorder, renumber, or delete them.
+
+**Entry structure**
+
+```
+# Accountrack Changelog
+
+## [YYYY-MM-DD HH:mm:ss UTC]
+
+CHG-0045 — Short title
+
+- Detail bullets describing what changed and why.
+
+---
+
+## [YYYY-MM-DD HH:mm:ss UTC]
+
+CHG-0044 — Short title
+...
+```
+
+**Change ids**
+
+* Format `CHG-NNNN`, sequential, zero-padded to four digits.
+* Never reuse, renumber, or change historical ids.
+
+**Timestamps**
+
+* Always UTC, formatted `YYYY-MM-DD HH:mm:ss UTC`. Never local machine time; never omit the zone.
+
+**Rollbacks**
+
+* A rollback is recorded as a new entry that documents the reversal — never by modifying the
+  original entry (e.g. `CHG-0052 — Rollback of CHG-0051`).
+
+**AI-agent procedure** (every time the changelog is updated)
+
+1. Read the latest (top-most) change id.
+2. Increment it by one.
+3. Insert the new entry at the top, directly under the `# Accountrack Changelog` heading.
+4. Use a UTC timestamp.
+5. Preserve all historical entries, ids, and ordering exactly.
 
 ---
 

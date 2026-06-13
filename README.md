@@ -43,6 +43,7 @@ the [docs index](docs/README.md).
 | Security & tenancy | [SECURITY](docs/SECURITY.md) · [MULTI_TENANCY](docs/MULTI_TENANCY.md) |
 | Rules & decisions | [BUSINESS_RULES](docs/BUSINESS_RULES.md) · [DECISIONS](docs/DECISIONS.md) · [GLOSSARY](docs/GLOSSARY.md) |
 | Engineering | [CODING_STANDARDS](docs/CODING_STANDARDS.md) · [TESTING](docs/TESTING.md) · [DEPLOYMENT](docs/DEPLOYMENT.md) · [CONTRIBUTING](docs/CONTRIBUTING.md) |
+| History | [CHANGELOG](CHANGELOG.md) — notable changes (`CHG-*`, reverse-chronological) |
 
 ## Contributing
 

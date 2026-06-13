@@ -31,6 +31,8 @@ A PR must include:
 - Tests for new/changed behavior (TESTING.md); high-priority modules require them.
 - Updated docs (DATABASE/API/MODULES/BUSINESS_RULES/ACCOUNTING/INVENTORY/DECISIONS as
   applicable).
+- A new top entry in [`../CHANGELOG.md`](../CHANGELOG.md) (`CHG-NNNN`, UTC, newest-on-top — see
+  `CLAUDE.md` → CHANGELOG Rules).
 - Green CI: build, lint, unit, architecture, contract, integration, frontend, vuln scan
   (DEPLOYMENT.md §5).
 - Security consideration note: tenant scope, required permissions, SoD impact.
@@ -40,7 +42,8 @@ pass `/security-review` on the diff.
 
 ## 4. Definition of Done
 Per CODING_STANDARDS.md §9: builds; analyzers/lint clean; tests (unit + relevant integration +
-architecture) pass; docs updated; business rules referenced; security implications addressed.
+architecture) pass; docs updated; **`CHANGELOG.md` updated with a new `CHG-NNNN` entry**; business
+rules referenced; security implications addressed.
 
 ## 5. Making Architectural / Rule Changes
 - **Architectural decision** → add an ADR (copy [`adr/0000-template.md`](adr/0000-template.md)),

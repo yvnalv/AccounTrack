@@ -45,6 +45,7 @@ Decisions confirmed 2026-06-13 are recorded in [DECISIONS.md](DECISIONS.md).
 - [DECISIONS.md](DECISIONS.md) — Architectural Decision Records.
 - [GLOSSARY.md](GLOSSARY.md) — ubiquitous language.
 - [adr/0000-template.md](adr/0000-template.md) — ADR template.
+- [../CHANGELOG.md](../CHANGELOG.md) — immutable change history (`CHG-*` ids; see CLAUDE.md → CHANGELOG Rules).
 
 ### Engineering
 - [CODING_STANDARDS.md](CODING_STANDARDS.md) — code conventions and quality rules.

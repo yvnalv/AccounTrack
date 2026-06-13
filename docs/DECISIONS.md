@@ -35,6 +35,7 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0022 | Period-balance snapshots for reporting | Accepted | 2026-06-13 |
 | 0023 | Architecture-fitness tests (NetArchTest) enforce boundaries | Accepted | 2026-06-13 |
 | 0024 | Configurable posting rules (account determination) | Accepted | 2026-06-13 |
+| 0025 | Changelog policy (reverse-chronological, immutable, CHG-NNNN, UTC) | Accepted | 2026-06-13 |
 
 ---
 
@@ -363,3 +364,21 @@ or document type. Detailed in POSTING_RULES.md.
 
 **Consequences.** (+) Adaptable to different charts of accounts; testable. (−) Configuration
 surface and validation required (every active rule must resolve to a valid account).
+
+---
+
+## ADR-0025: Changelog policy (reverse-chronological, immutable, CHG-NNNN, UTC)
+
+- **Status:** Accepted — **Date:** 2026-06-13
+
+**Context.** A human- and AI-readable history of notable changes aids reviews, releases, and
+context for assistants. It needs consistent ordering and ids so it can be maintained reliably.
+
+**Decision.** Maintain `CHANGELOG.md` at the repository root: reverse-chronological (newest on
+top), sequential zero-padded `CHG-NNNN` ids, UTC timestamps `YYYY-MM-DD HH:mm:ss UTC`. Entries are
+immutable — never edited, reordered, renumbered, or deleted; rollbacks are recorded as new
+entries. Updating the changelog is part of the definition of done. Full rules live in `CLAUDE.md`
+(Documentation Rules → CHANGELOG Rules).
+
+**Consequences.** (+) Predictable, append-at-top history that both people and agents can update
+correctly. (−) Requires discipline to add an entry per notable change.
