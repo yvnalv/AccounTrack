@@ -35,6 +35,8 @@ public class Result
     public static Result<TValue> Success<TValue>(TValue value) => Result<TValue>.Of(value);
 
     public static Result<TValue> Failure<TValue>(Error error) => Result<TValue>.Fail(error);
+
+    public static implicit operator Result(Error error) => Failure(error);
 }
 
 /// <summary>The outcome of an operation that yields a value on success.</summary>

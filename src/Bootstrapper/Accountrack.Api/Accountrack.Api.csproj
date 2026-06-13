@@ -26,6 +26,8 @@
     <ProjectReference Include="..\..\BuildingBlocks\Accountrack.Web.Common\Accountrack.Web.Common.csproj" />
     <ProjectReference Include="..\..\Modules\Identity\Accountrack.Identity.Api\Accountrack.Identity.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Identity\Accountrack.Identity.Infrastructure\Accountrack.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\CompanyManagement\Accountrack.CompanyManagement.Api\Accountrack.CompanyManagement.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\CompanyManagement\Accountrack.CompanyManagement.Infrastructure\Accountrack.CompanyManagement.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

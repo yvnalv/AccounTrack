@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Company.Domain: tenants, companies, and company settings. Pure (SharedKernel only).
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.CompanyManagement.Domain</RootNamespace>
+    <AssemblyName>Accountrack.CompanyManagement.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

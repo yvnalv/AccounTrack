@@ -3,6 +3,8 @@ using Accountrack.Api.Authorization;
 using Accountrack.Api.Infrastructure;
 using Accountrack.Application.Abstractions.Behaviors;
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.CompanyManagement.Api;
+using Accountrack.CompanyManagement.Infrastructure;
 using Accountrack.Identity.Api;
 using Accountrack.Identity.Infrastructure;
 using Accountrack.Identity.Infrastructure.Authentication;
@@ -30,6 +32,7 @@ builder.Services.AddMediatR(cfg =>
 
 // --- Modules ---
 builder.Services.AddIdentityModule(builder.Configuration);
+builder.Services.AddCompanyModule(builder.Configuration);
 
 // --- Authentication & authorization ---
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
@@ -83,11 +86,16 @@ app.MapGet("/api/v1/ping", () => Results.Ok(ApiResponse<PingInfo>.Ok(
     new PingInfo("Accountrack", "v1", DateTime.UtcNow))));
 
 app.MapIdentityEndpoints();
+app.MapCompanyEndpoints();
 
-// Optionally migrate + seed the Identity schema at startup (off by default; needs a database).
+// Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
 {
     var migrate = builder.Configuration.GetValue("Database:AutoMigrate", false);
+    var seedDev = builder.Configuration.GetValue("Seed:Enabled", false);
+
+    // Company first so the dev tenant/company exist before Identity seeds its admin against them.
+    await app.Services.InitializeCompanyModuleAsync(migrate, seedDev);
     await app.Services.InitializeIdentityModuleAsync(migrate);
 }
 

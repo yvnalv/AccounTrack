@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-06-13 12:09:43 UTC]
+
+CHG-0005 — Company Management module (tenants, companies, settings)
+
+- Implemented the Phase 1 **Company Management** module across clean-architecture layers
+  (Domain / Application / Infrastructure / Api).
+- **Domain:** `Tenant` (tenancy root), `Company` (tenant-scoped; functional currency, fiscal-year
+  start month, time zone, tax id), `CompanySetting` (company-owned key/value), domain errors.
+- **Application:** CreateCompany, UpdateCompany, SetCompanySetting commands + GetCompanies /
+  GetCompanyById queries (MediatR + FluentValidation, returning `Result`).
+- **Infrastructure:** `CompanyDbContext` (own `company` schema) + configurations, repository,
+  dev tenant/company seeder (well-known GUIDs matching the Identity dev admin's grant), DI,
+  design-time factory, and the `InitialCompany` migration (verified to apply to a real SQL Server).
+- **Api:** `GET/POST/PUT /api/v1/companies`, `GET /api/v1/companies/{id}`,
+  `PUT /api/v1/companies/{id}/settings` (create/update/settings gated by `Admin.Companies`).
+- **Host:** registers the module and seeds Company before Identity at startup so the dev admin's
+  tenant/company exist.
+- **Shared kernel:** added an implicit `Error` → `Result` conversion for ergonomics.
+- **Naming:** module uses `Accountrack.CompanyManagement.*` namespaces to avoid the `Company`
+  type vs namespace-segment collision.
+- **Tests:** 10 Company unit tests (domain invariants + CreateCompany handler) and Company
+  architecture-boundary tests. Full suite now 39, green.
+- See [docs/MODULES.md](docs/MODULES.md), [docs/DATABASE.md](docs/DATABASE.md).
+
+---
+
 ## [2026-06-13 11:52:14 UTC]
 
 CHG-0004 — Introduce changelog and changelog policy
