@@ -34,6 +34,7 @@ public static class DependencyInjection
 
         services.AddScoped<ICompanyUnitOfWork>(sp => sp.GetRequiredService<CompanyDbContext>());
         services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<Modules.Contracts.Company.ICompanyDirectory, CompanyDirectory>();
 
         var applicationAssembly = typeof(CreateCompanyCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Accounting.Domain: chart of accounts, fiscal periods, and double-entry journals.
+    Pure (SharedKernel only). The heart of accounting integrity (CLAUDE.md Core Principle 6).
+  -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Accounting.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Accounting.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

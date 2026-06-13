@@ -32,6 +32,9 @@
     <ProjectReference Include="..\..\src\Modules\CompanyManagement\Accountrack.CompanyManagement.Infrastructure\Accountrack.CompanyManagement.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\AuditLog\Accountrack.AuditLog.Application\Accountrack.AuditLog.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\AuditLog\Accountrack.AuditLog.Infrastructure\Accountrack.AuditLog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accounting\Accountrack.Accounting.Domain\Accountrack.Accounting.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accounting\Accountrack.Accounting.Application\Accountrack.Accounting.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accounting\Accountrack.Accounting.Infrastructure\Accountrack.Accounting.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

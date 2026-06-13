@@ -2,6 +2,8 @@ using System.Text;
 using Accountrack.Api.Authorization;
 using Accountrack.Api.Infrastructure;
 using Accountrack.Application.Abstractions.Behaviors;
+using Accountrack.Accounting.Api;
+using Accountrack.Accounting.Infrastructure;
 using Accountrack.Application.Abstractions.Context;
 using Accountrack.AuditLog.Api;
 using Accountrack.AuditLog.Infrastructure;
@@ -36,6 +38,11 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddCompanyModule(builder.Configuration);
 builder.Services.AddAuditLogModule(builder.Configuration);
+builder.Services.AddAccountingModule(builder.Configuration);
+
+// Accept/emit enums as strings in JSON (nicer API ergonomics).
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 // --- Authentication & authorization ---
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
@@ -91,6 +98,7 @@ app.MapGet("/api/v1/ping", () => Results.Ok(ApiResponse<PingInfo>.Ok(
 app.MapIdentityEndpoints();
 app.MapCompanyEndpoints();
 app.MapAuditEndpoints();
+app.MapAccountingEndpoints();
 
 // Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
@@ -103,6 +111,7 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     // Company before Identity so the dev tenant/company exist before Identity seeds its admin.
     await app.Services.InitializeCompanyModuleAsync(migrate, seedDev);
     await app.Services.InitializeIdentityModuleAsync(migrate);
+    await app.Services.InitializeAccountingModuleAsync(migrate, seedDev, DateTime.UtcNow.Year);
 }
 
 app.Run();

@@ -1,5 +1,34 @@
 # Accountrack Changelog
 
+## [2026-06-13 13:02:09 UTC]
+
+CHG-0008 — Accounting engine (slice 1): chart of accounts, fiscal periods, double-entry journals, trial balance
+
+- Implemented the Phase 2 **Accounting** backbone across clean-architecture layers. Verified
+  end-to-end against a real database: posted a balanced journal, rejected an unbalanced one
+  (BR-ACC-1), produced a balancing Trial Balance, reversed the entry (net-zero), and saw all of it
+  captured automatically by the audit log.
+- **Domain:** `Account` (+ `AccountType`/`NormalBalance`/`ControlType`), `FiscalYear`/`FiscalPeriod`
+  (open/close/lock), `JournalEntry`/`JournalLine` (balanced double-entry, immutable, reversal-only),
+  per-company `JournalNumberSequence`, errors.
+- **Application:** ports + `IJournalPoster`; CreateAccount/GetAccounts; CreateFiscalYear/Close/Reopen;
+  PostJournal, ReverseJournal, GetJournalEntry; GetTrialBalance (derived from the GL, ADR-0008).
+- **Infrastructure:** `AccountingDbContext` (own `accounting` schema) + configs (owned `Money`
+  columns, `DateOnly` periods), repositories, GL trial-balance read store, default Indonesian-SMB
+  chart + current fiscal-year seeder, DI, design-time factory, `InitialAccounting` migration.
+- **Api:** `/api/v1/accounts`, `/api/v1/fiscal-years`, `/api/v1/fiscal-periods/{id}/close|reopen`,
+  `/api/v1/journal-entries` (post/get/reverse), `/api/v1/reports/trial-balance`. Permission-gated
+  (Accounting.View/Post/PeriodClose/PeriodReopen, MasterData.Manage). JSON enums as strings.
+- **Cross-module:** added the `Modules.Contracts` project with `ICompanyDirectory` (implemented by
+  Company Management) so Accounting reads a company's functional currency without coupling.
+- **Tests:** 16 Accounting unit tests (journal invariants, reversal, posting service:
+  balance/period/account rules) + Accounting architecture-boundary tests. Full suite now 62, green.
+- **Scope:** slice 1 only. Slice 2 (next): posting rules / account determination (POSTING_RULES.md),
+  AR/AP subledgers, period-close snapshots, and P&L / Balance Sheet / Cash Flow reports.
+- See [docs/ACCOUNTING_DESIGN.md](docs/ACCOUNTING_DESIGN.md), [docs/MODULES.md](docs/MODULES.md).
+
+---
+
 ## [2026-06-13 12:35:38 UTC]
 
 CHG-0007 — Sync design docs with implemented foundation
