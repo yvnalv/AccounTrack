@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-06-13 12:25:32 UTC]
+
+CHG-0006 — Audit Log module (automatic, atomic before/after capture)
+
+- Implemented the Phase 1 **Audit Log** with automatic, tamper-evident change capture
+  (ADR-0006/0026, SECURITY.md §4). Verified end-to-end against a real database (a login's
+  `LastLoginAtUtc` change was captured and returned by the API).
+- **Shared kernel:** `AuditEntry` (append-only primitive: tenant/company, entity type+id, action,
+  before/after JSON, user, timestamp) + `AuditAction`; plus a general `PagedResult<T>`.
+- **Infrastructure.Common:** `AuditCaptureInterceptor` records inserts/updates/deletes and adds an
+  `AuditEntry` to the **same transaction** as the change (runs before soft-delete conversion).
+  `BaseDbContext` maps the shared `audit.AuditEntries` table, excluded from each module's
+  migrations.
+- **AuditLog module:** `AuditDbContext` owns the table + `InitialAudit` migration; tenant-scoped
+  read store + `GET /api/v1/audit-entries` (filtered, paged), gated by the new `Audit.View`
+  permission.
+- **Wiring:** the capture interceptor is registered in the Identity and Company DbContexts; the
+  host registers the module and creates the audit table before modules that write to it.
+- **Shared kernel ergonomics:** (none beyond the above).
+- **Tests:** audit-capture interceptor tests (insert + update before/after) and AuditLog
+  architecture-boundary tests. Full suite now 43, green.
+- See [docs/SECURITY.md](docs/SECURITY.md), [docs/DATABASE.md](docs/DATABASE.md),
+  [ADR-0026](docs/DECISIONS.md).
+
+---
+
 ## [2026-06-13 12:09:43 UTC]
 
 CHG-0005 — Company Management module (tenants, companies, settings)

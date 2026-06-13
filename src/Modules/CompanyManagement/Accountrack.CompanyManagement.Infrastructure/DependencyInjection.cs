@@ -19,13 +19,17 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("Default");
 
+        services.TryAddScoped<AuditCaptureInterceptor>();
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
         services.AddDbContext<CompanyDbContext>((sp, options) =>
         {
             options.UseSqlServer(connectionString, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", CompanyDbContext.Schema));
-            options.AddInterceptors(sp.GetRequiredService<AuditingSaveChangesInterceptor>());
+            // Capture audit BEFORE soft-delete conversion, then stamp audit fields (ADR-0026).
+            options.AddInterceptors(
+                sp.GetRequiredService<AuditCaptureInterceptor>(),
+                sp.GetRequiredService<AuditingSaveChangesInterceptor>());
         });
 
         services.AddScoped<ICompanyUnitOfWork>(sp => sp.GetRequiredService<CompanyDbContext>());

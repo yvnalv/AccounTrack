@@ -1,5 +1,6 @@
 using System.Reflection;
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.SharedKernel.Auditing;
 using Accountrack.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -57,6 +58,40 @@ public abstract class BaseDbContext : DbContext
                 InvokeGeneric(nameof(ApplySoftDeleteFilter), clr, modelBuilder);
             }
         }
+
+        // Every context can write audit entries into the shared audit table, but only the
+        // AuditLog module's context owns its migration (ADR-0026).
+        MapAuditEntry(modelBuilder, excludeFromMigrations: true);
+    }
+
+    /// <summary>The shared, append-only audit table (ADR-0006/0026).</summary>
+    public const string AuditSchema = "audit";
+    public const string AuditTable = "AuditEntries";
+
+    /// <summary>
+    /// Maps <see cref="AuditEntry"/> to the shared audit table. Participating module contexts
+    /// exclude it from their migrations; the AuditLog context includes it (owns creation).
+    /// </summary>
+    public static void MapAuditEntry(ModelBuilder modelBuilder, bool excludeFromMigrations)
+    {
+        modelBuilder.Entity<AuditEntry>(b =>
+        {
+            b.ToTable(AuditTable, AuditSchema, t =>
+            {
+                if (excludeFromMigrations)
+                {
+                    t.ExcludeFromMigrations();
+                }
+            });
+            b.HasKey(e => e.Id);
+            b.Property(e => e.EntityType).IsRequired().HasMaxLength(200);
+            b.Property(e => e.EntityId).IsRequired().HasMaxLength(128);
+            b.Property(e => e.Action).HasConversion<int>();
+            b.Property(e => e.ChangesJson).IsRequired();
+            b.Property(e => e.CorrelationId).HasMaxLength(128);
+            b.HasIndex(e => new { e.TenantId, e.EntityType, e.EntityId });
+            b.HasIndex(e => e.TimestampUtc);
+        });
     }
 
     private void InvokeGeneric(string methodName, Type clrType, ModelBuilder modelBuilder)

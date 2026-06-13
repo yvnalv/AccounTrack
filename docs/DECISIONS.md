@@ -36,6 +36,7 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0023 | Architecture-fitness tests (NetArchTest) enforce boundaries | Accepted | 2026-06-13 |
 | 0024 | Configurable posting rules (account determination) | Accepted | 2026-06-13 |
 | 0025 | Changelog policy (reverse-chronological, immutable, CHG-NNNN, UTC) | Accepted | 2026-06-13 |
+| 0026 | Atomic audit capture into one shared audit table | Accepted | 2026-06-13 |
 
 ---
 
@@ -382,3 +383,30 @@ entries. Updating the changelog is part of the definition of done. Full rules li
 
 **Consequences.** (+) Predictable, append-at-top history that both people and agents can update
 correctly. (−) Requires discipline to add an entry per notable change.
+
+---
+
+## ADR-0026: Atomic audit capture into one shared audit table
+
+- **Status:** Accepted — **Date:** 2026-06-13
+
+**Context.** Audit history must be complete and tamper-evident (ADR-0006, SECURITY.md §4). In a
+modular monolith each module owns its own DbContext/schema, but audit entries should live in one
+queryable place and be written reliably with the change that produced them.
+
+**Decision.** Audit entries are captured by a shared `AuditCaptureInterceptor` that records the
+before/after of every inserted/updated/deleted business entity and adds an `AuditEntry` row to the
+**same context/transaction** being saved — so the audit write is atomic with the business change.
+The interceptor runs *before* the soft-delete-conversion interceptor so deletes are recorded as
+deletes. `AuditEntry` is a shared SharedKernel primitive mapped to a single `audit.AuditEntries`
+table; the AuditLog module's context owns the table's migration, and every other module context
+maps the same table with `ExcludeFromMigrations()`. The AuditLog module exposes a tenant-scoped,
+permissioned read API (`Audit.View`).
+
+**Options considered.** (a) Per-module audit tables — rejected: querying/union pain. (b) Eventual
+capture via the outbox — deferred: weaker guarantee and the dispatcher isn't built yet. (c) Shared
+atomic table (chosen).
+
+**Consequences.** (+) Complete, atomic, single-table audit that is simple to query; verified
+end-to-end (login change captured). (−) Every module context maps the shared table (one line via
+`BaseDbContext`); audited "after" values intentionally exclude the stamped audit fields.
