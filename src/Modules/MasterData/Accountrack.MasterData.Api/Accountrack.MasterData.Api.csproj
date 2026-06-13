@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Accountrack.MasterData.Api</RootNamespace>
+    <AssemblyName>Accountrack.MasterData.Api</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Accountrack.MasterData.Application\Accountrack.MasterData.Application.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.Web.Common\Accountrack.Web.Common.csproj" />
+  </ItemGroup>
+
+</Project>

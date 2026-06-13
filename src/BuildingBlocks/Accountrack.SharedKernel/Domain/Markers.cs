@@ -20,6 +20,12 @@ public interface IAuditable
     Guid? UpdatedBy { get; set; }
 }
 
+/// <summary>An entity identified by a human-facing unique code (enables generic code lookups).</summary>
+public interface IHasCode
+{
+    string Code { get; }
+}
+
 /// <summary>Soft-delete fields (ADR-0006). Business data is never physically deleted.</summary>
 public interface ISoftDeletable
 {

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MasterData.Domain: products, parties, warehouses, tax codes. Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.MasterData.Domain</RootNamespace>
+    <AssemblyName>Accountrack.MasterData.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

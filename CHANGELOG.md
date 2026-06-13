@@ -1,5 +1,28 @@
 # Accountrack Changelog
 
+## [2026-06-13 13:23:30 UTC]
+
+CHG-0009 — Master Data module (products, parties, warehouses, tax codes)
+
+- Implemented the **Master Data** module — the reference data that unblocks Sales/Purchasing/
+  Inventory (which will post into the accounting engine).
+- **Domain:** `UnitOfMeasure`, `ProductCategory`, `Product` (code/SKU, base UoM, stock/sell/
+  purchase flags), `Customer`, `Supplier`, `Warehouse`, `TaxCode` (fractional rate). All carry a
+  unique-per-company code; added an `IHasCode` shared-kernel marker.
+- **Application:** create + list use cases per aggregate over a generic `ICodedRepository<T>`
+  (keeps each use case tiny); product creation validates the base UoM exists.
+- **Infrastructure:** `MasterDataDbContext` (own `masterdata` schema) + configs (per-company
+  unique code indexes), generic EF repository, dev seeder (PCS unit, GENERAL category, MAIN-WH
+  warehouse, PPN11 tax code), DI, design-time factory, `InitialMasterData` migration (verified to
+  apply to a real SQL Server).
+- **Api:** `GET`/`POST` for `/api/v1/units-of-measure`, `/product-categories`, `/products`,
+  `/customers`, `/suppliers`, `/warehouses`, `/tax-codes` — gated by MasterData.View / MasterData.Manage.
+- **Tests:** 9 Master Data unit tests (domain normalization/validation + CreateProduct handler) +
+  Master Data architecture-boundary tests. Full suite now 74, green.
+- See [docs/MODULES.md](docs/MODULES.md).
+
+---
+
 ## [2026-06-13 13:02:09 UTC]
 
 CHG-0008 — Accounting engine (slice 1): chart of accounts, fiscal periods, double-entry journals, trial balance

@@ -32,6 +32,8 @@
     <ProjectReference Include="..\..\Modules\AuditLog\Accountrack.AuditLog.Infrastructure\Accountrack.AuditLog.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Accounting\Accountrack.Accounting.Api\Accountrack.Accounting.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Accounting\Accountrack.Accounting.Infrastructure\Accountrack.Accounting.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\MasterData\Accountrack.MasterData.Api\Accountrack.MasterData.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\MasterData\Accountrack.MasterData.Infrastructure\Accountrack.MasterData.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
