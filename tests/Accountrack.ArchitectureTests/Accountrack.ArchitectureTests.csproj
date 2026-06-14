@@ -46,6 +46,9 @@
     <ProjectReference Include="..\..\src\Modules\ProcessTracker\Accountrack.ProcessTracker.Domain\Accountrack.ProcessTracker.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\ProcessTracker\Accountrack.ProcessTracker.Application\Accountrack.ProcessTracker.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\ProcessTracker\Accountrack.ProcessTracker.Infrastructure\Accountrack.ProcessTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notification\Accountrack.Notification.Domain\Accountrack.Notification.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notification\Accountrack.Notification.Application\Accountrack.Notification.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notification\Accountrack.Notification.Infrastructure\Accountrack.Notification.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

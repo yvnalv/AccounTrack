@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Notification.Application</RootNamespace>
+    <AssemblyName>Accountrack.Notification.Application</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Accountrack.Notification.Domain\Accountrack.Notification.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\Modules.Contracts\Accountrack.Modules.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Notification.Domain: user-facing notifications. Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Notification.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Notification.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

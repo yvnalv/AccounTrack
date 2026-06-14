@@ -1,5 +1,24 @@
 # Accountrack Changelog
 
+## [2026-06-14 05:24:37 UTC]
+
+CHG-0014 — Notification module (in-app) — Phase 1 foundation complete
+
+- Implemented the **Notification** module: in-app `Notification` (per-user title/body/read state),
+  a consumer that subscribes to the approval integration events and notifies the document's
+  submitter, and `GET /api/v1/notifications` (+ `?unreadOnly=true`) / `POST /{id}/read`. Own
+  `notification` schema + `InitialNotification` migration. Verified end-to-end: submitting a PO and
+  having it approved produced "submitted for approval" and "approved" notifications for the
+  submitter, and mark-read worked — a *second* consumer firing on the same events alongside Process
+  Tracker.
+- **Phase 1 foundation modules are now complete** (Identity, Company, Audit, Approval, Process
+  Tracker, Notification + integration events). The only outstanding Phase-1 item is the dedicated
+  cross-tenant isolation *integration* test suite.
+- **Tests:** 3 Notification unit tests + architecture-boundary tests. Full suite now 117, green.
+- See [docs/MODULES.md](docs/MODULES.md), [docs/STATUS.md](docs/STATUS.md).
+
+---
+
 ## [2026-06-14 05:12:24 UTC]
 
 CHG-0013 — In-process integration events + Process Tracker module

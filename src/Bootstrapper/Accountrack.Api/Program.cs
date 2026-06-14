@@ -15,6 +15,8 @@ using Accountrack.Inventory.Api;
 using Accountrack.Inventory.Infrastructure;
 using Accountrack.MasterData.Api;
 using Accountrack.MasterData.Infrastructure;
+using Accountrack.Notification.Api;
+using Accountrack.Notification.Infrastructure;
 using Accountrack.ProcessTracker.Api;
 using Accountrack.ProcessTracker.Infrastructure;
 using Accountrack.Identity.Api;
@@ -55,6 +57,7 @@ builder.Services.AddMasterDataModule(builder.Configuration);
 builder.Services.AddInventoryModule(builder.Configuration);
 builder.Services.AddApprovalModule(builder.Configuration);
 builder.Services.AddProcessTrackerModule(builder.Configuration);
+builder.Services.AddNotificationModule(builder.Configuration);
 
 // Accept/emit enums as strings in JSON (nicer API ergonomics).
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -119,6 +122,7 @@ app.MapMasterDataEndpoints();
 app.MapInventoryEndpoints();
 app.MapApprovalEndpoints();
 app.MapProcessTrackerEndpoints();
+app.MapNotificationEndpoints();
 
 // Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
@@ -136,6 +140,7 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     await app.Services.InitializeInventoryModuleAsync(migrate);
     await app.Services.InitializeApprovalModuleAsync(migrate);
     await app.Services.InitializeProcessTrackerModuleAsync(migrate);
+    await app.Services.InitializeNotificationModuleAsync(migrate);
 }
 
 app.Run();
