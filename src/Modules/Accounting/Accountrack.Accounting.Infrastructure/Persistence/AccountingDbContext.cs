@@ -23,6 +23,8 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
     public DbSet<JournalLine> JournalLines => Set<JournalLine>();
     public DbSet<JournalNumberSequence> JournalNumberSequences => Set<JournalNumberSequence>();
     public DbSet<PostingRule> PostingRules => Set<PostingRule>();
+    public DbSet<SubledgerOpenItem> SubledgerOpenItems => Set<SubledgerOpenItem>();
+    public DbSet<SubledgerAllocation> SubledgerAllocations => Set<SubledgerAllocation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,6 +101,45 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
             b.Property(r => r.EventType).IsRequired().HasMaxLength(128);
             b.Property(r => r.RuleKey).IsRequired().HasMaxLength(64);
             b.HasIndex(r => new { r.TenantId, r.CompanyId, r.RuleKey, r.EventType });
+        });
+
+        modelBuilder.Entity<SubledgerOpenItem>(b =>
+        {
+            b.ToTable("SubledgerOpenItems");
+            b.Property(i => i.Type).HasConversion<int>();
+            b.Property(i => i.SourceType).HasConversion<int>();
+            b.Property(i => i.Status).HasConversion<int>();
+            b.Property(i => i.DocumentNo).IsRequired().HasMaxLength(64);
+            b.Property(i => i.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.OwnsOne(i => i.OriginalAmount, m =>
+            {
+                m.Property(x => x.Amount).HasColumnName("OriginalAmount").HasColumnType("decimal(19,4)");
+                m.Property(x => x.Currency).HasColumnName("OriginalCurrency").HasMaxLength(3).IsFixedLength();
+            });
+            b.OwnsOne(i => i.SettledAmount, m =>
+            {
+                m.Property(x => x.Amount).HasColumnName("SettledAmount").HasColumnType("decimal(19,4)");
+                m.Property(x => x.Currency).HasColumnName("SettledCurrency").HasMaxLength(3).IsFixedLength();
+            });
+            b.Navigation(i => i.OriginalAmount).IsRequired();
+            b.Navigation(i => i.SettledAmount).IsRequired();
+            b.HasMany(i => i.Allocations).WithOne().HasForeignKey(a => a.OpenItemId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(i => i.Allocations).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.Ignore(i => i.OutstandingAmount);
+            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.Type, i.PartyId, i.Status });
+        });
+
+        modelBuilder.Entity<SubledgerAllocation>(b =>
+        {
+            b.ToTable("SubledgerAllocations");
+            b.Property(a => a.PaymentReference).IsRequired().HasMaxLength(64);
+            b.OwnsOne(a => a.Amount, m =>
+            {
+                m.Property(x => x.Amount).HasColumnName("Amount").HasColumnType("decimal(19,4)");
+                m.Property(x => x.Currency).HasColumnName("Currency").HasMaxLength(3).IsFixedLength();
+            });
+            b.Navigation(a => a.Amount).IsRequired();
+            b.HasIndex(a => a.OpenItemId);
         });
 
         base.OnModelCreating(modelBuilder);

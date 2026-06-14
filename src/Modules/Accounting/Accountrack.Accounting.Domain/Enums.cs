@@ -38,6 +38,21 @@ public enum JournalStatus
     Reversed = 2,
 }
 
+/// <summary>Which subledger an open item belongs to (ADR-0011).</summary>
+public enum SubledgerType
+{
+    Receivable = 0,
+    Payable = 1,
+}
+
+/// <summary>Settlement state of a subledger open item.</summary>
+public enum OpenItemStatus
+{
+    Open = 0,
+    PartiallyPaid = 1,
+    Settled = 2,
+}
+
 /// <summary>What produced a journal (drill-down / idempotency source).</summary>
 public enum JournalSource
 {

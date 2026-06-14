@@ -40,6 +40,15 @@ public static class AccountingErrors
     public static readonly Error PeriodNotFound =
         Error.NotFound("ACCOUNTING.PERIOD_NOT_FOUND", "Fiscal period not found.");
 
+    public static readonly Error OpenItemNotFound =
+        Error.NotFound("ACCOUNTING.OPEN_ITEM_NOT_FOUND", "Subledger open item not found.");
+
+    public static readonly Error AllocationExceedsOutstanding =
+        Error.BusinessRule("BR-ACC-7", "Allocation exceeds the open item's outstanding amount.", "ACCOUNTING.ALLOCATION_EXCEEDS_OUTSTANDING");
+
+    public static readonly Error OpenItemSettled =
+        Error.Conflict("ACCOUNTING.OPEN_ITEM_SETTLED", "This open item is already settled.");
+
     public static Error PostingRuleUnresolved(string eventType, string ruleKey) =>
         Error.BusinessRule(
             "BR-ACC-6",

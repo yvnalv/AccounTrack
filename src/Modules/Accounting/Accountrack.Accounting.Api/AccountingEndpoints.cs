@@ -1,4 +1,5 @@
 using Accountrack.Accounting.Application.Features;
+using Accountrack.Accounting.Domain;
 using Accountrack.Web.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -10,6 +11,11 @@ namespace Accountrack.Accounting.Api;
 public static class AccountingEndpoints
 {
     public sealed record ReverseRequest(DateOnly? Date, string? Reason);
+
+    public sealed record RecordOpenItemRequest(
+        Guid PartyId, string DocumentNo, DateOnly DocumentDate, DateOnly DueDate, decimal Amount);
+
+    public sealed record AllocateRequest(string PaymentReference, DateOnly Date, decimal Amount);
 
     public static IEndpointRouteBuilder MapAccountingEndpoints(this IEndpointRouteBuilder app)
     {
@@ -90,6 +96,34 @@ public static class AccountingEndpoints
             (await sender.Send(cmd, ct)).ToCreatedResult("/api/v1/posting-rules"))
             .RequireAuthorization("Accounting.Post").WithName("SetPostingRule");
 
+        // --- AR / AP subledgers ---
+        MapSubledger(app, "ar", SubledgerType.Receivable);
+        MapSubledger(app, "ap", SubledgerType.Payable);
+
         return app;
+    }
+
+    private static void MapSubledger(IEndpointRouteBuilder app, string prefix, SubledgerType type)
+    {
+        var group = app.MapGroup($"/api/v1/{prefix}").WithTags(prefix.ToUpperInvariant() + " Subledger").RequireAuthorization();
+
+        group.MapGet("/open-items", async (Guid? partyId, bool? includeSettled, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetOpenItemsQuery(type, partyId, includeSettled ?? false), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.View").WithName($"Get{prefix}OpenItems");
+
+        group.MapGet("/aging", async (DateOnly? asOfDate, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetAgingQuery(type, asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow)), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.View").WithName($"Get{prefix}Aging");
+
+        group.MapPost("/open-items", async (RecordOpenItemRequest body, ISender sender, CancellationToken ct) =>
+            (await sender.Send(
+                new RecordOpenItemCommand(type, body.PartyId, body.DocumentNo, body.DocumentDate, body.DueDate, body.Amount), ct))
+                .ToCreatedResult($"/api/v1/{prefix}/open-items"))
+            .RequireAuthorization("Accounting.Post").WithName($"Record{prefix}OpenItem");
+
+        group.MapPost("/open-items/{id:guid}/allocations", async (Guid id, AllocateRequest body, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new AllocatePaymentCommand(id, body.PaymentReference, body.Date, body.Amount), ct))
+                .ToCreatedResult($"/api/v1/{prefix}/open-items/{id}/allocations"))
+            .RequireAuthorization("Accounting.Post").WithName($"Allocate{prefix}Payment");
     }
 }

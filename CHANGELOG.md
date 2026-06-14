@@ -1,5 +1,33 @@
 # Accountrack Changelog
 
+## [2026-06-14 14:10:06 UTC]
+
+CHG-0018 — Accounting: AR / AP subledgers (open items, allocation, aging)
+
+- Added the **AR and AP subledgers** (ADR-0011, docs/ACCOUNTING_DESIGN.md §5): open-item tracking
+  per customer/supplier with payment allocation and aging — the open-item layer that reconciles to
+  the GL control accounts and that invoice/payment posting will move in step with the GL.
+- **Domain:** `SubledgerOpenItem` aggregate (Type AR/Payable, party, source document, due date,
+  original / settled / computed outstanding, status Open → PartiallyPaid → Settled) with
+  `SubledgerAllocation` children. Guards: positive amounts, currency match, no over-allocation
+  (`BR-ACC-7`), no allocation to a settled item.
+- **Service** (`ISubledgerService`): `OpenItemAsync` + `AllocateAsync`, save-less so a future
+  invoice/payment handler can move the subledger and post the journal atomically.
+- **Features / Api:** opening-balance + allocation commands and open-item / aging queries, exposed
+  symmetrically under `/api/v1/ar/*` and `/api/v1/ap/*` — `GET open-items`, `GET aging`
+  (Accounting.View); `POST open-items`, `POST open-items/{id}/allocations` (Accounting.Post).
+  Aging buckets: Current / 1–30 / 31–60 / 61–90 / 90+ past due, per party + grand totals.
+- **Persistence:** EF migration `AddSubledgers` (`SubledgerOpenItems`, `SubledgerAllocations` in the
+  accounting schema).
+- **Tests:** 6 new (partial/full allocation status, over-allocation guard, invalid open, service
+  error translation, aging bucketing). Full suite now 147, green. Verified end-to-end: recorded an
+  AR invoice, partial allocation → PartiallyPaid (outstanding 600,000), aging placed it in 1–30,
+  and an over-allocation was rejected.
+- Completes the **Accounting slice 2** posting/subledger layer (with CHG-0017). See
+  [docs/ACCOUNTING_DESIGN.md](docs/ACCOUNTING_DESIGN.md).
+
+---
+
 ## [2026-06-14 13:22:34 UTC]
 
 CHG-0017 — Accounting: posting-rule / account-determination engine

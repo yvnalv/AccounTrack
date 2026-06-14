@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-14 (last change **CHG-0017**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 141 passing.
+- **As of:** 2026-06-14 (last change **CHG-0018**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 147 passing.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -33,9 +33,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ◻️ **Cross-tenant isolation integration suite** (Testcontainers) — MULTI_TENANCY.md §9
 
 ### Phase 2 — Core ERP
-- 🟡 **Accounting** (slice 1 + reports + posting engine) — chart of accounts, fiscal periods,
-  double-entry journals + reversal, trial balance (CHG-0008); **Profit & Loss + Balance Sheet**
-  (CHG-0016); **posting-rule / account-determination engine** + health check (CHG-0017)
+- 🟡 **Accounting** (slice 1 + reports + posting engine + subledgers) — chart of accounts, fiscal
+  periods, double-entry journals + reversal, trial balance (CHG-0008); **Profit & Loss + Balance
+  Sheet** (CHG-0016); **posting-rule / account-determination engine** + health check (CHG-0017);
+  **AR/AP subledgers** — open items, allocation, aging (CHG-0018)
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
 - 🟡 **Inventory** (slice 1) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010)
@@ -49,8 +50,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## Deferred backlog (planned slices / debts)
 
-- **Accounting slice 2 (remaining):** AR/AP subledgers (open items, allocation, aging), period-close
-  balance snapshots, Cash Flow. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017.)
+- **Accounting slice 2 (remaining):** period-close balance snapshots, year-end close to retained
+  earnings, Cash Flow report. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017;
+  AR/AP subledgers — CHG-0018.)
 - **Inventory slice 2:** GL posting on stock moves (Dr/Cr Inventory/COGS/Variance), stock opname,
   per-company negative-stock setting, back-dating recompute.
 - **Cross-module atomic posting:** making a Sales shipment (stock issue + COGS journal) and an
@@ -67,9 +69,9 @@ inventory ledger (`IInventoryLedger`) **and** post Dr Inventory / Cr GR-IR. This
 **cross-module atomic posting** infrastructure must be built (one shared DB transaction spanning the
 Purchasing + Inventory + Accounting contexts — they share one database). After GR: Purchase Invoice
 (Dr GR-IR + VAT Input / Cr AP, needs Accounting slice 2 AP subledger) and Supplier Payment.
-(Alternative — currently in progress: finishing Accounting slice 2. Posting-rule engine landed
-CHG-0017; **AR/AP subledgers** next — open items, payment allocation, aging — which GR/invoicing
-will need anyway.)
+(The Accounting slice 2 posting/subledger prerequisites are now in place — posting-rule engine
+CHG-0017, AR/AP subledgers CHG-0018 — so Goods Receipt and Purchase Invoice posting can now build
+on them.)
 
 ## How to resume
 

@@ -22,3 +22,16 @@ public sealed record PostingRuleDto(
 public sealed record PostingRuleHealthIssue(string RuleKey, string Problem);
 
 public sealed record PostingRuleHealthDto(bool IsHealthy, IReadOnlyList<PostingRuleHealthIssue> Issues);
+
+public sealed record SubledgerOpenItemDto(
+    Guid Id, string Type, Guid PartyId, string SourceType, string DocumentNo,
+    DateOnly DocumentDate, DateOnly DueDate, string Currency,
+    decimal OriginalAmount, decimal SettledAmount, decimal OutstandingAmount, string Status);
+
+public sealed record AgingRowDto(
+    Guid PartyId, decimal Current, decimal Days1To30, decimal Days31To60, decimal Days61To90,
+    decimal Days90Plus, decimal Total);
+
+public sealed record AgingReportDto(
+    string Type, DateOnly AsOfDate, IReadOnlyList<AgingRowDto> Rows,
+    decimal Current, decimal Days1To30, decimal Days31To60, decimal Days61To90, decimal Days90Plus, decimal Total);

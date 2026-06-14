@@ -70,3 +70,28 @@ public interface IPostingRuleResolver
 {
     Task<Result<Guid>> ResolveAsync(string eventType, string ruleKey, PostingSelector selector, CancellationToken ct);
 }
+
+public interface ISubledgerRepository
+{
+    void Add(SubledgerOpenItem item);
+    Task<SubledgerOpenItem?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<SubledgerOpenItem>> ListAsync(
+        SubledgerType type, Guid? partyId, bool includeSettled, CancellationToken ct);
+}
+
+/// <summary>
+/// AR/AP subledger operations (ADR-0011): create open items from documents (or opening balances)
+/// and allocate payments to them. Reused by the future Sales/Purchasing invoice + payment posting
+/// so the subledger always moves in step with the GL control account.
+/// </summary>
+public interface ISubledgerService
+{
+    Task<Result<Guid>> OpenItemAsync(
+        SubledgerType type, Guid partyId, JournalSource sourceType, Guid? sourceDocumentId,
+        string documentNo, DateOnly documentDate, DateOnly dueDate, decimal amount, string currency,
+        CancellationToken ct);
+
+    Task<Result<Guid>> AllocateAsync(
+        Guid openItemId, string paymentReference, DateOnly date, decimal amount, Guid? paymentDocumentId,
+        CancellationToken ct);
+}

@@ -84,6 +84,35 @@ public sealed class PostingRuleRepository : IPostingRuleRepository
     public void Add(PostingRule rule) => _db.PostingRules.Add(rule);
 }
 
+public sealed class SubledgerRepository : ISubledgerRepository
+{
+    private readonly AccountingDbContext _db;
+    public SubledgerRepository(AccountingDbContext db) => _db = db;
+
+    public void Add(SubledgerOpenItem item) => _db.SubledgerOpenItems.Add(item);
+
+    public Task<SubledgerOpenItem?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        _db.SubledgerOpenItems.Include(i => i.Allocations).FirstOrDefaultAsync(i => i.Id == id, ct);
+
+    public async Task<IReadOnlyList<SubledgerOpenItem>> ListAsync(
+        SubledgerType type, Guid? partyId, bool includeSettled, CancellationToken ct)
+    {
+        var query = _db.SubledgerOpenItems.Where(i => i.Type == type);
+
+        if (partyId.HasValue)
+        {
+            query = query.Where(i => i.PartyId == partyId.Value);
+        }
+
+        if (!includeSettled)
+        {
+            query = query.Where(i => i.Status != OpenItemStatus.Settled);
+        }
+
+        return await query.OrderBy(i => i.DueDate).ToListAsync(ct);
+    }
+}
+
 public sealed class AccountingReadStore : IAccountingReadStore
 {
     private readonly AccountingDbContext _db;
