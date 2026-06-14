@@ -11,6 +11,15 @@ public interface IPurchaseOrderRepository
     void AddSequence(PurchaseOrderNumberSequence sequence);
 }
 
+public interface IGoodsReceiptRepository
+{
+    void Add(GoodsReceipt receipt);
+    Task<GoodsReceipt?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<GoodsReceipt>> ListByPurchaseOrderAsync(Guid purchaseOrderId, CancellationToken ct);
+    Task<GoodsReceiptNumberSequence?> GetSequenceAsync(CancellationToken ct);
+    void AddSequence(GoodsReceiptNumberSequence sequence);
+}
+
 public interface IPurchasingUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken ct);

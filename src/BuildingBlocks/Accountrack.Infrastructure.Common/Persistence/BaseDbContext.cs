@@ -1,5 +1,6 @@
 using System.Reflection;
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Infrastructure.Common.Transactions;
 using Accountrack.SharedKernel.Auditing;
 using Accountrack.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,7 @@ namespace Accountrack.Infrastructure.Common.Persistence;
 ///   - ignoring the in-memory domain-event buffer.
 /// Derived module contexts call <see cref="ApplyAccountrackConventions"/> from OnModelCreating.
 /// </summary>
-public abstract class BaseDbContext : DbContext
+public abstract class BaseDbContext : DbContext, ITransactionalDbContext
 {
     private readonly ITenantContext _tenant;
 
@@ -26,6 +27,9 @@ public abstract class BaseDbContext : DbContext
     public Guid CurrentTenantId => _tenant.TenantId;
 
     public Guid CurrentCompanyId => _tenant.CompanyId;
+
+    /// <summary>Lets the cross-module unit of work enlist and persist this context (ADR-0007).</summary>
+    public DbContext DbContext => this;
 
     protected void ApplyAccountrackConventions(ModelBuilder modelBuilder)
     {

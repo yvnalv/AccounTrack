@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-14 (last change **CHG-0018**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 147 passing.
+- **As of:** 2026-06-14 (last change **CHG-0019**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 153 passing.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -29,6 +29,7 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **Approval Workflow** — generic engine: conditional/multi-level, SoD, auto-approve (CHG-0012)
 - ✅ **Process Tracker** — document lifecycle timeline; consumes approval events (CHG-0013)
 - ✅ **In-process integration events** — publisher + handlers building block (ADR-0007) (CHG-0013)
+- ✅ **Cross-module atomic transactions** — shared connection + unit of work (INTEGRATION_EVENTS.md §2) (CHG-0019)
 - ✅ **Notification** — in-app notifications consuming approval events; list + mark-read (CHG-0014)
 - ◻️ **Cross-tenant isolation integration suite** (Testcontainers) — MULTI_TENANCY.md §9
 
@@ -40,8 +41,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
 - 🟡 **Inventory** (slice 1) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010)
-- 🟡 **Purchasing** (slice 1) — Purchase Orders + Approval/Process-Tracker/Notification integration
-  (CHG-0015). Slice 2: Goods Receipt → inventory + GL, Purchase Invoice → AP/VAT, Supplier Payment
+- 🟡 **Purchasing** (slice 1 + Goods Receipt) — Purchase Orders + Approval/Process-Tracker/Notification
+  (CHG-0015); **Goods Receipt** → atomic inventory ledger + Dr Inventory/Cr GR-IR journal (CHG-0019).
+  Remaining slice 2: Purchase Invoice → AP/VAT + clear GR-IR, Supplier Payment
 - ◻️ **Sales** — Quotation → SO → Delivery → Sales Invoice → Customer Payment, returns
 - ◻️ **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, VAT, inventory valuation
 
@@ -55,23 +57,22 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   AR/AP subledgers — CHG-0018.)
 - **Inventory slice 2:** GL posting on stock moves (Dr/Cr Inventory/COGS/Variance), stock opname,
   per-company negative-stock setting, back-dating recompute.
-- **Cross-module atomic posting:** making a Sales shipment (stock issue + COGS journal) and an
-  invoice (AR/AP + journal) atomic across module DbContexts — to be designed when Sales/Purchasing
-  land (INTEGRATION_EVENTS.md §2).
+- **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
+  `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
+  flows will reuse it.
+- **Idempotency for atomic flows:** posting is not yet idempotent (no inbox/dedupe key) — re-posting a
+  Goods Receipt would double-receive. Add idempotency keys before exposing retries (ADR-0021).
 - **Frontend:** Vue 3 SPA — **pause for a UI/UX design discussion before building** (user
   preference: not template/AI-ish).
 
 ## ▶️ Next up (recommended)
 
-Purchase Orders (slice 1) are done with full Approval/Process-Tracker/Notification integration. The
-clear next step is **Purchasing slice 2 — Goods Receipt**: receive against a PO → write the
-inventory ledger (`IInventoryLedger`) **and** post Dr Inventory / Cr GR-IR. This is where the
-**cross-module atomic posting** infrastructure must be built (one shared DB transaction spanning the
-Purchasing + Inventory + Accounting contexts — they share one database). After GR: Purchase Invoice
-(Dr GR-IR + VAT Input / Cr AP, needs Accounting slice 2 AP subledger) and Supplier Payment.
-(The Accounting slice 2 posting/subledger prerequisites are now in place — posting-rule engine
-CHG-0017, AR/AP subledgers CHG-0018 — so Goods Receipt and Purchase Invoice posting can now build
-on them.)
+Goods Receipt (CHG-0019) posts inventory + GR-IR atomically. The clear next step is **Purchasing
+slice 2 — Purchase Invoice**: bill against the receipt → post **Dr GR-IR + Dr VAT Input / Cr AP
+control**, clearing GR-IR and opening an **AP subledger** item (the engine for both — posting rules
+CHG-0017, AP subledger CHG-0018 — is ready). Then **Supplier Payment** (allocate AP open items,
+Dr AP / Cr Cash-Bank). Alternatively start **Sales slice 1** (Quotation → SO → Delivery → Invoice),
+which reuses the same atomic-posting + subledger foundation on the order-to-cash side.
 
 ## How to resume
 

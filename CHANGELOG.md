@@ -1,5 +1,37 @@
 # Accountrack Changelog
 
+## [2026-06-14 15:01:50 UTC]
+
+CHG-0019 — Purchasing: Goods Receipt + cross-module atomic posting
+
+- Built the **cross-module atomic transaction** foundation (INTEGRATION_EVENTS.md §2): a request-scoped
+  shared database connection (`ISharedDbConnection`) and an `ICrossModuleUnitOfWork` that opens one
+  transaction, enlists every participating module context (`ITransactionalDbContext`), persists them
+  all, and commits — or rolls everything back on failure. No MSDTC (single shared connection).
+- New synchronous cross-module contracts in `Modules.Contracts` (now referencing SharedKernel for
+  `Result`): `IInventoryPosting`, `IGeneralLedgerPoster`, `IPostingAccountResolver`, plus
+  `ICrossModuleUnitOfWork`. Inventory and Accounting expose save-less adapters; Purchasing, Inventory
+  and Accounting bind their DbContext to the shared connection.
+- **Goods Receipt** (Purchasing slice 2): receive goods against an approved purchase order. In one
+  atomic transaction it writes the inventory ledger (moving average), posts **Dr Inventory / Cr
+  GR-IR** via posting rules (accounts resolved, never hardcoded), advances the PO receipt status
+  (Approved → PartiallyReceived → Received with per-line received/outstanding quantities), and records
+  the goods-receipt document linked to its journal.
+- **Api:** `POST /api/v1/purchase-orders/{id}/goods-receipts`, `GET .../goods-receipts`,
+  `GET /api/v1/goods-receipts/{id}` (Purchasing.Post / Purchasing.View). PO line DTO now exposes the
+  line id + received/outstanding quantities.
+- **Persistence:** EF migration `AddGoodsReceipts` (GoodsReceipts/GoodsReceiptLines/sequence +
+  `ReceivedQuantity` on PurchaseOrderLines). JournalLine now carries an optional subledger party.
+- **Tests:** 13 new (GR domain receipt/over-receipt/status; handler orchestration: posts balanced
+  journal + advances PO, over-receipt and non-approved guards). Full suite now 153, green.
+- **Verified end-to-end, including atomicity:** received 4 of 10 → stock 4 @ 100, GR doc total 400 with
+  its journal, PO PartiallyReceived (4/6), balanced Dr Inventory 400 / Cr GR-IR 400 in the GL. Then,
+  with the fiscal period **closed**, a further receipt failed and **everything rolled back** — stock
+  still 4, PO unchanged, no GR document — proving the transaction is atomic across the three modules.
+- See [docs/INTEGRATION_EVENTS.md](docs/INTEGRATION_EVENTS.md), [docs/POSTING_RULES.md](docs/POSTING_RULES.md).
+
+---
+
 ## [2026-06-14 14:10:06 UTC]
 
 CHG-0018 — Accounting: AR / AP subledgers (open items, allocation, aging)

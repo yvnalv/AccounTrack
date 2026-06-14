@@ -36,6 +36,15 @@ The contract catalog for inter-module communication. Modules never read each oth
 (the consuming module exposes a synchronous contract). **Eventual** effects go through the
 outbox to subscribing handlers.
 
+**Implementation (CHG-0019).** Atomic flows use `ICrossModuleUnitOfWork` (`Modules.Contracts`):
+participating modules (currently Purchasing, Inventory, Accounting) bind their DbContext to one
+request-scoped `ISharedDbConnection`, register as `ITransactionalDbContext`, and expose **save-less**
+synchronous contracts (`IInventoryPosting`, `IGeneralLedgerPoster`, `IPostingAccountResolver`). The
+coordinator opens a single local transaction (no MSDTC), runs the work, persists every enlisted
+context, and commits — or rolls everything back on failure. First consumer: Goods Receipt (stock
+ledger + Dr Inventory/Cr GR-IR journal). Note: idempotency keys (inbox) for these flows are not yet
+implemented — retries are not yet safe against double-posting.
+
 > Rule of thumb: if a failure would make the **GL or inventory ledger wrong or inconsistent**,
 > it is atomic. If a failure only delays a notification/projection that can be replayed, it is
 > eventual.

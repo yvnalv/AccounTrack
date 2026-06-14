@@ -9,6 +9,8 @@ public enum PurchaseOrderStatus
     Approved = 2,
     Rejected = 3,
     Cancelled = 4,
+    PartiallyReceived = 5,
+    Received = 6,
 }
 
 /// <summary>
@@ -105,6 +107,31 @@ public sealed class PurchaseOrder : TenantOwnedEntity, IAggregateRoot
         Status = PurchaseOrderStatus.Cancelled;
     }
 
+    /// <summary>Whether goods can still be received against this order.</summary>
+    public bool CanReceive =>
+        Status is PurchaseOrderStatus.Approved or PurchaseOrderStatus.PartiallyReceived;
+
+    /// <summary>
+    /// Records a received quantity against one line and advances the order's receipt status
+    /// (BR-PUR-2). Throws if the order is not receivable or the quantity exceeds what's outstanding.
+    /// </summary>
+    public void ReceiveLine(Guid lineId, decimal quantity)
+    {
+        if (!CanReceive)
+        {
+            throw new InvalidOperationException("Goods can only be received against an approved purchase order.");
+        }
+
+        var line = _lines.FirstOrDefault(l => l.Id == lineId)
+            ?? throw new InvalidOperationException("Purchase-order line not found.");
+
+        line.Receive(quantity);
+
+        Status = _lines.All(l => l.IsFullyReceived)
+            ? PurchaseOrderStatus.Received
+            : PurchaseOrderStatus.PartiallyReceived;
+    }
+
     private void EnsureDraftWithLines()
     {
         if (Status != PurchaseOrderStatus.Draft)
@@ -155,6 +182,28 @@ public sealed class PurchaseOrderLine : Entity
     public decimal LineSubTotal { get; private set; }
     public decimal LineTaxAmount { get; private set; }
     public decimal LineTotal { get; private set; }
+
+    /// <summary>Cumulative quantity received via goods receipts (BR-PUR-2).</summary>
+    public decimal ReceivedQuantity { get; private set; }
+
+    public decimal OutstandingQuantity => Quantity - ReceivedQuantity;
+
+    public bool IsFullyReceived => ReceivedQuantity >= Quantity;
+
+    internal void Receive(decimal quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Received quantity must be positive.");
+        }
+
+        if (quantity > OutstandingQuantity)
+        {
+            throw new InvalidOperationException("Received quantity exceeds the outstanding quantity.");
+        }
+
+        ReceivedQuantity += quantity;
+    }
 
     internal static PurchaseOrderLine Create(Guid productId, decimal quantity, decimal unitPrice, decimal taxRate, string? description)
     {

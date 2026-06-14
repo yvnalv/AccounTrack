@@ -20,10 +20,42 @@ public sealed class PurchaseOrderNumberSequence : TenantOwnedEntity
     }
 }
 
+/// <summary>Per-company gapless counter for goods-receipt numbers.</summary>
+public sealed class GoodsReceiptNumberSequence : TenantOwnedEntity
+{
+    private GoodsReceiptNumberSequence() { }
+
+    public GoodsReceiptNumberSequence(int next = 1) => Next = next;
+
+    public int Next { get; private set; }
+
+    public string Take(DateOnly date)
+    {
+        var value = Next;
+        Next++;
+        return $"GR/{date.Year:D4}{date.Month:D2}/{value:D5}";
+    }
+}
+
 public static class PurchasingErrors
 {
     public static readonly Error NotFound =
         Error.NotFound("PURCHASING.PO_NOT_FOUND", "Purchase order not found.");
+
+    public static readonly Error NotReceivable =
+        Error.Conflict("PURCHASING.NOT_RECEIVABLE", "Goods can only be received against an approved purchase order.");
+
+    public static readonly Error NoReceiptLines =
+        Error.BusinessRule("BR-PUR-2", "A goods receipt requires at least one line.", "PURCHASING.NO_RECEIPT_LINES");
+
+    public static Error PurchaseOrderLineNotFound(Guid lineId) =>
+        Error.Validation("PURCHASING.PO_LINE_NOT_FOUND", $"Purchase-order line {lineId} does not exist on this order.");
+
+    public static Error OverReceipt(decimal outstanding, decimal requested) =>
+        Error.BusinessRule(
+            "BR-PUR-2",
+            $"Cannot receive {requested}; only {outstanding} is outstanding on this line.",
+            "PURCHASING.OVER_RECEIPT");
 
     public static readonly Error SupplierNotFound =
         Error.Validation("PURCHASING.SUPPLIER_NOT_FOUND", "The specified supplier does not exist.");

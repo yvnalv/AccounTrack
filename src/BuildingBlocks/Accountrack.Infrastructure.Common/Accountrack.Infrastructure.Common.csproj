@@ -15,11 +15,13 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
     <ProjectReference Include="..\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Modules.Contracts\Accountrack.Modules.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

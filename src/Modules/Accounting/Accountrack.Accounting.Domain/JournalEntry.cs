@@ -41,14 +41,15 @@ public sealed class JournalEntry : TenantOwnedEntity, IAggregateRoot
         DateOnly date, string currency, JournalSource source, Guid? sourceDocumentId, string description) =>
         new(date, currency, source, sourceDocumentId, description);
 
-    public void AddLine(Guid accountId, decimal debit, decimal credit, string? description = null)
+    public void AddLine(Guid accountId, decimal debit, decimal credit, string? description = null, Guid? subledgerPartyId = null)
     {
         if (Status != JournalStatus.Draft)
         {
             throw new InvalidOperationException("Lines can only be added to a draft journal.");
         }
 
-        _lines.Add(JournalLine.Create(accountId, Money.Create(debit, Currency), Money.Create(credit, Currency), description));
+        _lines.Add(JournalLine.Create(
+            accountId, Money.Create(debit, Currency), Money.Create(credit, Currency), description, subledgerPartyId));
     }
 
     public Money TotalDebit => _lines.Aggregate(Money.Zero(Currency), (sum, l) => sum.Add(l.Debit));
@@ -97,7 +98,7 @@ public sealed class JournalEntry : TenantOwnedEntity, IAggregateRoot
 
         foreach (var line in _lines)
         {
-            reversal.AddLine(line.AccountId, line.Credit.Amount, line.Debit.Amount, line.Description);
+            reversal.AddLine(line.AccountId, line.Credit.Amount, line.Debit.Amount, line.Description, line.SubledgerPartyId);
         }
 
         return reversal;
@@ -115,12 +116,13 @@ public sealed class JournalLine : Entity
 {
     private JournalLine() { }
 
-    private JournalLine(Guid accountId, Money debit, Money credit, string? description)
+    private JournalLine(Guid accountId, Money debit, Money credit, string? description, Guid? subledgerPartyId)
     {
         AccountId = accountId;
         Debit = debit;
         Credit = credit;
         Description = description;
+        SubledgerPartyId = subledgerPartyId;
     }
 
     public Guid JournalEntryId { get; private set; }
@@ -132,7 +134,8 @@ public sealed class JournalLine : Entity
     /// <summary>Customer/supplier reference for control-account lines (AR/AP subledger — slice 2).</summary>
     public Guid? SubledgerPartyId { get; private set; }
 
-    internal static JournalLine Create(Guid accountId, Money debit, Money credit, string? description)
+    internal static JournalLine Create(
+        Guid accountId, Money debit, Money credit, string? description, Guid? subledgerPartyId = null)
     {
         if (debit.Amount < 0 || credit.Amount < 0)
         {
@@ -146,6 +149,6 @@ public sealed class JournalLine : Entity
             throw new InvalidOperationException("A journal line must be exactly one of debit or credit.");
         }
 
-        return new JournalLine(accountId, debit, credit, description);
+        return new JournalLine(accountId, debit, credit, description, subledgerPartyId);
     }
 }

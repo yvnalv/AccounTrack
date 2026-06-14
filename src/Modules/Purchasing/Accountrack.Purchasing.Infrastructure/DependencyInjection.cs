@@ -1,5 +1,6 @@
 using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
+using Accountrack.Infrastructure.Common.Transactions;
 using Accountrack.Modules.Contracts.Events;
 using Accountrack.Purchasing.Application;
 using Accountrack.Purchasing.Application.Abstractions;
@@ -19,14 +20,14 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Default");
-
         services.TryAddScoped<AuditCaptureInterceptor>();
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
+        // Shares the cross-module connection so a goods receipt commits its inventory ledger +
+        // GL journal atomically with the document (INTEGRATION_EVENTS.md §2).
         services.AddDbContext<PurchasingDbContext>((sp, options) =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseSqlServer(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", PurchasingDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),
@@ -34,7 +35,9 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IPurchasingUnitOfWork>(sp => sp.GetRequiredService<PurchasingDbContext>());
+        services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<PurchasingDbContext>());
         services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+        services.AddScoped<IGoodsReceiptRepository, GoodsReceiptRepository>();
 
         // Advance PO status when its approval is decided.
         services.AddScoped<IIntegrationEventHandler<ApprovalDecided>, ApprovalDecidedConsumer>();

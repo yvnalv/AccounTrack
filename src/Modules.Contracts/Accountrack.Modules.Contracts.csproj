@@ -3,11 +3,16 @@
   <!--
     Modules.Contracts: public, stable contracts (synchronous service interfaces + DTOs) that one
     module exposes for others to consume, so modules collaborate without referencing each other's
-    internals (ADR-0007, INTEGRATION_EVENTS.md §3). No dependencies.
+    internals (ADR-0007, INTEGRATION_EVENTS.md §3). Depends only on the dependency-free SharedKernel
+    (for Result/Error), so contracts express success/failure consistently across the boundary.
   -->
   <PropertyGroup>
     <RootNamespace>Accountrack.Modules.Contracts</RootNamespace>
     <AssemblyName>Accountrack.Modules.Contracts</AssemblyName>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
 
 </Project>

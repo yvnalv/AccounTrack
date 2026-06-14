@@ -12,7 +12,8 @@ internal static class PurchaseOrderMapping
         o.Id, o.Number, o.SupplierId, o.WarehouseId, o.Currency, o.OrderDate, o.Status.ToString(),
         o.ApprovalRequestId, o.SubTotal, o.TaxTotal, o.GrandTotal, o.Notes,
         o.Lines.Select(l => new PurchaseOrderLineDto(
-            l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineSubTotal, l.LineTaxAmount, l.LineTotal, l.Description))
+            l.Id, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineSubTotal, l.LineTaxAmount, l.LineTotal,
+            l.Description, l.ReceivedQuantity, l.OutstandingQuantity))
             .ToList());
 }
 
@@ -27,6 +28,48 @@ public sealed class GetPurchaseOrderHandler : IQueryHandler<GetPurchaseOrderQuer
     {
         var order = await _orders.GetByIdAsync(request.Id, ct);
         return order is null ? PurchasingErrors.NotFound : order.ToDto();
+    }
+}
+
+public sealed record GetGoodsReceiptQuery(Guid Id) : IQuery<GoodsReceiptDto>;
+
+public sealed class GetGoodsReceiptHandler : IQueryHandler<GetGoodsReceiptQuery, GoodsReceiptDto>
+{
+    private readonly IGoodsReceiptRepository _receipts;
+    public GetGoodsReceiptHandler(IGoodsReceiptRepository receipts) => _receipts = receipts;
+
+    public async Task<Result<GoodsReceiptDto>> Handle(GetGoodsReceiptQuery request, CancellationToken ct)
+    {
+        var receipt = await _receipts.GetByIdAsync(request.Id, ct);
+        if (receipt is null)
+        {
+            return Error.NotFound("PURCHASING.GR_NOT_FOUND", "Goods receipt not found.");
+        }
+
+        return new GoodsReceiptDto(
+            receipt.Id, receipt.Number, receipt.PurchaseOrderId, receipt.SupplierId, receipt.WarehouseId,
+            receipt.Currency, receipt.ReceiptDate, receipt.TotalCost, receipt.JournalEntryId, receipt.Notes,
+            receipt.Lines.Select(l => new GoodsReceiptLineDto(
+                l.PurchaseOrderLineId, l.ProductId, l.Quantity, l.UnitCost, l.LineCost)).ToList());
+    }
+}
+
+public sealed record GetGoodsReceiptsForPurchaseOrderQuery(Guid PurchaseOrderId)
+    : IQuery<IReadOnlyList<GoodsReceiptSummaryDto>>;
+
+public sealed class GetGoodsReceiptsForPurchaseOrderHandler
+    : IQueryHandler<GetGoodsReceiptsForPurchaseOrderQuery, IReadOnlyList<GoodsReceiptSummaryDto>>
+{
+    private readonly IGoodsReceiptRepository _receipts;
+    public GetGoodsReceiptsForPurchaseOrderHandler(IGoodsReceiptRepository receipts) => _receipts = receipts;
+
+    public async Task<Result<IReadOnlyList<GoodsReceiptSummaryDto>>> Handle(
+        GetGoodsReceiptsForPurchaseOrderQuery request, CancellationToken ct)
+    {
+        var receipts = await _receipts.ListByPurchaseOrderAsync(request.PurchaseOrderId, ct);
+        return Result.Success<IReadOnlyList<GoodsReceiptSummaryDto>>(receipts
+            .Select(r => new GoodsReceiptSummaryDto(r.Id, r.Number, r.PurchaseOrderId, r.ReceiptDate, r.TotalCost, r.JournalEntryId))
+            .ToList());
     }
 }
 

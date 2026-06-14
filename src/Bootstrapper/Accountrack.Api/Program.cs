@@ -24,6 +24,7 @@ using Accountrack.Purchasing.Infrastructure;
 using Accountrack.Identity.Api;
 using Accountrack.Identity.Infrastructure;
 using Accountrack.Identity.Infrastructure.Authentication;
+using Accountrack.Infrastructure.Common.Transactions;
 using Accountrack.Web.Common.Contracts;
 using Accountrack.Web.Common.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -41,6 +42,11 @@ builder.Services.AddScoped<ITenantContext, HttpContextTenantContext>();
 // In-process integration-event dispatch (ADR-0007). Scoped so handlers resolve from the request scope.
 builder.Services.AddScoped<Accountrack.Application.Abstractions.Integration.IIntegrationEventPublisher,
     Accountrack.Infrastructure.Common.Integration.IntegrationEventPublisher>();
+
+// Cross-module atomic transactions (INTEGRATION_EVENTS.md §2): one shared connection + unit of work
+// so flows like Goods Receipt commit stock + journal together. Participating modules (Purchasing,
+// Inventory, Accounting) bind their DbContext to this connection.
+builder.Services.AddCrossModuleTransactions(builder.Configuration.GetConnectionString("Default")!);
 
 // --- CQRS pipeline (ARCHITECTURE.md §4). Modules register their own handlers. ---
 builder.Services.AddMediatR(cfg =>

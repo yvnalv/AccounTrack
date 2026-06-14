@@ -4,6 +4,8 @@ using Accountrack.Accounting.Application.Services;
 using Accountrack.Accounting.Infrastructure.Persistence;
 using Accountrack.Accounting.Infrastructure.Seed;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
+using Accountrack.Infrastructure.Common.Transactions;
+using Accountrack.Modules.Contracts.Accounting;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,14 +20,14 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Default");
-
         services.TryAddScoped<AuditCaptureInterceptor>();
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
+        // Shares the cross-module connection so journals posted by other modules (Goods Receipt,
+        // invoices, payments) commit atomically with their source document (INTEGRATION_EVENTS.md §2).
         services.AddDbContext<AccountingDbContext>((sp, options) =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseSqlServer(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", AccountingDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),
@@ -33,6 +35,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IAccountingUnitOfWork>(sp => sp.GetRequiredService<AccountingDbContext>());
+        services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<AccountingDbContext>());
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IFiscalPeriodRepository, FiscalPeriodRepository>();
         services.AddScoped<IJournalRepository, JournalRepository>();
@@ -42,6 +45,10 @@ public static class DependencyInjection
         services.AddScoped<IJournalPoster, JournalPostingService>();
         services.AddScoped<IPostingRuleResolver, PostingRuleResolver>();
         services.AddScoped<ISubledgerService, SubledgerService>();
+
+        // Public cross-module contracts (consumed by Purchasing/Sales atomic flows).
+        services.AddScoped<IGeneralLedgerPoster, GeneralLedgerPoster>();
+        services.AddScoped<IPostingAccountResolver, PostingAccountResolverAdapter>();
 
         var applicationAssembly = typeof(PostJournalCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));

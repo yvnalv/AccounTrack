@@ -1,8 +1,10 @@
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
+using Accountrack.Infrastructure.Common.Transactions;
 using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Application.Features;
 using Accountrack.Inventory.Application.Services;
 using Accountrack.Inventory.Infrastructure.Persistence;
+using Accountrack.Modules.Contracts.Inventory;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,14 +19,14 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Default");
-
         services.TryAddScoped<AuditCaptureInterceptor>();
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
+        // Shares the cross-module connection so stock movements can commit atomically with the
+        // originating document + its GL journal (INTEGRATION_EVENTS.md §2).
         services.AddDbContext<InventoryDbContext>((sp, options) =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseSqlServer(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", InventoryDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),
@@ -32,9 +34,11 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IInventoryUnitOfWork>(sp => sp.GetRequiredService<InventoryDbContext>());
+        services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<InventoryDbContext>());
         services.AddScoped<IStockBucketRepository, StockBucketRepository>();
         services.AddScoped<IInventoryTransactionRepository, InventoryTransactionRepository>();
         services.AddScoped<IInventoryLedger, InventoryLedgerService>();
+        services.AddScoped<IInventoryPosting, InventoryPostingService>();
 
         var applicationAssembly = typeof(ReceiveStockCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));
