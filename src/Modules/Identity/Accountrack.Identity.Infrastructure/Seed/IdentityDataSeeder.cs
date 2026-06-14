@@ -39,7 +39,48 @@ public static class IdentityDataSeeder
         if (settings.Enabled)
         {
             await SeedDevAdminAsync(db, passwordHasher, settings, ct);
+            // Keep the system Administrator role current as new permissions are added to the catalog.
+            await EnsureAdminHasAllPermissionsAsync(db, ct);
         }
+    }
+
+    /// <summary>
+    /// Grants any catalog permissions the system Administrator role is missing (e.g. permissions
+    /// added in a later release), so the admin stays fully privileged across upgrades.
+    /// </summary>
+    private static async Task EnsureAdminHasAllPermissionsAsync(IdentityDbContext db, CancellationToken ct)
+    {
+        var adminRoleId = await db.Roles
+            .IgnoreQueryFilters()
+            .Where(r => r.Name == SystemRoles.Administrator && r.IsSystem && !r.IsDeleted)
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync(ct);
+        if (adminRoleId == Guid.Empty)
+        {
+            return;
+        }
+
+        // Insert only the missing role-permission rows; never load/mutate the Role aggregate
+        // (avoids an optimistic-concurrency update on the unchanged Role row).
+        var granted = await db.RolePermissions
+            .IgnoreQueryFilters()
+            .Where(rp => rp.RoleId == adminRoleId && !rp.IsDeleted)
+            .Select(rp => rp.PermissionId)
+            .ToListAsync(ct);
+
+        var allPermissionIds = await db.Permissions.IgnoreQueryFilters().Select(p => p.Id).ToListAsync(ct);
+        var missing = allPermissionIds.Except(granted).ToList();
+        if (missing.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var permissionId in missing)
+        {
+            db.RolePermissions.Add(new RolePermission(adminRoleId, permissionId));
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task SeedPermissionsAsync(IdentityDbContext db, CancellationToken ct)

@@ -40,6 +40,9 @@
     <ProjectReference Include="..\..\src\Modules\Inventory\Accountrack.Inventory.Domain\Accountrack.Inventory.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\Accountrack.Inventory.Application\Accountrack.Inventory.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\Accountrack.Inventory.Infrastructure\Accountrack.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Approval\Accountrack.Approval.Domain\Accountrack.Approval.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Approval\Accountrack.Approval.Application\Accountrack.Approval.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Approval\Accountrack.Approval.Infrastructure\Accountrack.Approval.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

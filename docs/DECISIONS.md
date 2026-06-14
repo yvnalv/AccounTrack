@@ -38,6 +38,7 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0025 | Changelog policy (reverse-chronological, immutable, CHG-NNNN, UTC) | Accepted | 2026-06-13 |
 | 0026 | Atomic audit capture into one shared audit table | Accepted | 2026-06-13 |
 | 0027 | Build with the .NET 9 SDK while targeting net8.0 | Accepted | 2026-06-13 |
+| 0028 | GUID primary keys are `ValueGeneratedNever` (domain-generated) | Accepted | 2026-06-14 |
 
 ---
 
@@ -429,3 +430,24 @@ runtime is absent. EF Core and ASP.NET packages are pinned to the 8.0.x line.
 **Consequences.** (+) Honors the .NET 8 target/runtime contract while remaining buildable on the
 available toolchain; CI can install either SDK ≥ 8. (−) Roll-forward means local runs may execute
 on the 9 runtime; production should install the .NET 8 runtime (or accept documented roll-forward).
+
+---
+
+## ADR-0028: GUID primary keys are `ValueGeneratedNever` (domain-generated)
+
+- **Status:** Accepted — **Date:** 2026-06-14
+
+**Context.** Entities assign their GUID `Id` in the domain (ADR-0005). The SQL Server provider, by
+default, marks GUID keys as `ValueGenerated.OnAdd`. With a *pre-set* key, EF then mis-detects a
+newly-constructed child added to an already-*loaded* aggregate as an existing row → it emits an
+UPDATE that affects 0 rows and throws a concurrency exception (hit first in Approval, where
+approving adds an `ApprovalAction` to a loaded request).
+
+**Decision.** `BaseDbContext` conventions configure every entity's `Id` as
+`ValueGeneratedNever()`. The application always supplies the key; EF then correctly marks new
+untracked entities as Added (insert).
+
+**Consequences.** (+) Adding children to loaded aggregates works (inserts, not phantom updates);
+matches the client-generated-GUID design. The column DDL is unchanged (`uniqueidentifier` PK), so
+no migration change was required. (−) The app must always set `Id` (already done by the `Entity`
+base).

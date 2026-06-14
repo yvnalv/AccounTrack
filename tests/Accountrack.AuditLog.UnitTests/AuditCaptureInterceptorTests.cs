@@ -79,6 +79,7 @@ public class AuditCaptureInterceptorTests
         public bool IsSet => true;
         public Guid UserId { get; }
         public bool IsAuthenticated => true;
+        public IReadOnlyCollection<string> Roles => Array.Empty<string>();
         public bool HasPermission(string permission) => true;
         public DateTime UtcNow { get; }
     }

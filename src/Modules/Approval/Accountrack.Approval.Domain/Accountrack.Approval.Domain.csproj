@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Approval.Domain: the generic, document-agnostic approval engine. Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Approval.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Approval.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

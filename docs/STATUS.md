@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-14 (last change **CHG-0010**, commit `ee4862a`)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 88 passing.
+- **As of:** 2026-06-14 (last change **CHG-0012**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 103 passing.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
 
@@ -25,9 +25,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **Identity** — auth (JWT + rotating refresh), RBAC + SoD, users, company grants (CHG-0003)
 - ✅ **Company Management** — tenants, companies, settings; tenant context (CHG-0005)
 - ✅ **Audit Log** — automatic atomic before/after capture (CHG-0006)
-- ◻️ **Approval Workflow** — generic approval engine (WORKFLOW_APPROVAL.md)
-- ◻️ **Process Tracker** — document lifecycle timeline
-- ◻️ **Notification** — in-app + email
+- ✅ **Approval Workflow** — generic engine: conditional/multi-level, SoD, auto-approve (CHG-0012)
+- 🔜 **Process Tracker** — document lifecycle timeline
+- 🔜 **Notification** — in-app + email
 - ◻️ **Cross-tenant isolation integration suite** (Testcontainers) — MULTI_TENANCY.md §9
 
 ### Phase 2 — Core ERP
@@ -57,11 +57,13 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## ▶️ Next up (recommended)
 
-**Purchasing (procure-to-pay)** — it closes the loop end-to-end and forces the deferred
-cross-module GL integration: PO → **Goods Receipt** (writes the inventory ledger via
-`IInventoryLedger` + posts Dr Inventory / Cr GR-IR) → **Purchase Invoice** (Dr GR-IR + VAT Input /
-Cr AP) → **Supplier Payment**. It exercises Master Data + Inventory + Accounting together.
-(Alternative paths: finish Phase 1 foundation — Approval/Notification; or Accounting slice 2 reports.)
+Two reasonable paths:
+1. **Finish Phase 1 foundation** — Process Tracker + Notification (both event-driven; most useful
+   once transactional modules emit events). Smaller, completes the foundation.
+2. **Purchasing (procure-to-pay)** — closes the loop and forces the deferred cross-module GL
+   integration: PO → **Goods Receipt** (inventory ledger via `IInventoryLedger` + Dr Inventory /
+   Cr GR-IR) → **Purchase Invoice** (Dr GR-IR + VAT Input / Cr AP) → **Supplier Payment**.
+   Exercises Master Data + Inventory + Accounting + Approval together — the highest-value vertical.
 
 ## How to resume
 

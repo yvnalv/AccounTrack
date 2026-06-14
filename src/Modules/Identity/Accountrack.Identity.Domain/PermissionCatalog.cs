@@ -38,6 +38,8 @@ public static class PermissionCatalog
 
     public const string AuditView = "Audit.View";
 
+    public const string ApprovalManage = "Approval.Manage";
+
     /// <summary>All permission codes with display names, for seeding.</summary>
     public static IReadOnlyList<(string Code, string Name)> All { get; } = new[]
     {
@@ -66,6 +68,7 @@ public static class PermissionCatalog
         (AdminRoles, "Manage Roles"),
         (AdminCompanies, "Manage Companies"),
         (AuditView, "View Audit Log"),
+        (ApprovalManage, "Manage Approval Workflows"),
     };
 }
 

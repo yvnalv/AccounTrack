@@ -24,6 +24,9 @@ public interface ICurrentUser
 
     bool IsAuthenticated { get; }
 
+    /// <summary>Role names granted to the user (from the JWT), used e.g. for approval eligibility.</summary>
+    IReadOnlyCollection<string> Roles { get; }
+
     bool HasPermission(string permission);
 }
 

@@ -1,5 +1,37 @@
 # Accountrack Changelog
 
+## [2026-06-14 04:47:07 UTC]
+
+CHG-0012 — Approval Workflow module + GUID-key platform fix
+
+- Implemented the Phase 1 **Approval Workflow** — a generic, document-agnostic engine. Verified
+  end-to-end: created a conditional 2-level-capable definition, submitted a document → Pending,
+  the submitter's approval was blocked by segregation of duties (BR-APR-2), a second eligible user
+  approved → Approved (with the action recorded), and a non-matching document auto-approved.
+- **Domain:** `ApprovalDefinition` (+ `ApprovalCondition` numeric thresholds, `ApprovalStep` with
+  User/Role approvers), `ApprovalRequest` (steps snapshotted at submit) + `ApprovalAction`,
+  eligibility + SoD logic, enums, errors.
+- **Application:** CreateDefinition, SubmitForApproval (picks the first matching active definition
+  or auto-approves), DecideApproval (approve/reject with SoD + eligibility), queries (my pending,
+  request detail, definitions).
+- **Infrastructure:** `ApprovalDbContext` (own `approval` schema) + configs, repositories, DI,
+  design-time factory, `InitialApproval` migration (verified on real SQL Server).
+- **Api:** `/api/v1/approval-definitions` (gated by the new `Approval.Manage` permission) and
+  `/api/v1/approval-requests` (submit, mine, detail, approve, reject).
+- **Platform fix (ADR-0028):** `BaseDbContext` now configures GUID `Id` keys as
+  `ValueGeneratedNever` (domain-generated). This fixes EF mis-detecting a newly-constructed child
+  added to a *loaded* aggregate as an existing row (it was emitting a 0-row UPDATE → concurrency
+  exception, first hit when approving adds an `ApprovalAction`). Column DDL unchanged → no migration
+  impact; all 103 tests still green.
+- **Identity:** the dev seeder now grants the Administrator role any newly-added catalog
+  permissions on startup (so the admin stays fully privileged across releases); `ICurrentUser`
+  gained `Roles` (from JWT) for role-based approver eligibility.
+- **Tests:** 12 Approval unit tests (condition matching, multi-level advance, reject, SoD,
+  eligibility, auto-approve) + Approval architecture-boundary tests. Full suite now 103, green.
+- See [docs/WORKFLOW_APPROVAL.md](docs/WORKFLOW_APPROVAL.md), [ADR-0028](docs/DECISIONS.md).
+
+---
+
 ## [2026-06-14 04:08:53 UTC]
 
 CHG-0011 — Add STATUS.md milestone tracker ("where we are / what's next")

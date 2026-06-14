@@ -5,6 +5,8 @@ using Accountrack.Application.Abstractions.Behaviors;
 using Accountrack.Accounting.Api;
 using Accountrack.Accounting.Infrastructure;
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Approval.Api;
+using Accountrack.Approval.Infrastructure;
 using Accountrack.AuditLog.Api;
 using Accountrack.AuditLog.Infrastructure;
 using Accountrack.CompanyManagement.Api;
@@ -45,6 +47,7 @@ builder.Services.AddAuditLogModule(builder.Configuration);
 builder.Services.AddAccountingModule(builder.Configuration);
 builder.Services.AddMasterDataModule(builder.Configuration);
 builder.Services.AddInventoryModule(builder.Configuration);
+builder.Services.AddApprovalModule(builder.Configuration);
 
 // Accept/emit enums as strings in JSON (nicer API ergonomics).
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -107,6 +110,7 @@ app.MapAuditEndpoints();
 app.MapAccountingEndpoints();
 app.MapMasterDataEndpoints();
 app.MapInventoryEndpoints();
+app.MapApprovalEndpoints();
 
 // Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
@@ -122,6 +126,7 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     await app.Services.InitializeAccountingModuleAsync(migrate, seedDev, DateTime.UtcNow.Year);
     await app.Services.InitializeMasterDataModuleAsync(migrate, seedDev);
     await app.Services.InitializeInventoryModuleAsync(migrate);
+    await app.Services.InitializeApprovalModuleAsync(migrate);
 }
 
 app.Run();

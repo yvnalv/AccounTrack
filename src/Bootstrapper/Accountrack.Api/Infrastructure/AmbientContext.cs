@@ -25,6 +25,9 @@ public sealed class HttpContextCurrentUser : ICurrentUser
 
     public bool IsAuthenticated => Principal?.Identity?.IsAuthenticated ?? false;
 
+    public IReadOnlyCollection<string> Roles =>
+        Principal?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray() ?? Array.Empty<string>();
+
     public bool HasPermission(string permission) =>
         Principal?.HasClaim(AccountrackClaims.Permission, permission) ?? false;
 }
