@@ -61,9 +61,19 @@ public static class AccountingEndpoints
             .RequireAuthorization("Accounting.Post").WithName("ReverseJournal");
 
         // --- Reports ---
-        app.MapGet("/api/v1/reports/trial-balance", async (DateOnly? fromDate, DateOnly? toDate, ISender sender, CancellationToken ct) =>
+        var reports = app.MapGroup("/api/v1/reports").WithTags("Reports").RequireAuthorization("Accounting.View");
+
+        reports.MapGet("/trial-balance", async (DateOnly? fromDate, DateOnly? toDate, ISender sender, CancellationToken ct) =>
             (await sender.Send(new GetTrialBalanceQuery(fromDate, toDate), ct)).ToHttpResult())
-            .RequireAuthorization("Accounting.View").WithTags("Reports").WithName("GetTrialBalance");
+            .WithName("GetTrialBalance");
+
+        reports.MapGet("/profit-loss", async (DateOnly? fromDate, DateOnly? toDate, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetProfitAndLossQuery(fromDate, toDate), ct)).ToHttpResult())
+            .WithName("GetProfitAndLoss");
+
+        reports.MapGet("/balance-sheet", async (DateOnly? asOfDate, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetBalanceSheetQuery(asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow)), ct)).ToHttpResult())
+            .WithName("GetBalanceSheet");
 
         return app;
     }

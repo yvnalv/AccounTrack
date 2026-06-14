@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-14 (last change **CHG-0015**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 132 passing.
+- **As of:** 2026-06-14 (last change **CHG-0016**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 134 passing.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -33,8 +33,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ◻️ **Cross-tenant isolation integration suite** (Testcontainers) — MULTI_TENANCY.md §9
 
 ### Phase 2 — Core ERP
-- 🟡 **Accounting** (slice 1) — chart of accounts, fiscal periods (open/close/lock), double-entry
-  journals + reversal, trial balance (CHG-0008)
+- 🟡 **Accounting** (slice 1 + reports) — chart of accounts, fiscal periods, double-entry journals
+  + reversal, trial balance (CHG-0008); **Profit & Loss + Balance Sheet** (CHG-0016)
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
 - 🟡 **Inventory** (slice 1) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010)
@@ -48,8 +48,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## Deferred backlog (planned slices / debts)
 
-- **Accounting slice 2:** posting rules / account determination (POSTING_RULES.md), AR/AP
-  subledgers, period-close balance snapshots, financial reports (P&L / Balance Sheet / Cash Flow).
+- **Accounting slice 2 (remaining):** posting rules / account determination (POSTING_RULES.md),
+  AR/AP subledgers, period-close balance snapshots, Cash Flow. (P&L + Balance Sheet done — CHG-0016.)
 - **Inventory slice 2:** GL posting on stock moves (Dr/Cr Inventory/COGS/Variance), stock opname,
   per-company negative-stock setting, back-dating recompute.
 - **Cross-module atomic posting:** making a Sales shipment (stock issue + COGS journal) and an

@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-14 13:00:35 UTC]
+
+CHG-0016 — Accounting: Profit & Loss and Balance Sheet statements
+
+- Added the **Profit & Loss** and **Balance Sheet** financial statements, derived from the GL
+  (ADR-0008 — never from transactional tables). Verified end-to-end: posted a cash sale + its COGS,
+  then P&L showed Revenue 1,000,000 − Expenses 600,000 = Net Profit 400,000, and the Balance Sheet
+  showed Assets 400,000 = Liabilities 0 + Equity 400,000 (current earnings), Balanced = true.
+- **Application:** `GetProfitAndLossQuery` (period revenue/expense + net profit) and
+  `GetBalanceSheetQuery` (as-of assets/liabilities/equity; net income to date shown as current
+  earnings within equity — year-end close to retained earnings is a later phase). Both reuse the
+  existing GL read store; no schema change.
+- **Api:** `GET /api/v1/reports/profit-loss` and `GET /api/v1/reports/balance-sheet`
+  (under the `/reports` group, gated by Accounting.View).
+- **Tests:** 2 report handler tests (net-profit math, balance-sheet balancing). Full suite now 134, green.
+- First increment of **Accounting slice 2**; remaining: posting rules / account determination,
+  AR/AP subledgers, period-close snapshots, Cash Flow.
+- See [docs/ACCOUNTING_DESIGN.md](docs/ACCOUNTING_DESIGN.md).
+
+---
+
 ## [2026-06-14 06:03:10 UTC]
 
 CHG-0015 — Purchasing module (slice 1): Purchase Orders + cross-module integration
