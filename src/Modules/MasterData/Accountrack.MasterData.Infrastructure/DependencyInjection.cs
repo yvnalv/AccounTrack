@@ -33,6 +33,7 @@ public static class DependencyInjection
 
         services.AddScoped<IMasterDataUnitOfWork>(sp => sp.GetRequiredService<MasterDataDbContext>());
         services.AddScoped(typeof(ICodedRepository<>), typeof(CodedRepository<>));
+        services.AddScoped<Modules.Contracts.MasterData.IMasterDataLookup, MasterDataLookup>();
 
         var applicationAssembly = typeof(CreateProductCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));

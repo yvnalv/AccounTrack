@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Purchasing.Domain: purchase orders (procure-to-pay, slice 1). Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Purchasing.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Purchasing.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

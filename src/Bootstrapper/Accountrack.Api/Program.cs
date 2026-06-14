@@ -19,6 +19,8 @@ using Accountrack.Notification.Api;
 using Accountrack.Notification.Infrastructure;
 using Accountrack.ProcessTracker.Api;
 using Accountrack.ProcessTracker.Infrastructure;
+using Accountrack.Purchasing.Api;
+using Accountrack.Purchasing.Infrastructure;
 using Accountrack.Identity.Api;
 using Accountrack.Identity.Infrastructure;
 using Accountrack.Identity.Infrastructure.Authentication;
@@ -58,6 +60,7 @@ builder.Services.AddInventoryModule(builder.Configuration);
 builder.Services.AddApprovalModule(builder.Configuration);
 builder.Services.AddProcessTrackerModule(builder.Configuration);
 builder.Services.AddNotificationModule(builder.Configuration);
+builder.Services.AddPurchasingModule(builder.Configuration);
 
 // Accept/emit enums as strings in JSON (nicer API ergonomics).
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -123,6 +126,7 @@ app.MapInventoryEndpoints();
 app.MapApprovalEndpoints();
 app.MapProcessTrackerEndpoints();
 app.MapNotificationEndpoints();
+app.MapPurchasingEndpoints();
 
 // Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
@@ -141,6 +145,7 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     await app.Services.InitializeApprovalModuleAsync(migrate);
     await app.Services.InitializeProcessTrackerModuleAsync(migrate);
     await app.Services.InitializeNotificationModuleAsync(migrate);
+    await app.Services.InitializePurchasingModuleAsync(migrate);
 }
 
 app.Run();

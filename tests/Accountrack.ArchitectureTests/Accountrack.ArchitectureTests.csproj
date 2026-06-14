@@ -49,6 +49,9 @@
     <ProjectReference Include="..\..\src\Modules\Notification\Accountrack.Notification.Domain\Accountrack.Notification.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Notification\Accountrack.Notification.Application\Accountrack.Notification.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Notification\Accountrack.Notification.Infrastructure\Accountrack.Notification.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Purchasing\Accountrack.Purchasing.Domain\Accountrack.Purchasing.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Purchasing\Accountrack.Purchasing.Application\Accountrack.Purchasing.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Purchasing\Accountrack.Purchasing.Infrastructure\Accountrack.Purchasing.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

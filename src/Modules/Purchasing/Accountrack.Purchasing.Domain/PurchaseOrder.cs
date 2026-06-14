@@ -1,0 +1,173 @@
+using Accountrack.SharedKernel.Domain;
+
+namespace Accountrack.Purchasing.Domain;
+
+public enum PurchaseOrderStatus
+{
+    Draft = 0,
+    PendingApproval = 1,
+    Approved = 2,
+    Rejected = 3,
+    Cancelled = 4,
+}
+
+/// <summary>
+/// A purchase order (procure-to-pay — slice 1). Created as a draft, then submitted for approval;
+/// its status is advanced by the Approval Workflow via integration events (Goods Receipt, invoicing
+/// and GL posting are later slices).
+/// </summary>
+public sealed class PurchaseOrder : TenantOwnedEntity, IAggregateRoot
+{
+    private readonly List<PurchaseOrderLine> _lines = new();
+
+    private PurchaseOrder() { }
+
+    private PurchaseOrder(string number, Guid supplierId, Guid warehouseId, string currency, DateOnly orderDate, string? notes)
+    {
+        Number = number;
+        SupplierId = supplierId;
+        WarehouseId = warehouseId;
+        Currency = currency;
+        OrderDate = orderDate;
+        Notes = notes;
+        Status = PurchaseOrderStatus.Draft;
+    }
+
+    public string Number { get; private set; } = default!;
+    public Guid SupplierId { get; private set; }
+    public Guid WarehouseId { get; private set; }
+    public string Currency { get; private set; } = default!;
+    public DateOnly OrderDate { get; private set; }
+    public string? Notes { get; private set; }
+    public PurchaseOrderStatus Status { get; private set; }
+    public Guid? ApprovalRequestId { get; private set; }
+
+    public decimal SubTotal { get; private set; }
+    public decimal TaxTotal { get; private set; }
+    public decimal GrandTotal { get; private set; }
+
+    public IReadOnlyList<PurchaseOrderLine> Lines => _lines;
+
+    public static PurchaseOrder CreateDraft(
+        string number, Guid supplierId, Guid warehouseId, string currency, DateOnly orderDate, string? notes) =>
+        new(number, supplierId, warehouseId, currency.Trim().ToUpperInvariant(), orderDate, notes?.Trim());
+
+    public void AddLine(Guid productId, decimal quantity, decimal unitPrice, decimal taxRate, string? description)
+    {
+        if (Status != PurchaseOrderStatus.Draft)
+        {
+            throw new InvalidOperationException("Lines can only be changed on a draft purchase order.");
+        }
+
+        _lines.Add(PurchaseOrderLine.Create(productId, quantity, unitPrice, taxRate, description));
+        Recalculate();
+    }
+
+    /// <summary>Submitted, waiting on approval.</summary>
+    public void MarkPendingApproval(Guid approvalRequestId)
+    {
+        EnsureDraftWithLines();
+        ApprovalRequestId = approvalRequestId;
+        Status = PurchaseOrderStatus.PendingApproval;
+    }
+
+    /// <summary>Submitted and immediately approved (no approval rule matched).</summary>
+    public void MarkAutoApproved(Guid approvalRequestId)
+    {
+        EnsureDraftWithLines();
+        ApprovalRequestId = approvalRequestId;
+        Status = PurchaseOrderStatus.Approved;
+    }
+
+    public void MarkApproved()
+    {
+        if (Status == PurchaseOrderStatus.PendingApproval)
+        {
+            Status = PurchaseOrderStatus.Approved;
+        }
+    }
+
+    public void MarkRejected()
+    {
+        if (Status == PurchaseOrderStatus.PendingApproval)
+        {
+            Status = PurchaseOrderStatus.Rejected;
+        }
+    }
+
+    public void Cancel()
+    {
+        if (Status is PurchaseOrderStatus.Approved or PurchaseOrderStatus.Rejected)
+        {
+            throw new InvalidOperationException("A decided purchase order cannot be cancelled.");
+        }
+
+        Status = PurchaseOrderStatus.Cancelled;
+    }
+
+    private void EnsureDraftWithLines()
+    {
+        if (Status != PurchaseOrderStatus.Draft)
+        {
+            throw new InvalidOperationException("Only a draft purchase order can be submitted.");
+        }
+
+        if (_lines.Count == 0)
+        {
+            throw new InvalidOperationException("A purchase order requires at least one line.");
+        }
+    }
+
+    private void Recalculate()
+    {
+        SubTotal = Math.Round(_lines.Sum(l => l.LineSubTotal), 4, MidpointRounding.ToEven);
+        TaxTotal = Math.Round(_lines.Sum(l => l.LineTaxAmount), 4, MidpointRounding.ToEven);
+        GrandTotal = SubTotal + TaxTotal;
+    }
+}
+
+/// <summary>A purchase-order line: quantity × unit price, plus a snapshotted tax rate.</summary>
+public sealed class PurchaseOrderLine : Entity
+{
+    private PurchaseOrderLine() { }
+
+    private PurchaseOrderLine(Guid productId, decimal quantity, decimal unitPrice, decimal taxRate, string? description)
+    {
+        ProductId = productId;
+        Quantity = quantity;
+        UnitPrice = unitPrice;
+        TaxRate = taxRate;
+        Description = description;
+        LineSubTotal = Math.Round(quantity * unitPrice, 4, MidpointRounding.ToEven);
+        LineTaxAmount = Math.Round(LineSubTotal * taxRate, 4, MidpointRounding.ToEven);
+        LineTotal = LineSubTotal + LineTaxAmount;
+    }
+
+    public Guid PurchaseOrderId { get; private set; }
+    public Guid ProductId { get; private set; }
+    public decimal Quantity { get; private set; }
+    public decimal UnitPrice { get; private set; }
+
+    /// <summary>Fractional tax rate snapshot (e.g. 0.11 for PPN 11%).</summary>
+    public decimal TaxRate { get; private set; }
+
+    public string? Description { get; private set; }
+    public decimal LineSubTotal { get; private set; }
+    public decimal LineTaxAmount { get; private set; }
+    public decimal LineTotal { get; private set; }
+
+    internal static PurchaseOrderLine Create(Guid productId, decimal quantity, decimal unitPrice, decimal taxRate, string? description)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Line quantity must be positive.");
+        }
+
+        if (unitPrice < 0 || taxRate is < 0 or > 1)
+        {
+            throw new InvalidOperationException("Invalid unit price or tax rate.");
+        }
+
+        return new PurchaseOrderLine(productId, quantity, unitPrice, taxRate, description?.Trim());
+    }
+}

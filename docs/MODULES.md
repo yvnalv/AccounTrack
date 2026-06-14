@@ -19,7 +19,8 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Accounting | 🟡 Slice 1 | chart of accounts, fiscal periods (open/close/lock), double-entry journal posting + reversal, trial balance. Slice 2: posting rules, AR/AP subledgers, period-close snapshots, P&L/Balance Sheet/Cash Flow |
 | Master Data | ✅ Implemented | products (+ categories, units of measure), customers, suppliers, warehouses, tax codes; create + list, dev seed |
 | Inventory | 🟡 Slice 1 | transaction ledger (source of truth), moving-average buckets, receive/adjust/transfer, on-hand + stock-card; `IInventoryLedger`. Slice 2: GL posting on moves, stock opname, negative-stock setting, FIFO option |
-| Sales / Purchasing / Reporting | ◻️ Planned | Phase 2 |
+| Purchasing | 🟡 Slice 1 | Purchase Orders (lines, totals, PPN) with Approval + Process Tracker + Notification integration via contracts/events. Slice 2: Goods Receipt (inventory + GL posting), Purchase Invoice (AP/VAT), Supplier Payment |
+| Sales / Reporting | ◻️ Planned | Phase 2 |
 | Manufacturing | ◻️ Planned | Phase 3 |
 
 (Authoritative change history is in [`../CHANGELOG.md`](../CHANGELOG.md).)

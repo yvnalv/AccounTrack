@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>Accountrack.Approval.Infrastructure</RootNamespace>
-    <AssemblyName>Accountrack.Approval.Infrastructure</AssemblyName>
+    <RootNamespace>Accountrack.Purchasing.Infrastructure</RootNamespace>
+    <AssemblyName>Accountrack.Purchasing.Infrastructure</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,9 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Accountrack.Approval.Application\Accountrack.Approval.Application.csproj" />
+    <ProjectReference Include="..\Accountrack.Purchasing.Application\Accountrack.Purchasing.Application.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.Infrastructure.Common\Accountrack.Infrastructure.Common.csproj" />
-    <ProjectReference Include="..\..\..\Modules.Contracts\Accountrack.Modules.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

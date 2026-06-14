@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Accountrack.MasterData.Application\Accountrack.MasterData.Application.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.Infrastructure.Common\Accountrack.Infrastructure.Common.csproj" />
+    <ProjectReference Include="..\..\..\Modules.Contracts\Accountrack.Modules.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

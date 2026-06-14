@@ -8,9 +8,9 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-14 (last change **CHG-0014**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 117 passing.
-- **Phase 1 foundation modules are complete** (the cross-tenant isolation *integration* suite is the only Phase-1 item outstanding).
+- **As of:** 2026-06-14 (last change **CHG-0015**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 132 passing.
+- **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
 
@@ -38,7 +38,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
 - 🟡 **Inventory** (slice 1) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010)
-- ◻️ **Purchasing** — PR → PO → Goods Receipt → Purchase Invoice → Supplier Payment, returns
+- 🟡 **Purchasing** (slice 1) — Purchase Orders + Approval/Process-Tracker/Notification integration
+  (CHG-0015). Slice 2: Goods Receipt → inventory + GL, Purchase Invoice → AP/VAT, Supplier Payment
 - ◻️ **Sales** — Quotation → SO → Delivery → Sales Invoice → Customer Payment, returns
 - ◻️ **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, VAT, inventory valuation
 
@@ -59,14 +60,14 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## ▶️ Next up (recommended)
 
-Phase 1 foundation is complete, so the clear next step is the first **transactional vertical**:
-
-**Purchasing (procure-to-pay)** — closes the loop and forces the deferred cross-module GL
-integration: PR/PO (with Approval) → **Goods Receipt** (inventory ledger via `IInventoryLedger` +
-Dr Inventory / Cr GR-IR) → **Purchase Invoice** (Dr GR-IR + VAT Input / Cr AP) → **Supplier
-Payment**. Exercises Master Data + Inventory + Accounting + Approval + Notification together — the
-highest-value vertical. (Alternative: Accounting slice 2 — posting rules + AR/AP subledgers +
-financial reports — which Purchasing will also start to need.)
+Purchase Orders (slice 1) are done with full Approval/Process-Tracker/Notification integration. The
+clear next step is **Purchasing slice 2 — Goods Receipt**: receive against a PO → write the
+inventory ledger (`IInventoryLedger`) **and** post Dr Inventory / Cr GR-IR. This is where the
+**cross-module atomic posting** infrastructure must be built (one shared DB transaction spanning the
+Purchasing + Inventory + Accounting contexts — they share one database). After GR: Purchase Invoice
+(Dr GR-IR + VAT Input / Cr AP, needs Accounting slice 2 AP subledger) and Supplier Payment.
+(Alternative: build Accounting slice 2 first — posting rules + AR/AP subledgers — which GR/invoicing
+will need anyway.)
 
 ## How to resume
 

@@ -1,18 +1,21 @@
-using Accountrack.Approval.Application.Abstractions;
-using Accountrack.Approval.Application.Features;
-using Accountrack.Approval.Infrastructure.Persistence;
+using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
+using Accountrack.Modules.Contracts.Events;
+using Accountrack.Purchasing.Application;
+using Accountrack.Purchasing.Application.Abstractions;
+using Accountrack.Purchasing.Application.Features;
+using Accountrack.Purchasing.Infrastructure.Persistence;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Accountrack.Approval.Infrastructure;
+namespace Accountrack.Purchasing.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApprovalModule(
+    public static IServiceCollection AddPurchasingModule(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -21,28 +24,29 @@ public static class DependencyInjection
         services.TryAddScoped<AuditCaptureInterceptor>();
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
-        services.AddDbContext<ApprovalDbContext>((sp, options) =>
+        services.AddDbContext<PurchasingDbContext>((sp, options) =>
         {
             options.UseSqlServer(connectionString, sql =>
-                sql.MigrationsHistoryTable("__EFMigrationsHistory", ApprovalDbContext.Schema));
+                sql.MigrationsHistoryTable("__EFMigrationsHistory", PurchasingDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),
                 sp.GetRequiredService<AuditingSaveChangesInterceptor>());
         });
 
-        services.AddScoped<IApprovalUnitOfWork>(sp => sp.GetRequiredService<ApprovalDbContext>());
-        services.AddScoped<IApprovalDefinitionRepository, ApprovalDefinitionRepository>();
-        services.AddScoped<IApprovalRequestRepository, ApprovalRequestRepository>();
-        services.AddScoped<Modules.Contracts.Approval.IApprovalService, ApprovalService>();
+        services.AddScoped<IPurchasingUnitOfWork>(sp => sp.GetRequiredService<PurchasingDbContext>());
+        services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
 
-        var applicationAssembly = typeof(SubmitForApprovalCommand).Assembly;
+        // Advance PO status when its approval is decided.
+        services.AddScoped<IIntegrationEventHandler<ApprovalDecided>, ApprovalDecidedConsumer>();
+
+        var applicationAssembly = typeof(CreatePurchaseOrderCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));
         services.AddValidatorsFromAssembly(applicationAssembly);
 
         return services;
     }
 
-    public static async Task InitializeApprovalModuleAsync(
+    public static async Task InitializePurchasingModuleAsync(
         this IServiceProvider services, bool migrate, CancellationToken ct = default)
     {
         if (!migrate)
@@ -51,7 +55,7 @@ public static class DependencyInjection
         }
 
         await using var scope = services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApprovalDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<PurchasingDbContext>();
         await db.Database.MigrateAsync(ct);
     }
 }

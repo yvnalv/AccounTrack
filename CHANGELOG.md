@@ -1,5 +1,36 @@
 # Accountrack Changelog
 
+## [2026-06-14 06:03:10 UTC]
+
+CHG-0015 — Purchasing module (slice 1): Purchase Orders + cross-module integration
+
+- Implemented the first **transactional vertical** — Purchase Orders — wired through the whole
+  foundation. Verified end-to-end: created a PO (Master-Data-validated supplier/product/warehouse;
+  totals 10,000,000 + 11% PPN = 11,100,000), submitted it → the Approval engine created a pending
+  request and the PO went `PendingApproval`; Process Tracker recorded "Submitted for approval" and
+  the submitter was notified; a second user approved → the `ApprovalDecided` event advanced the PO
+  to **Approved** and added an "Approved" milestone.
+- **Cross-module contracts (ADR-0007):** added `IApprovalService` (implemented by Approval over its
+  submit use case) and `IMasterDataLookup` (implemented by Master Data) to `Modules.Contracts`, so
+  Purchasing requests approval and validates references without depending on module internals.
+- **Domain:** `PurchaseOrder` (+ lines, status workflow Draft → PendingApproval → Approved/Rejected,
+  per-company number sequence, sub/tax/grand totals), errors.
+- **Application:** CreatePurchaseOrder (validates supplier/product/warehouse, resolves currency),
+  SubmitPurchaseOrder (calls `IApprovalService`, auto-approves when no rule matches), queries, and an
+  `ApprovalDecided` consumer that advances PO status via integration events.
+- **Infrastructure:** `PurchasingDbContext` (own `purchasing` schema) + configs, repository, DI
+  (event-consumer subscription), factory, `InitialPurchasing` migration (verified on real SQL Server).
+- **Api:** `GET/POST /api/v1/purchase-orders`, `GET /{id}`, `POST /{id}/submit` — gated by
+  Purchasing.View / Purchasing.Create.
+- **Tests:** 13 Purchasing unit tests (totals, status workflow, submit→approval, event consumer) +
+  architecture-boundary tests. Full suite now 132, green.
+- **Scope:** slice 1 (Purchase Orders only). Slice 2: Goods Receipt (inventory ledger + Dr Inventory
+  / Cr GR-IR — requires the cross-module atomic-transaction infrastructure), Purchase Invoice
+  (AP/VAT), Supplier Payment.
+- See [docs/MODULES.md](docs/MODULES.md), [docs/STATUS.md](docs/STATUS.md).
+
+---
+
 ## [2026-06-14 05:24:37 UTC]
 
 CHG-0014 — Notification module (in-app) — Phase 1 foundation complete
