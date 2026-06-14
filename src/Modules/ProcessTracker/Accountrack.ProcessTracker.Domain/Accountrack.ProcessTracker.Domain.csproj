@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ProcessTracker.Domain: per-document lifecycle milestones. Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.ProcessTracker.Domain</RootNamespace>
+    <AssemblyName>Accountrack.ProcessTracker.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

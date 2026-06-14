@@ -15,6 +15,8 @@ using Accountrack.Inventory.Api;
 using Accountrack.Inventory.Infrastructure;
 using Accountrack.MasterData.Api;
 using Accountrack.MasterData.Infrastructure;
+using Accountrack.ProcessTracker.Api;
+using Accountrack.ProcessTracker.Infrastructure;
 using Accountrack.Identity.Api;
 using Accountrack.Identity.Infrastructure;
 using Accountrack.Identity.Infrastructure.Authentication;
@@ -32,6 +34,10 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 builder.Services.AddScoped<ITenantContext, HttpContextTenantContext>();
 
+// In-process integration-event dispatch (ADR-0007). Scoped so handlers resolve from the request scope.
+builder.Services.AddScoped<Accountrack.Application.Abstractions.Integration.IIntegrationEventPublisher,
+    Accountrack.Infrastructure.Common.Integration.IntegrationEventPublisher>();
+
 // --- CQRS pipeline (ARCHITECTURE.md §4). Modules register their own handlers. ---
 builder.Services.AddMediatR(cfg =>
 {
@@ -48,6 +54,7 @@ builder.Services.AddAccountingModule(builder.Configuration);
 builder.Services.AddMasterDataModule(builder.Configuration);
 builder.Services.AddInventoryModule(builder.Configuration);
 builder.Services.AddApprovalModule(builder.Configuration);
+builder.Services.AddProcessTrackerModule(builder.Configuration);
 
 // Accept/emit enums as strings in JSON (nicer API ergonomics).
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -111,6 +118,7 @@ app.MapAccountingEndpoints();
 app.MapMasterDataEndpoints();
 app.MapInventoryEndpoints();
 app.MapApprovalEndpoints();
+app.MapProcessTrackerEndpoints();
 
 // Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
@@ -127,6 +135,7 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     await app.Services.InitializeMasterDataModuleAsync(migrate, seedDev);
     await app.Services.InitializeInventoryModuleAsync(migrate);
     await app.Services.InitializeApprovalModuleAsync(migrate);
+    await app.Services.InitializeProcessTrackerModuleAsync(migrate);
 }
 
 app.Run();

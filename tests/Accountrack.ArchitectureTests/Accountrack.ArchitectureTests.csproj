@@ -43,6 +43,9 @@
     <ProjectReference Include="..\..\src\Modules\Approval\Accountrack.Approval.Domain\Accountrack.Approval.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Approval\Accountrack.Approval.Application\Accountrack.Approval.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Approval\Accountrack.Approval.Infrastructure\Accountrack.Approval.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ProcessTracker\Accountrack.ProcessTracker.Domain\Accountrack.ProcessTracker.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ProcessTracker\Accountrack.ProcessTracker.Application\Accountrack.ProcessTracker.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ProcessTracker\Accountrack.ProcessTracker.Infrastructure\Accountrack.ProcessTracker.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

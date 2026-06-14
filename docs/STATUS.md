@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-14 (last change **CHG-0012**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 103 passing.
+- **As of:** 2026-06-14 (last change **CHG-0013**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 111 passing.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
 
@@ -26,7 +26,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **Company Management** — tenants, companies, settings; tenant context (CHG-0005)
 - ✅ **Audit Log** — automatic atomic before/after capture (CHG-0006)
 - ✅ **Approval Workflow** — generic engine: conditional/multi-level, SoD, auto-approve (CHG-0012)
-- 🔜 **Process Tracker** — document lifecycle timeline
+- ✅ **Process Tracker** — document lifecycle timeline; consumes approval events (CHG-0013)
+- ✅ **In-process integration events** — publisher + handlers building block (ADR-0007) (CHG-0013)
 - 🔜 **Notification** — in-app + email
 - ◻️ **Cross-tenant isolation integration suite** (Testcontainers) — MULTI_TENANCY.md §9
 

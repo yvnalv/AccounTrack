@@ -1,8 +1,10 @@
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Approval.Application.Abstractions;
 using Accountrack.Approval.Application.Contracts;
 using Accountrack.Approval.Domain;
+using Accountrack.Modules.Contracts.Events;
 using Accountrack.SharedKernel.Results;
 using FluentValidation;
 
@@ -30,15 +32,17 @@ public sealed class SubmitForApprovalHandler : ICommandHandler<SubmitForApproval
     private readonly IApprovalRequestRepository _requests;
     private readonly ICurrentUser _user;
     private readonly IApprovalUnitOfWork _uow;
+    private readonly IIntegrationEventPublisher _events;
 
     public SubmitForApprovalHandler(
         IApprovalDefinitionRepository definitions, IApprovalRequestRepository requests,
-        ICurrentUser user, IApprovalUnitOfWork uow)
+        ICurrentUser user, IApprovalUnitOfWork uow, IIntegrationEventPublisher events)
     {
         _definitions = definitions;
         _requests = requests;
         _user = user;
         _uow = uow;
+        _events = events;
     }
 
     public async Task<Result<SubmitResult>> Handle(SubmitForApprovalCommand request, CancellationToken ct)
@@ -59,6 +63,10 @@ public sealed class SubmitForApprovalHandler : ICommandHandler<SubmitForApproval
         _requests.Add(approvalRequest);
         await _uow.SaveChangesAsync(ct);
 
+        await _events.PublishAsync(new ApprovalSubmitted(
+            approvalRequest.DocumentType, approvalRequest.DocumentId, approvalRequest.Id,
+            approvalRequest.Status.ToString(), approvalRequest.SubmittedBy), ct);
+
         return new SubmitResult(approvalRequest.Id, approvalRequest.Status.ToString());
     }
 }
@@ -71,13 +79,17 @@ public sealed class DecideApprovalHandler : ICommandHandler<DecideApprovalComman
     private readonly ICurrentUser _user;
     private readonly IClock _clock;
     private readonly IApprovalUnitOfWork _uow;
+    private readonly IIntegrationEventPublisher _events;
 
-    public DecideApprovalHandler(IApprovalRequestRepository requests, ICurrentUser user, IClock clock, IApprovalUnitOfWork uow)
+    public DecideApprovalHandler(
+        IApprovalRequestRepository requests, ICurrentUser user, IClock clock,
+        IApprovalUnitOfWork uow, IIntegrationEventPublisher events)
     {
         _requests = requests;
         _user = user;
         _clock = clock;
         _uow = uow;
+        _events = events;
     }
 
     public async Task<Result<string>> Handle(DecideApprovalCommand request, CancellationToken ct)
@@ -114,6 +126,11 @@ public sealed class DecideApprovalHandler : ICommandHandler<DecideApprovalComman
         }
 
         await _uow.SaveChangesAsync(ct);
+
+        await _events.PublishAsync(new ApprovalDecided(
+            approvalRequest.DocumentType, approvalRequest.DocumentId, approvalRequest.Id,
+            approvalRequest.Status.ToString(), approvalRequest.SubmittedBy, _user.UserId, request.Approve), ct);
+
         return approvalRequest.Status.ToString();
     }
 }

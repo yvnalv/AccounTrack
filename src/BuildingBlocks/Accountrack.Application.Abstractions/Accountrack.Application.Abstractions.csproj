@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Modules.Contracts\Accountrack.Modules.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

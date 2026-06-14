@@ -1,4 +1,5 @@
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Approval.Application.Abstractions;
 using Accountrack.Approval.Application.Features;
 using Accountrack.Approval.Domain;
@@ -17,6 +18,7 @@ public class ApprovalHandlerTests
     private readonly ICurrentUser _user = Substitute.For<ICurrentUser>();
     private readonly IClock _clock = Substitute.For<IClock>();
     private readonly IApprovalUnitOfWork _uow = Substitute.For<IApprovalUnitOfWork>();
+    private readonly IIntegrationEventPublisher _events = Substitute.For<IIntegrationEventPublisher>();
 
     public ApprovalHandlerTests() => _clock.UtcNow.Returns(Now);
 
@@ -28,8 +30,8 @@ public class ApprovalHandlerTests
         return def;
     }
 
-    private SubmitForApprovalHandler SubmitHandler() => new(_defs, _reqs, _user, _uow);
-    private DecideApprovalHandler DecideHandler() => new(_reqs, _user, _clock, _uow);
+    private SubmitForApprovalHandler SubmitHandler() => new(_defs, _reqs, _user, _uow, _events);
+    private DecideApprovalHandler DecideHandler() => new(_reqs, _user, _clock, _uow, _events);
 
     [Fact]
     public async Task Submit_creates_a_pending_request_when_a_definition_matches()

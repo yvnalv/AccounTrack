@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-06-14 05:12:24 UTC]
+
+CHG-0013 — In-process integration events + Process Tracker module
+
+- Added the **in-process integration-event mechanism** (ADR-0007): `IIntegrationEvent` + event
+  records in `Modules.Contracts`, `IIntegrationEventPublisher` / `IIntegrationEventHandler<T>` in
+  Application.Abstractions, and a best-effort dispatcher in Infrastructure.Common (a failing handler
+  is logged, not fatal — eventual semantics; durable outbox is a later hardening).
+- **Approval** now publishes `ApprovalSubmitted` and `ApprovalDecided` after committing.
+- Implemented the **Process Tracker** module: `ProcessEvent` (append-only per-document lifecycle
+  milestone), a consumer that subscribes to both approval events and appends milestones, a
+  `GET /api/v1/documents/{type}/{id}/timeline` query, own `process` schema + `InitialProcessTracker`
+  migration. Verified end-to-end: submitting a PO recorded "Submitted for approval" and approving it
+  added "Approved" on the document timeline — driven entirely by integration events across modules.
+- **Tests:** 5 Process Tracker unit tests (event→milestone mapping) + architecture-boundary tests.
+  Full suite now 111, green.
+- See [docs/INTEGRATION_EVENTS.md](docs/INTEGRATION_EVENTS.md), [docs/WORKFLOW_APPROVAL.md](docs/WORKFLOW_APPROVAL.md).
+
+---
+
 ## [2026-06-14 04:47:07 UTC]
 
 CHG-0012 — Approval Workflow module + GUID-key platform fix

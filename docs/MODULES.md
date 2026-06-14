@@ -14,8 +14,8 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Company Management | ✅ Implemented | tenants, companies, company settings; dev tenant/company seeder |
 | Audit Log | ✅ Implemented | automatic atomic before/after capture (ADR-0026), tenant-scoped read API |
 | Approval Workflow | ✅ Implemented | generic, document-agnostic engine: conditional + multi-level definitions (User/Role approvers), submit → approve/reject with segregation of duties, auto-approve when no rule matches |
-| Process Tracker | ◻️ Planned | |
-| Notification | ◻️ Planned | |
+| Process Tracker | ✅ Implemented | per-document lifecycle timeline; consumes approval integration events (in-process event dispatch, ADR-0007) |
+| Notification | ◻️ Planned | next |
 | Accounting | 🟡 Slice 1 | chart of accounts, fiscal periods (open/close/lock), double-entry journal posting + reversal, trial balance. Slice 2: posting rules, AR/AP subledgers, period-close snapshots, P&L/Balance Sheet/Cash Flow |
 | Master Data | ✅ Implemented | products (+ categories, units of measure), customers, suppliers, warehouses, tax codes; create + list, dev seed |
 | Inventory | 🟡 Slice 1 | transaction ledger (source of truth), moving-average buckets, receive/adjust/transfer, on-hand + stock-card; `IInventoryLedger`. Slice 2: GL posting on moves, stock opname, negative-stock setting, FIFO option |
