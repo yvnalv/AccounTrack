@@ -5,14 +5,16 @@ Decisions confirmed 2026-06-13 are recorded in [DECISIONS.md](DECISIONS.md).
 
 ## Reading order for new contributors
 1. [`../CLAUDE.md`](../CLAUDE.md) — master instructions (read fully).
-2. [GLOSSARY.md](GLOSSARY.md) — shared vocabulary.
-3. [ARCHITECTURE.md](ARCHITECTURE.md) — how the system is built.
-4. [DECISIONS.md](DECISIONS.md) — why it's built that way (ADRs).
-5. The design doc for your area (below).
+2. [STATUS.md](STATUS.md) — current milestones & what to do next.
+3. [GLOSSARY.md](GLOSSARY.md) — shared vocabulary.
+4. [ARCHITECTURE.md](ARCHITECTURE.md) — how the system is built.
+5. [DECISIONS.md](DECISIONS.md) — why it's built that way (ADRs).
+6. The design doc for your area (below).
 
 ## Catalog
 
 ### Product
+- [STATUS.md](STATUS.md) — **start here**: milestones, where we are, what's next.
 - [PRD.md](PRD.md) — product requirements, MVP scope.
 - [ROADMAP.md](ROADMAP.md) — phased delivery plan.
 

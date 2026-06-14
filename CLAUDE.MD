@@ -766,6 +766,7 @@ Project docs Structure:
 ├── CHANGELOG.md
 └── docs/
 ├── README.md            (docs index)
+├── STATUS.md            (milestones / where we are / what's next)
 ├── PRD.md
 ├── ROADMAP.md
 ├── ARCHITECTURE.md

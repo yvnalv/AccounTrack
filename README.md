@@ -34,7 +34,7 @@ the [docs index](docs/README.md).
 
 | Area | Doc |
 |---|---|
-| Product & roadmap | [PRD](docs/PRD.md) · [ROADMAP](docs/ROADMAP.md) |
+| Status & roadmap | [STATUS](docs/STATUS.md) (where we are / what's next) · [PRD](docs/PRD.md) · [ROADMAP](docs/ROADMAP.md) |
 | Architecture | [ARCHITECTURE](docs/ARCHITECTURE.md) · [MODULES](docs/MODULES.md) · [INTEGRATION_EVENTS](docs/INTEGRATION_EVENTS.md) |
 | Data & API | [DATABASE](docs/DATABASE.md) · [API_SPEC](docs/API_SPEC.md) · [ERROR_HANDLING](docs/ERROR_HANDLING.md) |
 | Accounting | [ACCOUNTING_DESIGN](docs/ACCOUNTING_DESIGN.md) · [POSTING_RULES](docs/POSTING_RULES.md) |

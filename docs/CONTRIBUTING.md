@@ -33,6 +33,7 @@ A PR must include:
   applicable).
 - A new top entry in [`../CHANGELOG.md`](../CHANGELOG.md) (`CHG-NNNN`, UTC, newest-on-top — see
   `CLAUDE.md` → CHANGELOG Rules).
+- When a module/slice lands: update [STATUS.md](STATUS.md) (snapshot, milestones, next-up).
 - Green CI: build, lint, unit, architecture, contract, integration, frontend, vuln scan
   (DEPLOYMENT.md §5).
 - Security consideration note: tenant scope, required permissions, SoD impact.

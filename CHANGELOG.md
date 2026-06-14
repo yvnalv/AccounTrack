@@ -1,5 +1,19 @@
 # Accountrack Changelog
 
+## [2026-06-14 04:08:53 UTC]
+
+CHG-0011 — Add STATUS.md milestone tracker ("where we are / what's next")
+
+- Added [docs/STATUS.md](docs/STATUS.md) as the canonical resume point: current snapshot (last
+  change, commit, test count), milestone checklist by phase (✅/🟡/◻️ with CHG refs), the deferred
+  slice backlog (Accounting slice 2, Inventory slice 2, cross-module atomic posting, frontend), the
+  recommended next step, and how-to-resume commands + gotchas.
+- Linked it from `README.md`, the docs index, and the `CLAUDE.md` documentation structure; added a
+  CONTRIBUTING rule to update STATUS.md when a module/slice lands.
+- Docs only — no code changes.
+
+---
+
 ## [2026-06-13 13:44:53 UTC]
 
 CHG-0010 — Inventory engine (slice 1): ledger + moving-average costing
