@@ -52,3 +52,21 @@ public interface IAccountingReadStore
 {
     Task<IReadOnlyList<TrialBalanceRow>> GetTrialBalanceAsync(DateOnly? fromDate, DateOnly? toDate, CancellationToken ct);
 }
+
+public interface IPostingRuleRepository
+{
+    /// <summary>All posting rules for the active company (small per-company set; resolved in memory).</summary>
+    Task<IReadOnlyList<PostingRule>> ListAsync(CancellationToken ct);
+    Task<PostingRule?> FindAsync(string eventType, string ruleKey, PostingSelector selector, CancellationToken ct);
+    void Add(PostingRule rule);
+}
+
+/// <summary>
+/// Account-determination engine (ADR-0024, docs/POSTING_RULES.md): maps a business event + purpose
+/// (+ optional selectors) to a GL account, most-specific rule wins, company default as fallback.
+/// Used by event-driven posting so accounts are configuration, never hardcoded.
+/// </summary>
+public interface IPostingRuleResolver
+{
+    Task<Result<Guid>> ResolveAsync(string eventType, string ruleKey, PostingSelector selector, CancellationToken ct);
+}

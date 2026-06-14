@@ -63,6 +63,27 @@ public sealed class JournalRepository : IJournalRepository
     public void AddSequence(JournalNumberSequence sequence) => _db.JournalNumberSequences.Add(sequence);
 }
 
+public sealed class PostingRuleRepository : IPostingRuleRepository
+{
+    private readonly AccountingDbContext _db;
+    public PostingRuleRepository(AccountingDbContext db) => _db = db;
+
+    public async Task<IReadOnlyList<PostingRule>> ListAsync(CancellationToken ct) =>
+        await _db.PostingRules.ToListAsync(ct);
+
+    public Task<PostingRule?> FindAsync(string eventType, string ruleKey, PostingSelector selector, CancellationToken ct) =>
+        _db.PostingRules.FirstOrDefaultAsync(r =>
+            r.EventType == eventType
+            && r.RuleKey == ruleKey
+            && r.ProductCategoryId == selector.ProductCategoryId
+            && r.WarehouseId == selector.WarehouseId
+            && r.TaxCodeId == selector.TaxCodeId
+            && r.BankAccountId == selector.BankAccountId,
+            ct);
+
+    public void Add(PostingRule rule) => _db.PostingRules.Add(rule);
+}
+
 public sealed class AccountingReadStore : IAccountingReadStore
 {
     private readonly AccountingDbContext _db;

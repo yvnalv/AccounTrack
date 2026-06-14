@@ -39,4 +39,10 @@ public static class AccountingErrors
 
     public static readonly Error PeriodNotFound =
         Error.NotFound("ACCOUNTING.PERIOD_NOT_FOUND", "Fiscal period not found.");
+
+    public static Error PostingRuleUnresolved(string eventType, string ruleKey) =>
+        Error.BusinessRule(
+            "BR-ACC-6",
+            $"No posting rule resolves account '{ruleKey}' for event '{eventType}'. Configure the chart of accounts / posting rules.",
+            "ACCOUNTING.POSTING_RULE_UNRESOLVED");
 }

@@ -1,5 +1,33 @@
 # Accountrack Changelog
 
+## [2026-06-14 13:22:34 UTC]
+
+CHG-0017 — Accounting: posting-rule / account-determination engine
+
+- Added the configurable **account-determination engine** (ADR-0024, docs/POSTING_RULES.md): the
+  "engine room" that maps a business event + purpose to a GL account so accounts are configuration
+  per company, never hardcoded. Prerequisite for event-driven auto-posting (Sales/Purchasing slice 2).
+- **Domain:** `PostingRule` (company-scoped EventType + RuleKey + AccountId, optional dimension
+  selectors — ProductCategory / Warehouse / TaxCode / BankAccount — with a `Specificity` score and
+  `Matches` logic), `PostingRuleKeys` (the well-known key catalog + required-keys + control-key map),
+  and `PostingSelector`.
+- **Resolver** (`IPostingRuleResolver`): most-specific matching rule wins; company-wide default
+  (`*`, no selectors) is the fallback; unresolved → fails loudly (`BR-ACC-6`,
+  `ACCOUNTING.POSTING_RULE_UNRESOLVED`), never a silent wrong account.
+- **Health check:** verifies every required key has a valid default rule pointing at an active,
+  postable account, and that control-account keys (AR/AP/Inventory) point at matching control accounts.
+- **Api:** `GET /api/v1/posting-rules`, `GET /api/v1/posting-rules/health` (Accounting.View),
+  `POST /api/v1/posting-rules` upsert (Accounting.Post, idempotent repoint).
+- **Seed:** 13 default rules for the dev company per POSTING_RULES.md §2 (CashBank resolved per
+  chosen bank/cash account via selector, so not seeded as a single default). EF migration
+  `AddPostingRules` (accounting schema).
+- **Tests:** 7 new (resolver fallback / specificity / non-match / fail-loud; health green / missing
+  key / wrong control type). Full suite now 141, green. Verified end-to-end: health returns
+  `isHealthy: true` with the 13 seeded rules; upsert is idempotent.
+- See [docs/POSTING_RULES.md](docs/POSTING_RULES.md) and [docs/ACCOUNTING_DESIGN.md](docs/ACCOUNTING_DESIGN.md).
+
+---
+
 ## [2026-06-14 13:00:35 UTC]
 
 CHG-0016 — Accounting: Profit & Loss and Balance Sheet statements

@@ -75,6 +75,21 @@ public static class AccountingEndpoints
             (await sender.Send(new GetBalanceSheetQuery(asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow)), ct)).ToHttpResult())
             .WithName("GetBalanceSheet");
 
+        // --- Posting rules (account determination) ---
+        var postingRules = app.MapGroup("/api/v1/posting-rules").WithTags("Posting Rules").RequireAuthorization();
+
+        postingRules.MapGet("/", async (ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetPostingRulesQuery(), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.View").WithName("GetPostingRules");
+
+        postingRules.MapGet("/health", async (ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetPostingRuleHealthQuery(), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.View").WithName("GetPostingRuleHealth");
+
+        postingRules.MapPost("/", async (SetPostingRuleCommand cmd, ISender sender, CancellationToken ct) =>
+            (await sender.Send(cmd, ct)).ToCreatedResult("/api/v1/posting-rules"))
+            .RequireAuthorization("Accounting.Post").WithName("SetPostingRule");
+
         return app;
     }
 }

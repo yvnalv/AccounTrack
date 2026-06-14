@@ -22,6 +22,7 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<JournalLine> JournalLines => Set<JournalLine>();
     public DbSet<JournalNumberSequence> JournalNumberSequences => Set<JournalNumberSequence>();
+    public DbSet<PostingRule> PostingRules => Set<PostingRule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -90,6 +91,14 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
         {
             b.ToTable("JournalNumberSequences");
             b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        modelBuilder.Entity<PostingRule>(b =>
+        {
+            b.ToTable("PostingRules");
+            b.Property(r => r.EventType).IsRequired().HasMaxLength(128);
+            b.Property(r => r.RuleKey).IsRequired().HasMaxLength(64);
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.RuleKey, r.EventType });
         });
 
         base.OnModelCreating(modelBuilder);

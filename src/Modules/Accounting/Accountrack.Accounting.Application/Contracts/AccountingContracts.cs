@@ -14,3 +14,11 @@ public sealed record JournalLineDto(Guid AccountId, decimal Debit, decimal Credi
 public sealed record JournalEntryDto(
     Guid Id, string EntryNo, DateOnly Date, string Currency, string Status, string Source,
     string Description, decimal TotalDebit, decimal TotalCredit, IReadOnlyList<JournalLineDto> Lines);
+
+public sealed record PostingRuleDto(
+    Guid Id, string EventType, string RuleKey, Guid AccountId, string AccountCode, string AccountName,
+    Guid? ProductCategoryId, Guid? WarehouseId, Guid? TaxCodeId, Guid? BankAccountId, bool IsActive);
+
+public sealed record PostingRuleHealthIssue(string RuleKey, string Problem);
+
+public sealed record PostingRuleHealthDto(bool IsHealthy, IReadOnlyList<PostingRuleHealthIssue> Issues);

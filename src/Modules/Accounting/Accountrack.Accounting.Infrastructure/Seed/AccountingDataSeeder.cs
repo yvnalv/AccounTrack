@@ -18,6 +18,7 @@ public static class AccountingDataSeeder
     {
         await SeedChartAsync(db, ct);
         await SeedFiscalYearAsync(db, currentYear, ct);
+        await SeedPostingRulesAsync(db, ct);
     }
 
     private static async Task SeedChartAsync(AccountingDbContext db, CancellationToken ct)
@@ -54,6 +55,57 @@ public static class AccountingDataSeeder
             account.TenantId = DevTenantId;
             account.CompanyId = DevCompanyId;
             db.Accounts.Add(account);
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Seeds the company-wide default posting rules (docs/POSTING_RULES.md §2): each required
+    /// <see cref="PostingRuleKeys"/> maps to its default seeded account. CashBank is intentionally
+    /// not seeded as a single default — it is resolved per chosen bank/cash account via a selector.
+    /// </summary>
+    private static async Task SeedPostingRulesAsync(AccountingDbContext db, CancellationToken ct)
+    {
+        var hasRules = await db.PostingRules.IgnoreQueryFilters()
+            .AnyAsync(r => r.CompanyId == DevCompanyId && !r.IsDeleted, ct);
+        if (hasRules)
+        {
+            return;
+        }
+
+        (string Key, string AccountCode)[] defaults =
+        {
+            (PostingRuleKeys.ArControl, "1100"),
+            (PostingRuleKeys.ApControl, "2100"),
+            (PostingRuleKeys.Inventory, "1200"),
+            (PostingRuleKeys.GrIrClearing, "2150"),
+            (PostingRuleKeys.Revenue, "4000"),
+            (PostingRuleKeys.Cogs, "5000"),
+            (PostingRuleKeys.VatOutput, "2300"),
+            (PostingRuleKeys.VatInput, "1300"),
+            (PostingRuleKeys.InventoryVariance, "5100"),
+            (PostingRuleKeys.Rounding, "7900"),
+            (PostingRuleKeys.CustomerAdvance, "2400"),
+            (PostingRuleKeys.SupplierAdvance, "1400"),
+            (PostingRuleKeys.RetainedEarnings, "3900"),
+        };
+
+        var accountsByCode = await db.Accounts.IgnoreQueryFilters()
+            .Where(a => a.CompanyId == DevCompanyId && !a.IsDeleted)
+            .ToDictionaryAsync(a => a.Code, a => a.Id, ct);
+
+        foreach (var (key, code) in defaults)
+        {
+            if (!accountsByCode.TryGetValue(code, out var accountId))
+            {
+                continue;
+            }
+
+            var rule = PostingRule.CreateDefault(key, accountId);
+            rule.TenantId = DevTenantId;
+            rule.CompanyId = DevCompanyId;
+            db.PostingRules.Add(rule);
         }
 
         await db.SaveChangesAsync(ct);

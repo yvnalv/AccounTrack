@@ -36,8 +36,10 @@ public static class DependencyInjection
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IFiscalPeriodRepository, FiscalPeriodRepository>();
         services.AddScoped<IJournalRepository, JournalRepository>();
+        services.AddScoped<IPostingRuleRepository, PostingRuleRepository>();
         services.AddScoped<IAccountingReadStore, AccountingReadStore>();
         services.AddScoped<IJournalPoster, JournalPostingService>();
+        services.AddScoped<IPostingRuleResolver, PostingRuleResolver>();
 
         var applicationAssembly = typeof(PostJournalCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));
