@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-06-16 09:56:47 UTC]
+
+CHG-0024 — Sales: Sales Invoice (AR/Revenue/VAT) + AR subledger
+
+- Added **Sales Invoice** (Sales slice 2): bill a customer for goods delivered against a sales order.
+  In one cross-module atomic transaction it posts **Dr AR control / Cr Revenue + Cr VAT Output**
+  (accounts resolved by posting rules; AR line carries the customer as subledger party), opens an
+  **AR subledger open item**, advances the SO's invoiced quantities, and records the invoice.
+- **Three-way-match lite:** a line is invoiceable only up to *delivered-but-not-yet-invoiced*
+  quantity (`UninvoicedDeliveredQuantity`), so revenue is recognised against goods actually shipped.
+- **Api:** `POST /api/v1/sales-orders/{id}/invoices`, `GET .../invoices`,
+  `GET /api/v1/sales-invoices/{id}` (Sales.Post / Sales.View).
+- **Persistence:** EF migration `AddSalesInvoices` (SalesInvoices/Lines/sequence + `InvoicedQuantity`
+  on SalesOrderLines).
+- **Tests:** 4 new (invoice-quantity guard; handler posts a balanced Dr AR / Cr Revenue+VAT journal,
+  opens the AR item, advances the SO; over-invoice guard; zero-tax omits the VAT line). Full suite
+  now 182, green.
+- **Verified end-to-end:** SO 4 @ 500 + PPN 11% → approved → delivered 4 → invoiced 4. Invoice net
+  2,000 / VAT 220 / gross 2,220; balanced journal Dr AR 2,220 / Cr Revenue 2,000 + Cr VAT Output 220;
+  AR open item 2,220 in the 1–30 aging bucket; over-invoice rejected.
+- See [docs/POSTING_RULES.md](docs/POSTING_RULES.md), [docs/ACCOUNTING_DESIGN.md](docs/ACCOUNTING_DESIGN.md).
+
+---
+
 ## [2026-06-16 09:28:19 UTC]
 
 CHG-0023 — Sales: Delivery Order (stock issue + COGS) — cross-module atomic

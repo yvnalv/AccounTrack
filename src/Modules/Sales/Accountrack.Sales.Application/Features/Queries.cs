@@ -73,6 +73,51 @@ public sealed class GetDeliveriesForSalesOrderHandler
     }
 }
 
+public sealed record GetSalesInvoiceQuery(Guid Id) : IQuery<SalesInvoiceDto>;
+
+public sealed class GetSalesInvoiceHandler : IQueryHandler<GetSalesInvoiceQuery, SalesInvoiceDto>
+{
+    private readonly ISalesInvoiceRepository _invoices;
+    public GetSalesInvoiceHandler(ISalesInvoiceRepository invoices) => _invoices = invoices;
+
+    public async Task<Result<SalesInvoiceDto>> Handle(GetSalesInvoiceQuery request, CancellationToken ct)
+    {
+        var invoice = await _invoices.GetByIdAsync(request.Id, ct);
+        if (invoice is null)
+        {
+            return Error.NotFound("SALES.SI_NOT_FOUND", "Sales invoice not found.");
+        }
+
+        return new SalesInvoiceDto(
+            invoice.Id, invoice.Number, invoice.SalesOrderId, invoice.CustomerId, invoice.Currency,
+            invoice.InvoiceDate, invoice.DueDate, invoice.SubTotal, invoice.TaxTotal, invoice.GrandTotal,
+            invoice.JournalEntryId, invoice.ArOpenItemId, invoice.Notes,
+            invoice.Lines.Select(l => new SalesInvoiceLineDto(
+                l.SalesOrderLineId, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineNet, l.LineTax, l.LineTotal))
+                .ToList());
+    }
+}
+
+public sealed record GetSalesInvoicesForSalesOrderQuery(Guid SalesOrderId)
+    : IQuery<IReadOnlyList<SalesInvoiceSummaryDto>>;
+
+public sealed class GetSalesInvoicesForSalesOrderHandler
+    : IQueryHandler<GetSalesInvoicesForSalesOrderQuery, IReadOnlyList<SalesInvoiceSummaryDto>>
+{
+    private readonly ISalesInvoiceRepository _invoices;
+    public GetSalesInvoicesForSalesOrderHandler(ISalesInvoiceRepository invoices) => _invoices = invoices;
+
+    public async Task<Result<IReadOnlyList<SalesInvoiceSummaryDto>>> Handle(
+        GetSalesInvoicesForSalesOrderQuery request, CancellationToken ct)
+    {
+        var invoices = await _invoices.ListBySalesOrderAsync(request.SalesOrderId, ct);
+        return Result.Success<IReadOnlyList<SalesInvoiceSummaryDto>>(invoices
+            .Select(i => new SalesInvoiceSummaryDto(
+                i.Id, i.Number, i.SalesOrderId, i.InvoiceDate, i.DueDate, i.GrandTotal, i.JournalEntryId))
+            .ToList());
+    }
+}
+
 public sealed record GetSalesOrdersQuery : IQuery<IReadOnlyList<SalesOrderSummaryDto>>;
 
 public sealed class GetSalesOrdersHandler : IQueryHandler<GetSalesOrdersQuery, IReadOnlyList<SalesOrderSummaryDto>>

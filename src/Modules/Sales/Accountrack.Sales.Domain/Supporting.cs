@@ -37,10 +37,36 @@ public sealed class DeliveryOrderNumberSequence : TenantOwnedEntity
     }
 }
 
+/// <summary>Per-company gapless counter for sales-invoice numbers.</summary>
+public sealed class SalesInvoiceNumberSequence : TenantOwnedEntity
+{
+    private SalesInvoiceNumberSequence() { }
+
+    public SalesInvoiceNumberSequence(int next = 1) => Next = next;
+
+    public int Next { get; private set; }
+
+    public string Take(DateOnly date)
+    {
+        var value = Next;
+        Next++;
+        return $"SI/{date.Year:D4}{date.Month:D2}/{value:D5}";
+    }
+}
+
 public static class SalesErrors
 {
     public static readonly Error NotFound =
         Error.NotFound("SALES.SO_NOT_FOUND", "Sales order not found.");
+
+    public static readonly Error NoInvoiceLines =
+        Error.BusinessRule("BR-SAL-3", "A sales invoice requires at least one line.", "SALES.NO_INVOICE_LINES");
+
+    public static Error OverInvoice(decimal uninvoicedDelivered, decimal requested) =>
+        Error.BusinessRule(
+            "BR-SAL-3",
+            $"Cannot invoice {requested}; only {uninvoicedDelivered} has been delivered and not yet invoiced on this line.",
+            "SALES.OVER_INVOICE");
 
     public static readonly Error NotDeliverable =
         Error.Conflict("SALES.NOT_DELIVERABLE", "Goods can only be delivered against an approved sales order.");

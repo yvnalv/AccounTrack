@@ -133,6 +133,18 @@ public sealed class SalesOrder : TenantOwnedEntity, IAggregateRoot
             : SalesOrderStatus.PartiallyDelivered;
     }
 
+    /// <summary>
+    /// Records an invoiced quantity against one line (BR-SAL-3). A line can only be invoiced up to
+    /// what has been delivered, so revenue is recognised against goods actually shipped.
+    /// </summary>
+    public void InvoiceLine(Guid lineId, decimal quantity)
+    {
+        var line = _lines.FirstOrDefault(l => l.Id == lineId)
+            ?? throw new InvalidOperationException("Sales-order line not found.");
+
+        line.Invoice(quantity);
+    }
+
     private void EnsureDraftWithLines()
     {
         if (Status != SalesOrderStatus.Draft)
@@ -187,7 +199,13 @@ public sealed class SalesOrderLine : Entity
     /// <summary>Cumulative quantity shipped via delivery orders (BR-SAL-2).</summary>
     public decimal DeliveredQuantity { get; private set; }
 
+    /// <summary>Cumulative quantity billed via sales invoices (BR-SAL-3).</summary>
+    public decimal InvoicedQuantity { get; private set; }
+
     public decimal OutstandingQuantity => Quantity - DeliveredQuantity;
+
+    /// <summary>Delivered but not yet invoiced — the quantity a sales invoice may still bill.</summary>
+    public decimal UninvoicedDeliveredQuantity => DeliveredQuantity - InvoicedQuantity;
 
     public bool IsFullyDelivered => DeliveredQuantity >= Quantity;
 
@@ -204,6 +222,21 @@ public sealed class SalesOrderLine : Entity
         }
 
         DeliveredQuantity += quantity;
+    }
+
+    internal void Invoice(decimal quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Invoiced quantity must be positive.");
+        }
+
+        if (quantity > UninvoicedDeliveredQuantity)
+        {
+            throw new InvalidOperationException("Invoiced quantity exceeds the delivered, uninvoiced quantity.");
+        }
+
+        InvoicedQuantity += quantity;
     }
 
     internal static SalesOrderLine Create(Guid productId, decimal quantity, decimal unitPrice, decimal taxRate, string? description)

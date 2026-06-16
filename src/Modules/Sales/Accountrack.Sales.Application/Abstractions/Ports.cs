@@ -20,6 +20,15 @@ public interface IDeliveryOrderRepository
     void AddSequence(DeliveryOrderNumberSequence sequence);
 }
 
+public interface ISalesInvoiceRepository
+{
+    void Add(SalesInvoice invoice);
+    Task<SalesInvoice?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<SalesInvoice>> ListBySalesOrderAsync(Guid salesOrderId, CancellationToken ct);
+    Task<SalesInvoiceNumberSequence?> GetSequenceAsync(CancellationToken ct);
+    void AddSequence(SalesInvoiceNumberSequence sequence);
+}
+
 public interface ISalesUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken ct);

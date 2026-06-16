@@ -21,6 +21,9 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
     public DbSet<DeliveryOrder> DeliveryOrders => Set<DeliveryOrder>();
     public DbSet<DeliveryOrderLine> DeliveryOrderLines => Set<DeliveryOrderLine>();
     public DbSet<DeliveryOrderNumberSequence> DeliveryOrderNumberSequences => Set<DeliveryOrderNumberSequence>();
+    public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
+    public DbSet<SalesInvoiceLine> SalesInvoiceLines => Set<SalesInvoiceLine>();
+    public DbSet<SalesInvoiceNumberSequence> SalesInvoiceNumberSequences => Set<SalesInvoiceNumberSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,6 +55,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
             b.Property(l => l.LineTaxAmount).HasColumnType("decimal(19,4)");
             b.Property(l => l.LineTotal).HasColumnType("decimal(19,4)");
             b.Property(l => l.DeliveredQuantity).HasColumnType("decimal(19,6)");
+            b.Property(l => l.InvoicedQuantity).HasColumnType("decimal(19,6)");
             b.Property(l => l.Description).HasMaxLength(512);
             b.HasIndex(l => l.ProductId);
         });
@@ -87,6 +91,39 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
         modelBuilder.Entity<DeliveryOrderNumberSequence>(b =>
         {
             b.ToTable("DeliveryOrderNumberSequences");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        modelBuilder.Entity<SalesInvoice>(b =>
+        {
+            b.ToTable("SalesInvoices");
+            b.Property(i => i.Number).IsRequired().HasMaxLength(32);
+            b.Property(i => i.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(i => i.Notes).HasMaxLength(1024);
+            b.Property(i => i.SubTotal).HasColumnType("decimal(19,4)");
+            b.Property(i => i.TaxTotal).HasColumnType("decimal(19,4)");
+            b.Property(i => i.GrandTotal).HasColumnType("decimal(19,4)");
+            b.HasMany(i => i.Lines).WithOne().HasForeignKey(l => l.SalesInvoiceId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(i => i.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.SalesOrderId });
+        });
+
+        modelBuilder.Entity<SalesInvoiceLine>(b =>
+        {
+            b.ToTable("SalesInvoiceLines");
+            b.Property(l => l.Quantity).HasColumnType("decimal(19,6)");
+            b.Property(l => l.UnitPrice).HasColumnType("decimal(19,4)");
+            b.Property(l => l.TaxRate).HasColumnType("decimal(9,6)");
+            b.Property(l => l.LineNet).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineTax).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineTotal).HasColumnType("decimal(19,4)");
+            b.HasIndex(l => l.ProductId);
+        });
+
+        modelBuilder.Entity<SalesInvoiceNumberSequence>(b =>
+        {
+            b.ToTable("SalesInvoiceNumberSequences");
             b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
@@ -132,4 +169,24 @@ public sealed class DeliveryOrderRepository : IDeliveryOrderRepository
         _db.DeliveryOrderNumberSequences.FirstOrDefaultAsync(ct);
 
     public void AddSequence(DeliveryOrderNumberSequence sequence) => _db.DeliveryOrderNumberSequences.Add(sequence);
+}
+
+public sealed class SalesInvoiceRepository : ISalesInvoiceRepository
+{
+    private readonly SalesDbContext _db;
+    public SalesInvoiceRepository(SalesDbContext db) => _db = db;
+
+    public void Add(SalesInvoice invoice) => _db.SalesInvoices.Add(invoice);
+
+    public Task<SalesInvoice?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        _db.SalesInvoices.Include(i => i.Lines).FirstOrDefaultAsync(i => i.Id == id, ct);
+
+    public async Task<IReadOnlyList<SalesInvoice>> ListBySalesOrderAsync(Guid salesOrderId, CancellationToken ct) =>
+        await _db.SalesInvoices.Where(i => i.SalesOrderId == salesOrderId)
+            .OrderByDescending(i => i.Number).ToListAsync(ct);
+
+    public Task<SalesInvoiceNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
+        _db.SalesInvoiceNumberSequences.FirstOrDefaultAsync(ct);
+
+    public void AddSequence(SalesInvoiceNumberSequence sequence) => _db.SalesInvoiceNumberSequences.Add(sequence);
 }

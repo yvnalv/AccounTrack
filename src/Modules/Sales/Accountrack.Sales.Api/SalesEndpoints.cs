@@ -44,11 +44,30 @@ public static class SalesEndpoints
                 Send(s.Send(new GetDeliveryOrderQuery(id), ct)))
             .RequireAuthorization("Sales.View").WithName("GetDeliveryOrder");
 
+        // --- Sales invoices (against a sales order) ---
+        so.MapGet("/{id:guid}/invoices", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetSalesInvoicesForSalesOrderQuery(id), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetSalesInvoicesForSalesOrder");
+
+        so.MapPost("/{id:guid}/invoices", (Guid id, BillCustomerRequest body, ISender s, CancellationToken ct) =>
+                Created(s.Send(new PostSalesInvoiceCommand(id, body.InvoiceDate, body.DueDate, body.Notes, body.Lines), ct),
+                    $"/api/v1/sales-orders/{id}/invoices"))
+            .RequireAuthorization("Sales.Post").WithName("PostSalesInvoice");
+
+        var si = app.MapGroup("/api/v1/sales-invoices").WithTags("Sales").RequireAuthorization();
+
+        si.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetSalesInvoiceQuery(id), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetSalesInvoice");
+
         return app;
     }
 
     public sealed record ShipGoodsRequest(
         DateOnly DeliveryDate, string? Notes, IReadOnlyList<DeliveryOrderLineInput> Lines);
+
+    public sealed record BillCustomerRequest(
+        DateOnly InvoiceDate, DateOnly DueDate, string? Notes, IReadOnlyList<SalesInvoiceLineInput> Lines);
 
     private static async Task<IResult> Send<T>(Task<Result<T>> task) => (await task).ToHttpResult();
 

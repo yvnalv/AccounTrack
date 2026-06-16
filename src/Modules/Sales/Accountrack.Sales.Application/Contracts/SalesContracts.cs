@@ -23,3 +23,16 @@ public sealed record DeliveryOrderDto(
 
 public sealed record DeliveryOrderSummaryDto(
     Guid Id, string Number, Guid SalesOrderId, DateOnly DeliveryDate, decimal TotalCost, Guid? JournalEntryId);
+
+public sealed record SalesInvoiceLineDto(
+    Guid SalesOrderLineId, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
+    decimal LineNet, decimal LineTax, decimal LineTotal);
+
+public sealed record SalesInvoiceDto(
+    Guid Id, string Number, Guid SalesOrderId, Guid CustomerId, string Currency,
+    DateOnly InvoiceDate, DateOnly DueDate, decimal SubTotal, decimal TaxTotal, decimal GrandTotal,
+    Guid? JournalEntryId, Guid? ArOpenItemId, string? Notes, IReadOnlyList<SalesInvoiceLineDto> Lines);
+
+public sealed record SalesInvoiceSummaryDto(
+    Guid Id, string Number, Guid SalesOrderId, DateOnly InvoiceDate, DateOnly DueDate, decimal GrandTotal,
+    Guid? JournalEntryId);
