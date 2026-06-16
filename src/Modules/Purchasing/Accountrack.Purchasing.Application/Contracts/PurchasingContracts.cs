@@ -36,3 +36,13 @@ public sealed record PurchaseInvoiceDto(
 public sealed record PurchaseInvoiceSummaryDto(
     Guid Id, string Number, Guid PurchaseOrderId, DateOnly InvoiceDate, DateOnly DueDate, decimal GrandTotal,
     Guid? JournalEntryId);
+
+public sealed record SupplierPaymentAllocationDto(Guid ApOpenItemId, decimal Amount);
+
+public sealed record SupplierPaymentDto(
+    Guid Id, string Number, Guid SupplierId, Guid CashAccountId, string Currency, DateOnly PaymentDate,
+    decimal TotalAmount, Guid? JournalEntryId, string? Reference, string? Notes,
+    IReadOnlyList<SupplierPaymentAllocationDto> Allocations);
+
+public sealed record SupplierPaymentSummaryDto(
+    Guid Id, string Number, Guid SupplierId, DateOnly PaymentDate, decimal TotalAmount, Guid? JournalEntryId);

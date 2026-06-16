@@ -17,4 +17,9 @@ public interface ISubledgerPosting
     Task<Result<Guid>> OpenReceivableAsync(
         Guid customerId, Guid sourceDocumentId, string documentNo, DateOnly documentDate, DateOnly dueDate,
         decimal amount, CancellationToken ct);
+
+    /// <summary>Allocates a payment to an AR/AP open item, reducing its outstanding balance.</summary>
+    Task<Result<Guid>> AllocateAsync(
+        Guid openItemId, string paymentReference, DateOnly date, decimal amount, Guid paymentDocumentId,
+        CancellationToken ct);
 }

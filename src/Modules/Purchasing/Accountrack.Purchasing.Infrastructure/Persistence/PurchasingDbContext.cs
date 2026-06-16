@@ -24,6 +24,9 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
     public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
     public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
     public DbSet<PurchaseInvoiceNumberSequence> PurchaseInvoiceNumberSequences => Set<PurchaseInvoiceNumberSequence>();
+    public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
+    public DbSet<SupplierPaymentAllocation> SupplierPaymentAllocations => Set<SupplierPaymentAllocation>();
+    public DbSet<SupplierPaymentNumberSequence> SupplierPaymentNumberSequences => Set<SupplierPaymentNumberSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -131,6 +134,33 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
             b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
+        modelBuilder.Entity<SupplierPayment>(b =>
+        {
+            b.ToTable("SupplierPayments");
+            b.Property(p => p.Number).IsRequired().HasMaxLength(32);
+            b.Property(p => p.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(p => p.Reference).HasMaxLength(128);
+            b.Property(p => p.Notes).HasMaxLength(1024);
+            b.HasMany(p => p.Allocations).WithOne().HasForeignKey(a => a.SupplierPaymentId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(p => p.Allocations).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.Ignore(p => p.TotalAmount);
+            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.SupplierId });
+        });
+
+        modelBuilder.Entity<SupplierPaymentAllocation>(b =>
+        {
+            b.ToTable("SupplierPaymentAllocations");
+            b.Property(a => a.Amount).HasColumnType("decimal(19,4)");
+            b.HasIndex(a => a.ApOpenItemId);
+        });
+
+        modelBuilder.Entity<SupplierPaymentNumberSequence>(b =>
+        {
+            b.ToTable("SupplierPaymentNumberSequences");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
         base.OnModelCreating(modelBuilder);
         ApplyAccountrackConventions(modelBuilder);
     }
@@ -193,4 +223,24 @@ public sealed class PurchaseInvoiceRepository : IPurchaseInvoiceRepository
         _db.PurchaseInvoiceNumberSequences.FirstOrDefaultAsync(ct);
 
     public void AddSequence(PurchaseInvoiceNumberSequence sequence) => _db.PurchaseInvoiceNumberSequences.Add(sequence);
+}
+
+public sealed class SupplierPaymentRepository : ISupplierPaymentRepository
+{
+    private readonly PurchasingDbContext _db;
+    public SupplierPaymentRepository(PurchasingDbContext db) => _db = db;
+
+    public void Add(SupplierPayment payment) => _db.SupplierPayments.Add(payment);
+
+    public Task<SupplierPayment?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        _db.SupplierPayments.Include(p => p.Allocations).FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    public async Task<IReadOnlyList<SupplierPayment>> ListBySupplierAsync(Guid supplierId, CancellationToken ct) =>
+        await _db.SupplierPayments.Where(p => p.SupplierId == supplierId)
+            .OrderByDescending(p => p.Number).ToListAsync(ct);
+
+    public Task<SupplierPaymentNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
+        _db.SupplierPaymentNumberSequences.FirstOrDefaultAsync(ct);
+
+    public void AddSequence(SupplierPaymentNumberSequence sequence) => _db.SupplierPaymentNumberSequences.Add(sequence);
 }

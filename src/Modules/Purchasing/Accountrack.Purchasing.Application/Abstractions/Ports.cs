@@ -29,6 +29,15 @@ public interface IPurchaseInvoiceRepository
     void AddSequence(PurchaseInvoiceNumberSequence sequence);
 }
 
+public interface ISupplierPaymentRepository
+{
+    void Add(SupplierPayment payment);
+    Task<SupplierPayment?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<SupplierPayment>> ListBySupplierAsync(Guid supplierId, CancellationToken ct);
+    Task<SupplierPaymentNumberSequence?> GetSequenceAsync(CancellationToken ct);
+    void AddSequence(SupplierPaymentNumberSequence sequence);
+}
+
 public interface IPurchasingUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken ct);

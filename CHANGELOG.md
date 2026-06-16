@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-06-16 08:36:12 UTC]
+
+CHG-0021 — Purchasing: Supplier Payment (allocate AP, Dr AP / Cr Cash-Bank)
+
+- Added **Supplier Payment** (Purchasing slice 2, final piece): pay a supplier and allocate the
+  amount to AP open items. In one cross-module atomic transaction it posts **Dr AP control / Cr
+  Cash-Bank** (AP account resolved by posting rules and carrying the supplier; the cash/bank GL
+  account is chosen on the payment), allocates each AP open item via the subledger (settling /
+  partially settling it), and records the payment linked to its journal.
+- Extended the `ISubledgerPosting` contract with `AllocateAsync`; the Accounting adapter delegates
+  to the AP/AR allocation service (over-allocation and already-settled guards surface as failures
+  that roll the whole payment back).
+- **Api:** `POST /api/v1/supplier-payments`, `GET /api/v1/supplier-payments/{id}`,
+  `GET /api/v1/supplier-payments?supplierId=` (Purchasing.Post / Purchasing.View).
+- **Persistence:** EF migration `AddSupplierPayments` (SupplierPayments / SupplierPaymentAllocations
+  / sequence).
+- **Tests:** 3 new (allocation total + zero-amount guard; handler posts balanced Dr AP/Cr Cash and
+  allocates each open item; subledger over-allocation fails the payment). Full suite now 160, green.
+- **Verified end-to-end:** PO 5 @ 200 + PPN 11% → received → invoiced (AP open item 1,110) →
+  partial payment 600 (Dr AP 600 / Cr Bank 600, item PartiallyPaid, outstanding 510) → pay 510
+  (item Settled, outstanding 0); a further payment on the settled item was rejected.
+- **Completes procure-to-pay:** PO → Goods Receipt → Purchase Invoice → Supplier Payment. See
+  [docs/POSTING_RULES.md](docs/POSTING_RULES.md), [docs/ACCOUNTING_DESIGN.md](docs/ACCOUNTING_DESIGN.md).
+
+---
+
 ## [2026-06-16 08:22:54 UTC]
 
 CHG-0020 — Purchasing: Purchase Invoice (AP/VAT, clear GR-IR) + AP subledger

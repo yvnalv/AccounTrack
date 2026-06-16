@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-16 (last change **CHG-0020**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 157 passing.
+- **As of:** 2026-06-16 (last change **CHG-0021**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 160 passing.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -41,9 +41,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
 - 🟡 **Inventory** (slice 1) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010)
-- 🟡 **Purchasing** (slice 1 + GR + Invoice) — Purchase Orders + Approval/Process-Tracker/Notification
+- ✅ **Purchasing** (procure-to-pay complete) — Purchase Orders + Approval/Process-Tracker/Notification
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
-  Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020). Remaining: Supplier Payment
+  Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**
+  → atomic Dr AP/Cr Cash-Bank + AP allocation (CHG-0021). (Returns are a later enhancement.)
 - ◻️ **Sales** — Quotation → SO → Delivery → Sales Invoice → Customer Payment, returns
 - ◻️ **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, VAT, inventory valuation
 
@@ -67,13 +68,17 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## ▶️ Next up (recommended)
 
-The procure-to-pay posting chain is in place: PO → Goods Receipt (CHG-0019) → Purchase Invoice
-(CHG-0020). The clear next step is **Supplier Payment**: pay against AP open items → allocate via the
-AP subledger and post **Dr AP control / Cr Cash-Bank** (reuses `ISubledgerPosting`/allocation +
-`IGeneralLedgerPoster`; resolve the bank account via the `CashBank` posting key + a bank selector).
-That closes procure-to-pay. Alternatively start **Sales slice 1** (Quotation → SO → Delivery →
-Sales Invoice → Customer Payment), which reuses the same atomic-posting + AR subledger foundation on
-the order-to-cash side.
+**Procure-to-pay is complete** (PO → Goods Receipt → Purchase Invoice → Supplier Payment, CHG-0019–0021).
+The clear next step is **Sales slice 1 — order-to-cash**: Quotation → Sales Order → Delivery Order
+(stock issue + COGS journal, atomic) → Sales Invoice (Dr AR / Cr Revenue + VAT Output, AR open item)
+→ Customer Payment (allocate AR, Dr Cash-Bank / Cr AR). It reuses everything now in place — the
+cross-module unit of work, `IInventoryPosting` (issue), `IGeneralLedgerPoster`, posting rules, and
+`ISubledgerPosting` (AR side). Build it slice by slice (SO + approval first, then delivery/COGS, then
+invoice/AR, then payment).
+
+Other open threads (not blocking): **idempotency keys** for the atomic posting flows (ADR-0021);
+**Inventory slice 2** GL posting on adjustments/transfers; **Accounting** period-close snapshots /
+Cash Flow; **purchase/sales returns**.
 
 ## How to resume
 

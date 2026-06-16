@@ -37,6 +37,11 @@ public sealed class SubledgerPostingAdapter : ISubledgerPosting
         OpenAsync(SubledgerType.Receivable, JournalSource.SalesInvoice, customerId, sourceDocumentId,
             documentNo, documentDate, dueDate, amount, ct);
 
+    public Task<Result<Guid>> AllocateAsync(
+        Guid openItemId, string paymentReference, DateOnly date, decimal amount, Guid paymentDocumentId,
+        CancellationToken ct) =>
+        _subledger.AllocateAsync(openItemId, paymentReference, date, amount, paymentDocumentId, ct);
+
     private async Task<Result<Guid>> OpenAsync(
         SubledgerType type, JournalSource source, Guid partyId, Guid sourceDocumentId,
         string documentNo, DateOnly documentDate, DateOnly dueDate, decimal amount, CancellationToken ct)

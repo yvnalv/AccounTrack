@@ -61,6 +61,21 @@ public static class PurchasingEndpoints
                 Send(s.Send(new GetPurchaseInvoiceQuery(id), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoice");
 
+        // --- Supplier payments ---
+        var pay = app.MapGroup("/api/v1/supplier-payments").WithTags("Purchasing").RequireAuthorization();
+
+        pay.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetSupplierPaymentQuery(id), ct)))
+            .RequireAuthorization("Purchasing.View").WithName("GetSupplierPayment");
+
+        pay.MapGet("/", (Guid supplierId, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetSupplierPaymentsQuery(supplierId), ct)))
+            .RequireAuthorization("Purchasing.View").WithName("GetSupplierPayments");
+
+        pay.MapPost("/", (PostSupplierPaymentCommand c, ISender s, CancellationToken ct) =>
+                Created(s.Send(c, ct), "/api/v1/supplier-payments"))
+            .RequireAuthorization("Purchasing.Post").WithName("PostSupplierPayment");
+
         return app;
     }
 

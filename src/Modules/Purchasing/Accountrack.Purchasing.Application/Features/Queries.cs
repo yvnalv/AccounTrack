@@ -118,6 +118,44 @@ public sealed class GetPurchaseInvoicesForPurchaseOrderHandler
     }
 }
 
+public sealed record GetSupplierPaymentQuery(Guid Id) : IQuery<SupplierPaymentDto>;
+
+public sealed class GetSupplierPaymentHandler : IQueryHandler<GetSupplierPaymentQuery, SupplierPaymentDto>
+{
+    private readonly ISupplierPaymentRepository _payments;
+    public GetSupplierPaymentHandler(ISupplierPaymentRepository payments) => _payments = payments;
+
+    public async Task<Result<SupplierPaymentDto>> Handle(GetSupplierPaymentQuery request, CancellationToken ct)
+    {
+        var payment = await _payments.GetByIdAsync(request.Id, ct);
+        if (payment is null)
+        {
+            return Error.NotFound("PURCHASING.PAYMENT_NOT_FOUND", "Supplier payment not found.");
+        }
+
+        return new SupplierPaymentDto(
+            payment.Id, payment.Number, payment.SupplierId, payment.CashAccountId, payment.Currency,
+            payment.PaymentDate, payment.TotalAmount, payment.JournalEntryId, payment.Reference, payment.Notes,
+            payment.Allocations.Select(a => new SupplierPaymentAllocationDto(a.ApOpenItemId, a.Amount)).ToList());
+    }
+}
+
+public sealed record GetSupplierPaymentsQuery(Guid SupplierId) : IQuery<IReadOnlyList<SupplierPaymentSummaryDto>>;
+
+public sealed class GetSupplierPaymentsHandler : IQueryHandler<GetSupplierPaymentsQuery, IReadOnlyList<SupplierPaymentSummaryDto>>
+{
+    private readonly ISupplierPaymentRepository _payments;
+    public GetSupplierPaymentsHandler(ISupplierPaymentRepository payments) => _payments = payments;
+
+    public async Task<Result<IReadOnlyList<SupplierPaymentSummaryDto>>> Handle(GetSupplierPaymentsQuery request, CancellationToken ct)
+    {
+        var payments = await _payments.ListBySupplierAsync(request.SupplierId, ct);
+        return Result.Success<IReadOnlyList<SupplierPaymentSummaryDto>>(payments
+            .Select(p => new SupplierPaymentSummaryDto(p.Id, p.Number, p.SupplierId, p.PaymentDate, p.TotalAmount, p.JournalEntryId))
+            .ToList());
+    }
+}
+
 public sealed record GetPurchaseOrdersQuery : IQuery<IReadOnlyList<PurchaseOrderSummaryDto>>;
 
 public sealed class GetPurchaseOrdersHandler : IQueryHandler<GetPurchaseOrdersQuery, IReadOnlyList<PurchaseOrderSummaryDto>>

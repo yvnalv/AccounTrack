@@ -54,10 +54,33 @@ public sealed class PurchaseInvoiceNumberSequence : TenantOwnedEntity
     }
 }
 
+/// <summary>Per-company gapless counter for supplier-payment numbers.</summary>
+public sealed class SupplierPaymentNumberSequence : TenantOwnedEntity
+{
+    private SupplierPaymentNumberSequence() { }
+
+    public SupplierPaymentNumberSequence(int next = 1) => Next = next;
+
+    public int Next { get; private set; }
+
+    public string Take(DateOnly date)
+    {
+        var value = Next;
+        Next++;
+        return $"PMT/{date.Year:D4}{date.Month:D2}/{value:D5}";
+    }
+}
+
 public static class PurchasingErrors
 {
     public static readonly Error NotFound =
         Error.NotFound("PURCHASING.PO_NOT_FOUND", "Purchase order not found.");
+
+    public static readonly Error NoAllocations =
+        Error.BusinessRule("BR-PUR-4", "A supplier payment requires at least one allocation.", "PURCHASING.NO_ALLOCATIONS");
+
+    public static readonly Error CashAccountRequired =
+        Error.Validation("PURCHASING.CASH_ACCOUNT_REQUIRED", "A cash/bank account is required for the payment.");
 
     public static readonly Error NoInvoiceLines =
         Error.BusinessRule("BR-PUR-3", "A purchase invoice requires at least one line.", "PURCHASING.NO_INVOICE_LINES");
