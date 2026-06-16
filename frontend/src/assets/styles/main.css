@@ -29,3 +29,16 @@
     outline-offset: 2px;
   }
 }
+
+@layer components {
+  .field-input {
+    @apply h-10 w-full rounded-control border border-border bg-surface px-3 text-sm text-text outline-none transition-colors;
+  }
+  .field-input:focus {
+    @apply border-accent;
+  }
+  .field-input::placeholder {
+    color: var(--text-muted);
+  }
+}
+

@@ -72,11 +72,13 @@ re-themes too. See [DESIGN_LANGUAGE.md](DESIGN_LANGUAGE.md).
 
 ## Status & next
 
-✅ Scaffold + design tokens + app shell (sidebar, top bar, theme toggle, ⌘K placeholder) + login +
-**dashboard** (KPIs + revenue/expense chart) wired to `GET /api/v1/dashboard/summary`. Other nav
-targets are `PlaceholderView` ("coming soon").
+✅ Scaffold + design tokens + app shell + login + **dashboard** (CHG-0027). ✅ **Sales Orders**
+list + detail + create (CHG-0028) with the reusable kit: `DataTable`, `StatusBadge`,
+`FormField`/`AppInput`/`AppSelect`, and the `lib/sales.ts` + `lib/masterData.ts` API modules. Other
+nav targets remain `PlaceholderView`.
 
-Next slices (each its own CHG): wire ⌘K command palette; **Sales** list + Sales-Order
-create/detail (first real CRUD against the dense-table register); shared `DataTable` + `DocumentForm`
-components; then Purchasing/Inventory/Accounting screens; i18n `id` locale; self-host the font;
+Reusable pattern to copy for the next modules: a module folder under `views/<module>/` with
+List/Detail/Create views, a `lib/<module>.ts` API module, typed DTOs in `types/`, and the shared UI
+kit. Next slices (each its own CHG): Purchasing (PO + receipt + invoice + payment screens),
+Inventory, Accounting/reports; ⌘K command palette; i18n `id` locale; self-host the font;
 refresh-token rotation.

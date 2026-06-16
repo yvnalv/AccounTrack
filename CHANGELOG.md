@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-06-16 13:57:25 UTC]
+
+CHG-0028 — Frontend: Sales Orders (list + detail + create) + reusable table/form kit
+
+- First real CRUD module screen, in the dense-table register. Reusable building blocks every module
+  will share:
+  - **`DataTable`** (typed columns, named cell slots, numeric/tabular alignment, loading/empty,
+    clickable rows), **`StatusBadge`** (semantic tone mapping for document statuses via `color-mix`),
+    and form controls **`FormField` / `AppInput` / `AppSelect`** + a shared `.field-input` style.
+- **Sales Orders list** (`/sales`) — DataTable of orders (number, customer name, date, status badge,
+  total) with a "New" action; rows open the detail.
+- **Sales Order detail** (`/sales/:id`) — header + status, line-items table (product names, qty,
+  unit price, tax %, delivered, line total), totals, notes; **Submit for approval** when Draft.
+- **Sales Order create** (`/sales/new`) — document form: customer/warehouse/date header + dynamic
+  line-items editor (product, qty, unit price, tax %, live line/totals, add/remove) → `POST` →
+  redirects to the new order's detail.
+- API/types: `lib/sales.ts`, `lib/masterData.ts` (customers/warehouses/products + id→name maps),
+  typed DTOs. Sidebar active-state now highlights on nested routes (prefix match; dashboard stays exact).
+- **Verified:** `npm run build` green; dev smoke through the Vite proxy — list (3 orders), master-data
+  loads, create (SO/202606/00004, grand 333) and detail all work end-to-end against the live API.
+- See [docs/frontend/FRONTEND_ARCHITECTURE.md](docs/frontend/FRONTEND_ARCHITECTURE.md).
+
+---
+
 ## [2026-06-16 13:34:15 UTC]
 
 CHG-0027 — Frontend: Vue 3 scaffold — app shell, theme toggle, login, dashboard

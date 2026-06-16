@@ -15,7 +15,9 @@ const router = createRouter({
       component: () => import('@/layouts/AppShell.vue'),
       children: [
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
-        { path: 'sales', name: 'sales', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.sales' } },
+        { path: 'sales', name: 'sales', component: () => import('@/views/sales/SalesOrdersView.vue'), meta: { titleKey: 'sales.title' } },
+        { path: 'sales/new', name: 'salesOrderCreate', component: () => import('@/views/sales/SalesOrderCreateView.vue'), meta: { titleKey: 'sales.new' } },
+        { path: 'sales/:id', name: 'salesOrderDetail', component: () => import('@/views/sales/SalesOrderDetailView.vue'), meta: { titleKey: 'sales.title' } },
         { path: 'purchasing', name: 'purchasing', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.purchasing' } },
         { path: 'inventory', name: 'inventory', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.inventory' } },
         { path: 'accounting', name: 'accounting', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.accounting' } },

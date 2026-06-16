@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import type { Component } from 'vue'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   LayoutDashboard,
@@ -15,10 +16,17 @@ import {
 
 const { t } = useI18n()
 
-const groups = [
+interface NavItem {
+  to: RouteLocationRaw
+  icon: Component
+  label: string
+  exact?: boolean
+}
+
+const groups: { label: string; items: NavItem[] }[] = [
   {
     label: t('nav.sections.main'),
-    items: [{ to: { name: 'dashboard' }, icon: LayoutDashboard, label: t('nav.dashboard') }],
+    items: [{ to: { name: 'dashboard' }, icon: LayoutDashboard, label: t('nav.dashboard'), exact: true }],
   },
   {
     label: t('nav.sections.operations'),
@@ -80,6 +88,7 @@ const groups = [
           :key="item.label"
           :to="item.to"
           class="group mb-0.5 flex items-center gap-3 rounded-control px-3 h-10 text-sm font-medium text-sidebar-text transition-colors hover:bg-white/5"
+          :active-class="item.exact ? '' : '!bg-accent !text-accent-contrast'"
           exact-active-class="!bg-accent !text-accent-contrast"
         >
           <component :is="item.icon" :size="18" />
