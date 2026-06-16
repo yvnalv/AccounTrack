@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-16 (last change **CHG-0025**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 185 passing.
+- **As of:** 2026-06-16 (last change **CHG-0026**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 186 passing.
 - **MVP transactional backend complete** — procure-to-pay + order-to-cash both run end to end.
   **Frontend is next → pause for the UI/UX design discussion before any Vue work.**
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.

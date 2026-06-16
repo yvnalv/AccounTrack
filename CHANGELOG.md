@@ -1,5 +1,22 @@
 # Accountrack Changelog
 
+## [2026-06-16 13:17:11 UTC]
+
+CHG-0026 — Accounting: dashboard summary read endpoint
+
+- Added **`GET /api/v1/dashboard/summary`** (Accounting.View) — finance KPIs for the home dashboard,
+  derived from the GL + AR/AP subledgers (never transactional tables): cash & bank balance, AR/AP
+  outstanding, AR/AP overdue, and this month's revenue / expense / net profit, in the company's
+  functional currency.
+- `GetDashboardSummaryQuery` composes the existing read store (trial balance for cash + month P&L)
+  and subledger repository (open items, overdue by due date vs. today). Cash & bank = GL balance of
+  asset accounts in the cash/bank code band (10xx) by convention.
+- **Tests:** 1 new (aggregates cash/AR/AP/overdue/month-P&L). Full suite now 186, green. Verified
+  end-to-end against the dev data.
+- Prerequisite for the upcoming frontend dashboard. See [docs/frontend/](docs/frontend/).
+
+---
+
 ## [2026-06-16 11:45:26 UTC]
 
 CHG-0025 — Sales: Customer Payment (allocate AR, Dr Cash-Bank / Cr AR)

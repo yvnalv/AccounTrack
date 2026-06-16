@@ -35,3 +35,16 @@ public sealed record AgingRowDto(
 public sealed record AgingReportDto(
     string Type, DateOnly AsOfDate, IReadOnlyList<AgingRowDto> Rows,
     decimal Current, decimal Days1To30, decimal Days31To60, decimal Days61To90, decimal Days90Plus, decimal Total);
+
+/// <summary>Finance KPIs for the home dashboard (derived from the GL + AR/AP subledgers).</summary>
+public sealed record DashboardSummaryDto(
+    string Currency,
+    DateOnly AsOfDate,
+    decimal CashAndBank,
+    decimal AccountsReceivable,
+    decimal AccountsPayable,
+    decimal OverdueReceivable,
+    decimal OverduePayable,
+    decimal RevenueThisMonth,
+    decimal ExpenseThisMonth,
+    decimal NetProfitThisMonth);

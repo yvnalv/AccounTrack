@@ -81,6 +81,11 @@ public static class AccountingEndpoints
             (await sender.Send(new GetBalanceSheetQuery(asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow)), ct)).ToHttpResult())
             .WithName("GetBalanceSheet");
 
+        // --- Dashboard ---
+        app.MapGet("/api/v1/dashboard/summary", async (ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetDashboardSummaryQuery(), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.View").WithTags("Dashboard").WithName("GetDashboardSummary");
+
         // --- Posting rules (account determination) ---
         var postingRules = app.MapGroup("/api/v1/posting-rules").WithTags("Posting Rules").RequireAuthorization();
 
