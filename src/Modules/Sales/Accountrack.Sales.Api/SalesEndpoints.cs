@@ -28,8 +28,27 @@ public static class SalesEndpoints
                 Send(s.Send(new SubmitSalesOrderCommand(id), ct)))
             .RequireAuthorization("Sales.Create").WithName("SubmitSalesOrder");
 
+        // --- Delivery orders (against a sales order) ---
+        so.MapGet("/{id:guid}/deliveries", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetDeliveriesForSalesOrderQuery(id), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetDeliveriesForSalesOrder");
+
+        so.MapPost("/{id:guid}/deliveries", (Guid id, ShipGoodsRequest body, ISender s, CancellationToken ct) =>
+                Created(s.Send(new PostDeliveryOrderCommand(id, body.DeliveryDate, body.Notes, body.Lines), ct),
+                    $"/api/v1/sales-orders/{id}/deliveries"))
+            .RequireAuthorization("Sales.Post").WithName("PostDeliveryOrder");
+
+        var del = app.MapGroup("/api/v1/delivery-orders").WithTags("Sales").RequireAuthorization();
+
+        del.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetDeliveryOrderQuery(id), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetDeliveryOrder");
+
         return app;
     }
+
+    public sealed record ShipGoodsRequest(
+        DateOnly DeliveryDate, string? Notes, IReadOnlyList<DeliveryOrderLineInput> Lines);
 
     private static async Task<IResult> Send<T>(Task<Result<T>> task) => (await task).ToHttpResult();
 

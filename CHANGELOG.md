@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-06-16 09:28:19 UTC]
+
+CHG-0023 — Sales: Delivery Order (stock issue + COGS) — cross-module atomic
+
+- Added **Delivery Order** (Sales slice 2): ship goods against an approved sales order. In one
+  cross-module atomic transaction (reusing the `ICrossModuleUnitOfWork`) it issues stock per line at
+  moving-average cost (`IInventoryPosting.IssueAsync`, no negative stock), posts **Dr COGS / Cr
+  Inventory** at the issue cost (accounts resolved by posting rules), advances the SO's delivery
+  status (Approved → PartiallyDelivered → Delivered, per-line delivered/outstanding), and records
+  the delivery order linked to its journal.
+- **Domain:** `DeliveryOrder` + lines + sequence; `SalesOrderLine.Deliver` with received/outstanding
+  guards (BR-SAL-2); over-delivery and non-approved guards.
+- **Api:** `POST /api/v1/sales-orders/{id}/deliveries`, `GET .../deliveries`,
+  `GET /api/v1/delivery-orders/{id}` (Sales.Post / Sales.View). SO line DTO now exposes
+  `OutstandingQuantity` (parity with Purchasing).
+- **Persistence:** EF migration `AddDeliveryOrders` (DeliveryOrders/Lines/sequence).
+- **Tests:** 5 new (deliver part/all status, over-delivery; handler issues stock + posts balanced
+  Dr COGS/Cr Inventory + advances SO; over-delivery and insufficient-stock guards). Full suite now 178, green.
+- **Verified end-to-end:** seeded stock, SO 5 @ 300 + PPN 11% → approved → delivered 5; stock issued
+  at moving-average 112.8205 → DO total 564.1025, balanced journal Dr COGS 564.1025 / Cr Inventory
+  564.1025 (source Shipment), SO Delivered, on-hand decremented 39 → 34; a further delivery was rejected.
+- Order-to-cash progress: SO → **Delivery (COGS)**. Next: Sales Invoice (AR/Revenue/VAT) + Customer
+  Payment. See [docs/POSTING_RULES.md](docs/POSTING_RULES.md).
+
+---
+
 ## [2026-06-16 09:12:30 UTC]
 
 CHG-0022 — Sales module (slice 1): Sales Orders + approval integration

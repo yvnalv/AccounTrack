@@ -3,7 +3,7 @@ namespace Accountrack.Sales.Application.Contracts;
 public sealed record SalesOrderLineDto(
     Guid Id, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
     decimal LineSubTotal, decimal LineTaxAmount, decimal LineTotal, string? Description,
-    decimal DeliveredQuantity);
+    decimal DeliveredQuantity, decimal OutstandingQuantity);
 
 public sealed record SalesOrderDto(
     Guid Id, string Number, Guid CustomerId, Guid WarehouseId, string Currency, DateOnly OrderDate,
@@ -12,3 +12,14 @@ public sealed record SalesOrderDto(
 
 public sealed record SalesOrderSummaryDto(
     Guid Id, string Number, Guid CustomerId, string Status, decimal GrandTotal, DateOnly OrderDate);
+
+public sealed record DeliveryOrderLineDto(
+    Guid SalesOrderLineId, Guid ProductId, decimal Quantity, decimal UnitCost, decimal LineCost);
+
+public sealed record DeliveryOrderDto(
+    Guid Id, string Number, Guid SalesOrderId, Guid CustomerId, Guid WarehouseId, string Currency,
+    DateOnly DeliveryDate, decimal TotalCost, Guid? JournalEntryId, string? Notes,
+    IReadOnlyList<DeliveryOrderLineDto> Lines);
+
+public sealed record DeliveryOrderSummaryDto(
+    Guid Id, string Number, Guid SalesOrderId, DateOnly DeliveryDate, decimal TotalCost, Guid? JournalEntryId);

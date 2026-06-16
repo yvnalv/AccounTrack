@@ -20,10 +20,42 @@ public sealed class SalesOrderNumberSequence : TenantOwnedEntity
     }
 }
 
+/// <summary>Per-company gapless counter for delivery-order numbers.</summary>
+public sealed class DeliveryOrderNumberSequence : TenantOwnedEntity
+{
+    private DeliveryOrderNumberSequence() { }
+
+    public DeliveryOrderNumberSequence(int next = 1) => Next = next;
+
+    public int Next { get; private set; }
+
+    public string Take(DateOnly date)
+    {
+        var value = Next;
+        Next++;
+        return $"DO/{date.Year:D4}{date.Month:D2}/{value:D5}";
+    }
+}
+
 public static class SalesErrors
 {
     public static readonly Error NotFound =
         Error.NotFound("SALES.SO_NOT_FOUND", "Sales order not found.");
+
+    public static readonly Error NotDeliverable =
+        Error.Conflict("SALES.NOT_DELIVERABLE", "Goods can only be delivered against an approved sales order.");
+
+    public static readonly Error NoDeliveryLines =
+        Error.BusinessRule("BR-SAL-2", "A delivery order requires at least one line.", "SALES.NO_DELIVERY_LINES");
+
+    public static Error SalesOrderLineNotFound(Guid lineId) =>
+        Error.Validation("SALES.SO_LINE_NOT_FOUND", $"Sales-order line {lineId} does not exist on this order.");
+
+    public static Error OverDelivery(decimal outstanding, decimal requested) =>
+        Error.BusinessRule(
+            "BR-SAL-2",
+            $"Cannot deliver {requested}; only {outstanding} is outstanding on this line.",
+            "SALES.OVER_DELIVERY");
 
     public static readonly Error CustomerNotFound =
         Error.Validation("SALES.CUSTOMER_NOT_FOUND", "The specified customer does not exist.");

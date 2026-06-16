@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<ISalesUnitOfWork>(sp => sp.GetRequiredService<SalesDbContext>());
         services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<SalesDbContext>());
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+        services.AddScoped<IDeliveryOrderRepository, DeliveryOrderRepository>();
 
         // Advance SO status when its approval is decided.
         services.AddScoped<IIntegrationEventHandler<ApprovalDecided>, ApprovalDecidedConsumer>();

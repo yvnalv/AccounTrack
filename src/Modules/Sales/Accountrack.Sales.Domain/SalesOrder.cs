@@ -108,6 +108,31 @@ public sealed class SalesOrder : TenantOwnedEntity, IAggregateRoot
         Status = SalesOrderStatus.Cancelled;
     }
 
+    /// <summary>Whether goods can still be shipped against this order.</summary>
+    public bool CanDeliver =>
+        Status is SalesOrderStatus.Approved or SalesOrderStatus.PartiallyDelivered;
+
+    /// <summary>
+    /// Records a shipped quantity against one line and advances the order's delivery status
+    /// (BR-SAL-2). Throws if the order is not deliverable or the quantity exceeds what's outstanding.
+    /// </summary>
+    public void DeliverLine(Guid lineId, decimal quantity)
+    {
+        if (!CanDeliver)
+        {
+            throw new InvalidOperationException("Goods can only be delivered against an approved sales order.");
+        }
+
+        var line = _lines.FirstOrDefault(l => l.Id == lineId)
+            ?? throw new InvalidOperationException("Sales-order line not found.");
+
+        line.Deliver(quantity);
+
+        Status = _lines.All(l => l.IsFullyDelivered)
+            ? SalesOrderStatus.Delivered
+            : SalesOrderStatus.PartiallyDelivered;
+    }
+
     private void EnsureDraftWithLines()
     {
         if (Status != SalesOrderStatus.Draft)
@@ -159,8 +184,27 @@ public sealed class SalesOrderLine : Entity
     public decimal LineTaxAmount { get; private set; }
     public decimal LineTotal { get; private set; }
 
-    /// <summary>Cumulative quantity shipped via delivery orders (delivery slice).</summary>
+    /// <summary>Cumulative quantity shipped via delivery orders (BR-SAL-2).</summary>
     public decimal DeliveredQuantity { get; private set; }
+
+    public decimal OutstandingQuantity => Quantity - DeliveredQuantity;
+
+    public bool IsFullyDelivered => DeliveredQuantity >= Quantity;
+
+    internal void Deliver(decimal quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Delivered quantity must be positive.");
+        }
+
+        if (quantity > OutstandingQuantity)
+        {
+            throw new InvalidOperationException("Delivered quantity exceeds the outstanding quantity.");
+        }
+
+        DeliveredQuantity += quantity;
+    }
 
     internal static SalesOrderLine Create(Guid productId, decimal quantity, decimal unitPrice, decimal taxRate, string? description)
     {
