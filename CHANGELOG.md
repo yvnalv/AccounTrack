@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-16 14:15:17 UTC]
+
+CHG-0029 — Frontend: drive order-to-cash from the Sales Order detail (deliver + invoice)
+
+- The Sales Order detail now drives the order-to-cash flow end-to-end from the UI:
+  - **Deliver outstanding** (when Approved/PartiallyDelivered) → posts a delivery for all outstanding
+    line quantities (stock issue + Dr COGS/Cr Inventory, atomic).
+  - **Create invoice** (when delivered-but-uninvoiced) → posts a sales invoice for the delivered,
+    uninvoiced quantities (Dr AR / Cr Revenue+VAT + AR open item).
+  - Line table gains **Delivered / Invoiced** columns; **Deliveries** and **Invoices** document lists
+    (with amount + a "Posted" badge once the GL journal exists) render below.
+- **Backend:** `SalesOrderLineDto` now exposes `InvoicedQuantity` (so the UI knows what's left to
+  bill); `lib/sales.ts` gains `deliveries`/`createDelivery`/`invoices`/`createInvoice`.
+- **Verified:** frontend `npm run build` green; end-to-end smoke through the API — new SO → submit →
+  deliver-all (DO posted) → invoice-all (SI 2.664 posted), detail reflects delivered/invoiced and
+  lists both documents.
+- Customer Payment (receipt + AR allocation) UI is the next slice. Note: hit and cleared the
+  stale-host-bin trap (rebuild the host after a contract change before `dotnet run --no-build`).
+
+---
+
 ## [2026-06-16 13:57:25 UTC]
 
 CHG-0028 — Frontend: Sales Orders (list + detail + create) + reusable table/form kit

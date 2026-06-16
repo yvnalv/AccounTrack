@@ -27,7 +27,32 @@ export interface SalesOrderLine {
   lineTotal: number
   description: string | null
   deliveredQuantity: number
+  invoicedQuantity: number
   outstandingQuantity: number
+}
+
+export interface DeliverySummary {
+  id: string
+  number: string
+  salesOrderId: string
+  deliveryDate: string
+  totalCost: number
+  journalEntryId: string | null
+}
+
+export interface SalesInvoiceSummary {
+  id: string
+  number: string
+  salesOrderId: string
+  invoiceDate: string
+  dueDate: string
+  grandTotal: number
+  journalEntryId: string | null
+}
+
+export interface LineQuantityInput {
+  salesOrderLineId: string
+  quantity: number
 }
 
 export interface SalesOrder {

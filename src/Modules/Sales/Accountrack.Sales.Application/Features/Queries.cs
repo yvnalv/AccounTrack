@@ -13,7 +13,7 @@ internal static class SalesOrderMapping
         o.ApprovalRequestId, o.SubTotal, o.TaxTotal, o.GrandTotal, o.Notes,
         o.Lines.Select(l => new SalesOrderLineDto(
             l.Id, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineSubTotal, l.LineTaxAmount, l.LineTotal,
-            l.Description, l.DeliveredQuantity, l.OutstandingQuantity))
+            l.Description, l.DeliveredQuantity, l.InvoicedQuantity, l.OutstandingQuantity))
             .ToList());
 }
 

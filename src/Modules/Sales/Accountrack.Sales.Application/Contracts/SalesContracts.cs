@@ -3,7 +3,7 @@ namespace Accountrack.Sales.Application.Contracts;
 public sealed record SalesOrderLineDto(
     Guid Id, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
     decimal LineSubTotal, decimal LineTaxAmount, decimal LineTotal, string? Description,
-    decimal DeliveredQuantity, decimal OutstandingQuantity);
+    decimal DeliveredQuantity, decimal InvoicedQuantity, decimal OutstandingQuantity);
 
 public sealed record SalesOrderDto(
     Guid Id, string Number, Guid CustomerId, Guid WarehouseId, string Currency, DateOnly OrderDate,
