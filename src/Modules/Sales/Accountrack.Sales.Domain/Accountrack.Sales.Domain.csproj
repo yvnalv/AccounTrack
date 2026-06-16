@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Sales.Domain: sales orders (order-to-cash, slice 1). Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Sales.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Sales.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

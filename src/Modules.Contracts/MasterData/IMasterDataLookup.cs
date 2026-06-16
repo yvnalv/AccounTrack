@@ -7,6 +7,7 @@ namespace Accountrack.Modules.Contracts.MasterData;
 public interface IMasterDataLookup
 {
     Task<bool> SupplierExistsAsync(Guid supplierId, CancellationToken ct);
+    Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken ct);
     Task<bool> ProductExistsAsync(Guid productId, CancellationToken ct);
     Task<bool> WarehouseExistsAsync(Guid warehouseId, CancellationToken ct);
 }

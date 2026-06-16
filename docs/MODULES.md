@@ -20,7 +20,8 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Master Data | ✅ Implemented | products (+ categories, units of measure), customers, suppliers, warehouses, tax codes; create + list, dev seed |
 | Inventory | 🟡 Slice 1 | transaction ledger (source of truth), moving-average buckets, receive/adjust/transfer, on-hand + stock-card; `IInventoryLedger`. Slice 2: GL posting on moves, stock opname, negative-stock setting, FIFO option |
 | Purchasing | ✅ Procure-to-pay | Purchase Orders (Approval + Process Tracker + Notification); **Goods Receipt** (atomic inventory + Dr Inventory/Cr GR-IR); **Purchase Invoice** (atomic Dr GR-IR + VAT Input / Cr AP + AP subledger, three-way-match lite clears GR-IR); **Supplier Payment** (atomic Dr AP / Cr Cash-Bank + AP allocation). Returns are a later enhancement |
-| Sales / Reporting | ◻️ Planned | Phase 2 |
+| Sales | 🟡 Slice 1 | Sales Orders (lines, totals, PPN) with Approval + event-driven status. Slice 2: Delivery (stock issue + COGS), Sales Invoice (AR/Revenue/VAT), Customer Payment |
+| Reporting | ◻️ Planned | Phase 2 |
 | Manufacturing | ◻️ Planned | Phase 3 |
 
 (Authoritative change history is in [`../CHANGELOG.md`](../CHANGELOG.md).)

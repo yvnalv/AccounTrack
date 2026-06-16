@@ -1,5 +1,30 @@
 # Accountrack Changelog
 
+## [2026-06-16 09:12:30 UTC]
+
+CHG-0022 — Sales module (slice 1): Sales Orders + approval integration
+
+- Scaffolded the **Sales** module (Domain/Application/Infrastructure/Api, own `sales` EF schema +
+  `InitialSales` migration, arch-fitness tests, solution + host wiring) — the order-to-cash side.
+- **Sales Order** (slice 1): create a draft (customer + ship-from warehouse + lines with PPN), submit
+  for approval; status advances via the Approval Workflow integration events (auto-approve when no
+  rule matches, else PendingApproval → Approved/Rejected) — mirroring the Purchase Order flow and
+  reusing `IApprovalService` + `ApprovalDecided`. Delivery (stock issue + COGS), invoicing (AR/
+  Revenue/VAT) and customer payment are the next slices (line `DeliveredQuantity` reserved).
+- Added `CustomerExistsAsync` to the `IMasterDataLookup` contract (+ implementation) for reference
+  validation.
+- The Sales DbContext binds to the shared cross-module connection and registers as an
+  `ITransactionalDbContext` up front, so the upcoming atomic delivery/invoice slices need no DI change.
+- **Api:** `GET /api/v1/sales-orders`, `GET /{id}`, `POST /` (Sales.Create), `POST /{id}/submit`
+  (Sales.Create); reads gated by Sales.View.
+- **Tests:** 13 new (10 Sales unit: totals, status transitions, create validation, submit/auto-approve,
+  approval-event consumer; 3 arch-fitness). Full suite now 173, green.
+- **Verified end-to-end:** created a customer, then SO 3 @ 250 + PPN 11% → SO/202606/00001 Draft
+  (sub 750 / tax 82.5 / grand 832.5) → submit → Approved; an unknown-customer order was rejected.
+- See [docs/MODULES.md](docs/MODULES.md).
+
+---
+
 ## [2026-06-16 08:36:12 UTC]
 
 CHG-0021 — Purchasing: Supplier Payment (allocate AP, Dr AP / Cr Cash-Bank)

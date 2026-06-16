@@ -15,6 +15,9 @@ public sealed class MasterDataLookup : IMasterDataLookup
     public Task<bool> SupplierExistsAsync(Guid supplierId, CancellationToken ct) =>
         _db.Set<Supplier>().AnyAsync(s => s.Id == supplierId, ct);
 
+    public Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken ct) =>
+        _db.Set<Customer>().AnyAsync(c => c.Id == customerId, ct);
+
     public Task<bool> ProductExistsAsync(Guid productId, CancellationToken ct) =>
         _db.Set<Product>().AnyAsync(p => p.Id == productId, ct);
 

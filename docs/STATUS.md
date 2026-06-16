@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-16 (last change **CHG-0021**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 160 passing.
+- **As of:** 2026-06-16 (last change **CHG-0022**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 173 passing.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -45,7 +45,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**
   → atomic Dr AP/Cr Cash-Bank + AP allocation (CHG-0021). (Returns are a later enhancement.)
-- ◻️ **Sales** — Quotation → SO → Delivery → Sales Invoice → Customer Payment, returns
+- 🟡 **Sales** (slice 1) — Sales Orders + Approval/event integration (CHG-0022). Slice 2: Delivery
+  (stock issue + COGS), Sales Invoice (AR/Revenue/VAT), Customer Payment, returns
 - ◻️ **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, VAT, inventory valuation
 
 ### Phase 3 / 4
@@ -68,17 +69,19 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## ▶️ Next up (recommended)
 
-**Procure-to-pay is complete** (PO → Goods Receipt → Purchase Invoice → Supplier Payment, CHG-0019–0021).
-The clear next step is **Sales slice 1 — order-to-cash**: Quotation → Sales Order → Delivery Order
-(stock issue + COGS journal, atomic) → Sales Invoice (Dr AR / Cr Revenue + VAT Output, AR open item)
-→ Customer Payment (allocate AR, Dr Cash-Bank / Cr AR). It reuses everything now in place — the
-cross-module unit of work, `IInventoryPosting` (issue), `IGeneralLedgerPoster`, posting rules, and
-`ISubledgerPosting` (AR side). Build it slice by slice (SO + approval first, then delivery/COGS, then
-invoice/AR, then payment).
+Sales Order (CHG-0022) is in. Continue **Sales slice 2 — Delivery Order**: ship approved SO lines →
+atomically issue stock (`IInventoryPosting.IssueAsync`, moving-average cost) and post **Dr COGS /
+Cr Inventory** at issue cost (reuses the cross-module unit of work). Then **Sales Invoice** (Dr AR /
+Cr Revenue + VAT Output, AR open item via `ISubledgerPosting.OpenReceivableAsync`) and **Customer
+Payment** (allocate AR, Dr Cash-Bank / Cr AR). Everything needed is already in place from procure-to-pay.
 
-Other open threads (not blocking): **idempotency keys** for the atomic posting flows (ADR-0021);
-**Inventory slice 2** GL posting on adjustments/transfers; **Accounting** period-close snapshots /
-Cash Flow; **purchase/sales returns**.
+After order-to-cash, the backend is MVP-functional end to end — the natural next phase is the **Vue 3
+frontend**, which requires the **UI/UX design discussion** before any build (user preference: not
+template/AI-ish). Pause and raise it then.
+
+Other open threads (not blocking): **idempotency keys** for atomic posting (ADR-0021); a dev
+**customer seed** (none seeded today); **Inventory slice 2** GL posting on adjustments/transfers;
+**Accounting** period-close snapshots / Cash Flow; purchase/sales **returns**.
 
 ## How to resume
 
