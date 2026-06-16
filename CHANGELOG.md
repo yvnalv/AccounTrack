@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-06-16 11:45:26 UTC]
+
+CHG-0025 — Sales: Customer Payment (allocate AR, Dr Cash-Bank / Cr AR)
+
+- Added **Customer Payment** (Sales slice 2, final piece): record a receipt from a customer and
+  allocate it to AR open items. In one cross-module atomic transaction it posts **Dr Cash-Bank /
+  Cr AR control** (AR account resolved by posting rules and carrying the customer; the cash/bank GL
+  account is chosen on the payment), allocates each AR open item via the subledger (settling /
+  partially settling it), and records the payment linked to its journal.
+- **Api:** `POST /api/v1/customer-payments`, `GET /api/v1/customer-payments/{id}`,
+  `GET /api/v1/customer-payments?customerId=` (Sales.Post / Sales.View).
+- **Persistence:** EF migration `AddCustomerPayments` (CustomerPayments / CustomerPaymentAllocations
+  / sequence).
+- **Tests:** 3 new (allocation total + zero guard; handler posts balanced Dr Cash/Cr AR and allocates
+  each open item; subledger over-allocation fails the payment). Full suite now 185, green.
+- **Verified end-to-end:** against the AR open item from the sales invoice (2,220) — partial receipt
+  1,000 (Dr Cash 1,000 / Cr AR 1,000, item PartiallyPaid, outstanding 1,220) → receipt 1,220 (item
+  Settled, outstanding 0); a further payment on the settled item was rejected.
+- **Completes order-to-cash** (SO → Delivery → Sales Invoice → Customer Payment) and the MVP
+  transactional backend: both procure-to-pay and order-to-cash run end to end with atomic
+  cross-module posting and AR/AP subledger reconciliation. See [docs/STATUS.md](docs/STATUS.md).
+
+---
+
 ## [2026-06-16 09:56:47 UTC]
 
 CHG-0024 — Sales: Sales Invoice (AR/Revenue/VAT) + AR subledger

@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
         services.AddScoped<IDeliveryOrderRepository, DeliveryOrderRepository>();
         services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
+        services.AddScoped<ICustomerPaymentRepository, CustomerPaymentRepository>();
 
         // Advance SO status when its approval is decided.
         services.AddScoped<IIntegrationEventHandler<ApprovalDecided>, ApprovalDecidedConsumer>();

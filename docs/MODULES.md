@@ -20,7 +20,7 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Master Data | ✅ Implemented | products (+ categories, units of measure), customers, suppliers, warehouses, tax codes; create + list, dev seed |
 | Inventory | 🟡 Slice 1 | transaction ledger (source of truth), moving-average buckets, receive/adjust/transfer, on-hand + stock-card; `IInventoryLedger`. Slice 2: GL posting on moves, stock opname, negative-stock setting, FIFO option |
 | Purchasing | ✅ Procure-to-pay | Purchase Orders (Approval + Process Tracker + Notification); **Goods Receipt** (atomic inventory + Dr Inventory/Cr GR-IR); **Purchase Invoice** (atomic Dr GR-IR + VAT Input / Cr AP + AP subledger, three-way-match lite clears GR-IR); **Supplier Payment** (atomic Dr AP / Cr Cash-Bank + AP allocation). Returns are a later enhancement |
-| Sales | 🟡 SO + Delivery + Invoice | Sales Orders (Approval + event-driven status); **Delivery Order** (atomic stock issue + Dr COGS/Cr Inventory); **Sales Invoice** (atomic Dr AR / Cr Revenue + VAT Output + AR subledger, three-way-match lite off delivered qty). Remaining: Customer Payment |
+| Sales | ✅ Order-to-cash | Sales Orders (Approval + event-driven status); **Delivery Order** (atomic stock issue + Dr COGS/Cr Inventory); **Sales Invoice** (atomic Dr AR / Cr Revenue + VAT Output + AR subledger); **Customer Payment** (atomic Dr Cash-Bank / Cr AR + AR allocation). Returns are a later enhancement |
 | Reporting | ◻️ Planned | Phase 2 |
 | Manufacturing | ◻️ Planned | Phase 3 |
 

@@ -36,3 +36,13 @@ public sealed record SalesInvoiceDto(
 public sealed record SalesInvoiceSummaryDto(
     Guid Id, string Number, Guid SalesOrderId, DateOnly InvoiceDate, DateOnly DueDate, decimal GrandTotal,
     Guid? JournalEntryId);
+
+public sealed record CustomerPaymentAllocationDto(Guid ArOpenItemId, decimal Amount);
+
+public sealed record CustomerPaymentDto(
+    Guid Id, string Number, Guid CustomerId, Guid CashAccountId, string Currency, DateOnly PaymentDate,
+    decimal TotalAmount, Guid? JournalEntryId, string? Reference, string? Notes,
+    IReadOnlyList<CustomerPaymentAllocationDto> Allocations);
+
+public sealed record CustomerPaymentSummaryDto(
+    Guid Id, string Number, Guid CustomerId, DateOnly PaymentDate, decimal TotalAmount, Guid? JournalEntryId);

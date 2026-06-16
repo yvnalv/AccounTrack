@@ -8,8 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-16 (last change **CHG-0024**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 182 passing.
+- **As of:** 2026-06-16 (last change **CHG-0025**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 185 passing.
+- **MVP transactional backend complete** — procure-to-pay + order-to-cash both run end to end.
+  **Frontend is next → pause for the UI/UX design discussion before any Vue work.**
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -45,9 +47,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**
   → atomic Dr AP/Cr Cash-Bank + AP allocation (CHG-0021). (Returns are a later enhancement.)
-- 🟡 **Sales** (SO + Delivery + Invoice) — Sales Orders + Approval/event integration (CHG-0022);
+- ✅ **Sales** (order-to-cash complete) — Sales Orders + Approval/event integration (CHG-0022);
   **Delivery Order** → atomic stock issue + Dr COGS/Cr Inventory (CHG-0023); **Sales Invoice** →
-  atomic Dr AR/Cr Revenue+VAT + AR open item (CHG-0024). Remaining: Customer Payment, returns
+  atomic Dr AR/Cr Revenue+VAT + AR open item (CHG-0024); **Customer Payment** → atomic Dr Cash-Bank/
+  Cr AR + AR allocation (CHG-0025). (Returns are a later enhancement.)
 - ◻️ **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, VAT, inventory valuation
 
 ### Phase 3 / 4
@@ -70,12 +73,20 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## ▶️ Next up (recommended)
 
-SO → Delivery → Invoice are in (CHG-0022/0023/0024). The last order-to-cash slice is **Customer
-Payment**: receive against AR open items → allocate via the AR subledger and post **Dr Cash-Bank /
-Cr AR control** (mirror of Supplier Payment). That makes the backend MVP-functional end to end.
+**The MVP transactional backend is complete** (procure-to-pay CHG-0019–0021, order-to-cash
+CHG-0022–0025; both post atomically across modules and reconcile to the AR/AP subledgers).
 
-**Then stop for the UI/UX design discussion before any Vue work** (user preference: not
-template/AI-ish).
+**▶ The next phase is the Vue 3 frontend — STOP and run the UI/UX design discussion with the user
+first** (explicit user preference: must not look template/AI-ish). Do not scaffold any Vue/SPA code
+until that design conversation has happened.
+
+Backend threads that can be picked up independently if desired (none block the frontend):
+- **Idempotency keys** for the atomic posting flows (ADR-0021) — retries are not yet dedupe-safe.
+- **Reporting:** Cash Flow, AR/AP aging already exist; VAT report (Output − Input); GL/account detail.
+- **Accounting:** period-close balance snapshots, year-end close to retained earnings.
+- **Inventory slice 2:** GL posting on adjustments/transfers; stock opname.
+- **Returns:** purchase & sales returns/credit notes.
+- A dev **customer seed** (none seeded today; created via API in e2e).
 
 After order-to-cash, the backend is MVP-functional end to end — the natural next phase is the **Vue 3
 frontend**, which requires the **UI/UX design discussion** before any build (user preference: not

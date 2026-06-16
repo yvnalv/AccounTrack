@@ -60,6 +60,21 @@ public static class SalesEndpoints
                 Send(s.Send(new GetSalesInvoiceQuery(id), ct)))
             .RequireAuthorization("Sales.View").WithName("GetSalesInvoice");
 
+        // --- Customer payments (receipts) ---
+        var pay = app.MapGroup("/api/v1/customer-payments").WithTags("Sales").RequireAuthorization();
+
+        pay.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetCustomerPaymentQuery(id), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetCustomerPayment");
+
+        pay.MapGet("/", (Guid customerId, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetCustomerPaymentsQuery(customerId), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetCustomerPayments");
+
+        pay.MapPost("/", (PostCustomerPaymentCommand c, ISender s, CancellationToken ct) =>
+                Created(s.Send(c, ct), "/api/v1/customer-payments"))
+            .RequireAuthorization("Sales.Post").WithName("PostCustomerPayment");
+
         return app;
     }
 

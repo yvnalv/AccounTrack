@@ -24,6 +24,9 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
     public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
     public DbSet<SalesInvoiceLine> SalesInvoiceLines => Set<SalesInvoiceLine>();
     public DbSet<SalesInvoiceNumberSequence> SalesInvoiceNumberSequences => Set<SalesInvoiceNumberSequence>();
+    public DbSet<CustomerPayment> CustomerPayments => Set<CustomerPayment>();
+    public DbSet<CustomerPaymentAllocation> CustomerPaymentAllocations => Set<CustomerPaymentAllocation>();
+    public DbSet<CustomerPaymentNumberSequence> CustomerPaymentNumberSequences => Set<CustomerPaymentNumberSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -127,6 +130,33 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
             b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
+        modelBuilder.Entity<CustomerPayment>(b =>
+        {
+            b.ToTable("CustomerPayments");
+            b.Property(p => p.Number).IsRequired().HasMaxLength(32);
+            b.Property(p => p.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(p => p.Reference).HasMaxLength(128);
+            b.Property(p => p.Notes).HasMaxLength(1024);
+            b.HasMany(p => p.Allocations).WithOne().HasForeignKey(a => a.CustomerPaymentId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(p => p.Allocations).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.Ignore(p => p.TotalAmount);
+            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.CustomerId });
+        });
+
+        modelBuilder.Entity<CustomerPaymentAllocation>(b =>
+        {
+            b.ToTable("CustomerPaymentAllocations");
+            b.Property(a => a.Amount).HasColumnType("decimal(19,4)");
+            b.HasIndex(a => a.ArOpenItemId);
+        });
+
+        modelBuilder.Entity<CustomerPaymentNumberSequence>(b =>
+        {
+            b.ToTable("CustomerPaymentNumberSequences");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
         base.OnModelCreating(modelBuilder);
         ApplyAccountrackConventions(modelBuilder);
     }
@@ -189,4 +219,24 @@ public sealed class SalesInvoiceRepository : ISalesInvoiceRepository
         _db.SalesInvoiceNumberSequences.FirstOrDefaultAsync(ct);
 
     public void AddSequence(SalesInvoiceNumberSequence sequence) => _db.SalesInvoiceNumberSequences.Add(sequence);
+}
+
+public sealed class CustomerPaymentRepository : ICustomerPaymentRepository
+{
+    private readonly SalesDbContext _db;
+    public CustomerPaymentRepository(SalesDbContext db) => _db = db;
+
+    public void Add(CustomerPayment payment) => _db.CustomerPayments.Add(payment);
+
+    public Task<CustomerPayment?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        _db.CustomerPayments.Include(p => p.Allocations).FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    public async Task<IReadOnlyList<CustomerPayment>> ListByCustomerAsync(Guid customerId, CancellationToken ct) =>
+        await _db.CustomerPayments.Where(p => p.CustomerId == customerId)
+            .OrderByDescending(p => p.Number).ToListAsync(ct);
+
+    public Task<CustomerPaymentNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
+        _db.CustomerPaymentNumberSequences.FirstOrDefaultAsync(ct);
+
+    public void AddSequence(CustomerPaymentNumberSequence sequence) => _db.CustomerPaymentNumberSequences.Add(sequence);
 }

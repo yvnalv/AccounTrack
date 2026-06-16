@@ -54,10 +54,30 @@ public sealed class SalesInvoiceNumberSequence : TenantOwnedEntity
     }
 }
 
+/// <summary>Per-company gapless counter for customer-payment (receipt) numbers.</summary>
+public sealed class CustomerPaymentNumberSequence : TenantOwnedEntity
+{
+    private CustomerPaymentNumberSequence() { }
+
+    public CustomerPaymentNumberSequence(int next = 1) => Next = next;
+
+    public int Next { get; private set; }
+
+    public string Take(DateOnly date)
+    {
+        var value = Next;
+        Next++;
+        return $"RCT/{date.Year:D4}{date.Month:D2}/{value:D5}";
+    }
+}
+
 public static class SalesErrors
 {
     public static readonly Error NotFound =
         Error.NotFound("SALES.SO_NOT_FOUND", "Sales order not found.");
+
+    public static readonly Error NoAllocations =
+        Error.BusinessRule("BR-SAL-4", "A customer payment requires at least one allocation.", "SALES.NO_ALLOCATIONS");
 
     public static readonly Error NoInvoiceLines =
         Error.BusinessRule("BR-SAL-3", "A sales invoice requires at least one line.", "SALES.NO_INVOICE_LINES");
