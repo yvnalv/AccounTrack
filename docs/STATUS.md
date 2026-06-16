@@ -8,10 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-16 (last change **CHG-0026**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 186 passing.
-- **MVP transactional backend complete** — procure-to-pay + order-to-cash both run end to end.
-  **Frontend is next → pause for the UI/UX design discussion before any Vue work.**
+- **As of:** 2026-06-16 (last change **CHG-0027**)
+- **Build:** green — backend `net8.0` (186 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend scaffolded**:
+  app shell, light/dark theme toggle, login, and finance dashboard live against the API.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -74,11 +74,14 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 ## ▶️ Next up (recommended)
 
 **The MVP transactional backend is complete** (procure-to-pay CHG-0019–0021, order-to-cash
-CHG-0022–0025; both post atomically across modules and reconcile to the AR/AP subledgers).
+CHG-0022–0025; both post atomically across modules and reconcile to the AR/AP subledgers). The
+**dashboard summary endpoint** landed CHG-0026.
 
-**▶ The next phase is the Vue 3 frontend — STOP and run the UI/UX design discussion with the user
-first** (explicit user preference: must not look template/AI-ish). Do not scaffold any Vue/SPA code
-until that design conversation has happened.
+**Frontend** (UI/UX discussed & design language locked — see [frontend/](frontend/)): scaffolded in
+CHG-0027 (`frontend/`) — app shell, light/dark toggle, login, finance dashboard. Next frontend slices:
+⌘K command palette; a shared **DataTable** + **DocumentForm** in the dense register; the first real
+CRUD screen (**Sales** list + Sales-Order create/detail); then the other modules' screens; i18n `id`
+locale; refresh-token rotation; self-hosted font.
 
 Backend threads that can be picked up independently if desired (none block the frontend):
 - **Idempotency keys** for the atomic posting flows (ADR-0021) — retries are not yet dedupe-safe.

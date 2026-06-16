@@ -1,0 +1,54 @@
+/* Design tokens — see docs/frontend/DESIGN_LANGUAGE.md (locked v1). */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --sidebar: #0f1012;
+  --sidebar-text: #c9cdd3;
+  --sidebar-muted: #7c828b;
+  --border: #e7e9ec;
+  --text: #15171a;
+  --text-muted: #6b7280;
+
+  --accent: #007e6e;
+  --accent-hover: #006b5d;
+  --accent-active: #005c50;
+  --accent-soft: #e2f1ee;
+  --accent-contrast: #ffffff;
+
+  --positive: #16a34a;
+  --negative: #e5484d;
+  --warning: #d97706;
+  --info: #2563eb;
+
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #0f1012;
+  --surface: #16181b;
+  --surface-2: #1c1f23;
+  --sidebar: #0b0c0e;
+  --sidebar-text: #c9cdd3;
+  --sidebar-muted: #7c828b;
+  --border: #26292e;
+  --text: #f2f3f5;
+  --text-muted: #9ba1a8;
+
+  --accent: #007e6e;
+  --accent-hover: #1a8e7f;
+  --accent-active: #26a192;
+  --accent-soft: rgba(0, 126, 110, 0.16);
+  --accent-contrast: #ffffff;
+
+  --positive: #22c55e;
+  --negative: #f2555a;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+
+  --shadow: none;
+
+  color-scheme: dark;
+}

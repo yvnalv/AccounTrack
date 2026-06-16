@@ -10,8 +10,9 @@ Tailwind, per CLAUDE.md) — design language, references, and component/screen s
 
 ## Status
 
-🟢 **Design phase — brainstorming.** No Vue code is scaffolded yet. We agree the design language and
-key screens here first, then build.
+🟢 **Scaffolded (CHG-0027).** Design language locked; the Vue app lives in `frontend/` with the app
+shell, theme toggle, login, and the finance dashboard working against the API. See
+[FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md).
 
 ## Documents
 
@@ -20,9 +21,9 @@ key screens here first, then build.
 | [REFERENCES.md](REFERENCES.md) | Inspiration sources (links + saved screenshots) and what we take from each |
 | [DESIGN_LANGUAGE.md](DESIGN_LANGUAGE.md) | 🟢 **Locked v1** — design tokens: color, typography, spacing, radius, shadow, motion, iconography. Single source of truth for styling |
 | [BRAND.md](BRAND.md) | Placeholder logo/wordmark + usage ([brand/](brand/) holds the SVGs) |
-| _(next)_ SCREENS.md | Per-screen layouts/wireframes (dashboard, list, detail, document forms) |
+| [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) | App structure, routing, state, API client, auth, theming, i18n, how to run |
+| _(next)_ SCREENS.md | Per-screen layouts/wireframes (list, detail, document forms) |
 | _(later)_ COMPONENTS.md | Reusable component inventory + states |
-| _(later)_ FRONTEND_ARCHITECTURE.md | App structure, routing, state, API client, auth, i18n |
 
 ## How to add a visual reference
 

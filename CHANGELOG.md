@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-06-16 13:34:15 UTC]
+
+CHG-0027 — Frontend: Vue 3 scaffold — app shell, theme toggle, login, dashboard
+
+- Scaffolded the **`frontend/`** web client (Vite 6 + Vue 3 + TS strict + Pinia + Vue Router 4 +
+  Tailwind 3 + vue-i18n + Apache ECharts + axios + Lucide), per the locked design language.
+- **Design tokens** (`tokens.css`) as CSS custom properties for **light + dark**, mapped into the
+  Tailwind theme; the **theme toggle** flips `data-theme` on `<html>` (persisted; defaults to
+  `prefers-color-scheme`). Brand teal `#007E6E`, Plus Jakarta Sans, tabular figures, id-ID money.
+- **App shell** — dark sidebar (brand + ⌘K search placeholder + grouped nav with teal active pill),
+  top bar (greeting/title, theme toggle, notifications, user + sign-out), routed content area.
+- **Login** wired to the real API (`POST /api/v1/auth/login`) via a Vite dev proxy to the .NET host;
+  Pinia auth store (token + user in `localStorage`, permission checks); router guard with `?redirect`;
+  401 → clear session + back to login.
+- **Dashboard** consuming `GET /api/v1/dashboard/summary`: KPI tiles (cash, AR, AP w/ overdue hints,
+  net profit) + a revenue-vs-expense ECharts bar (themed from the CSS vars, black tooltip). Other nav
+  targets are a "coming soon" placeholder.
+- **Verified:** `npm run build` (vue-tsc typecheck + vite build) green; dev smoke — SPA shell serves
+  on :5173, and login + dashboard work end-to-end **through the Vite proxy** to the live API
+  (cash 1.001.110, AR 600.000, AP 1.110, month net 400.973,98).
+- Docs: [docs/frontend/FRONTEND_ARCHITECTURE.md](docs/frontend/FRONTEND_ARCHITECTURE.md) (+ README/
+  design-language updates). Notes: refresh-token rotation, i18n `id` locale, and self-hosted font are
+  TODOs.
+
+---
+
 ## [2026-06-16 13:17:11 UTC]
 
 CHG-0026 — Accounting: dashboard summary read endpoint
