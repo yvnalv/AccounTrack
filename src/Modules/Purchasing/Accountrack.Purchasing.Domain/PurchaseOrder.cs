@@ -132,6 +132,18 @@ public sealed class PurchaseOrder : TenantOwnedEntity, IAggregateRoot
             : PurchaseOrderStatus.PartiallyReceived;
     }
 
+    /// <summary>
+    /// Records an invoiced quantity against one line (BR-PUR-3). A line can only be invoiced up to
+    /// what has been received (three-way match), so the GR/IR accrual is cleared by what was billed.
+    /// </summary>
+    public void InvoiceLine(Guid lineId, decimal quantity)
+    {
+        var line = _lines.FirstOrDefault(l => l.Id == lineId)
+            ?? throw new InvalidOperationException("Purchase-order line not found.");
+
+        line.Invoice(quantity);
+    }
+
     private void EnsureDraftWithLines()
     {
         if (Status != PurchaseOrderStatus.Draft)
@@ -186,7 +198,13 @@ public sealed class PurchaseOrderLine : Entity
     /// <summary>Cumulative quantity received via goods receipts (BR-PUR-2).</summary>
     public decimal ReceivedQuantity { get; private set; }
 
+    /// <summary>Cumulative quantity billed via purchase invoices (BR-PUR-3).</summary>
+    public decimal InvoicedQuantity { get; private set; }
+
     public decimal OutstandingQuantity => Quantity - ReceivedQuantity;
+
+    /// <summary>Received but not yet invoiced — the quantity a purchase invoice may still bill.</summary>
+    public decimal UninvoicedReceivedQuantity => ReceivedQuantity - InvoicedQuantity;
 
     public bool IsFullyReceived => ReceivedQuantity >= Quantity;
 
@@ -203,6 +221,21 @@ public sealed class PurchaseOrderLine : Entity
         }
 
         ReceivedQuantity += quantity;
+    }
+
+    internal void Invoice(decimal quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Invoiced quantity must be positive.");
+        }
+
+        if (quantity > UninvoicedReceivedQuantity)
+        {
+            throw new InvalidOperationException("Invoiced quantity exceeds the received, uninvoiced quantity.");
+        }
+
+        InvoicedQuantity += quantity;
     }
 
     internal static PurchaseOrderLine Create(Guid productId, decimal quantity, decimal unitPrice, decimal taxRate, string? description)

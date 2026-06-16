@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-14 (last change **CHG-0019**)
-- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 153 passing.
+- **As of:** 2026-06-16 (last change **CHG-0020**)
+- **Build:** green — `net8.0`, warnings-as-errors. **Tests:** 157 passing.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -41,9 +41,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
 - 🟡 **Inventory** (slice 1) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010)
-- 🟡 **Purchasing** (slice 1 + Goods Receipt) — Purchase Orders + Approval/Process-Tracker/Notification
-  (CHG-0015); **Goods Receipt** → atomic inventory ledger + Dr Inventory/Cr GR-IR journal (CHG-0019).
-  Remaining slice 2: Purchase Invoice → AP/VAT + clear GR-IR, Supplier Payment
+- 🟡 **Purchasing** (slice 1 + GR + Invoice) — Purchase Orders + Approval/Process-Tracker/Notification
+  (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
+  Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020). Remaining: Supplier Payment
 - ◻️ **Sales** — Quotation → SO → Delivery → Sales Invoice → Customer Payment, returns
 - ◻️ **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, VAT, inventory valuation
 
@@ -67,12 +67,13 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## ▶️ Next up (recommended)
 
-Goods Receipt (CHG-0019) posts inventory + GR-IR atomically. The clear next step is **Purchasing
-slice 2 — Purchase Invoice**: bill against the receipt → post **Dr GR-IR + Dr VAT Input / Cr AP
-control**, clearing GR-IR and opening an **AP subledger** item (the engine for both — posting rules
-CHG-0017, AP subledger CHG-0018 — is ready). Then **Supplier Payment** (allocate AP open items,
-Dr AP / Cr Cash-Bank). Alternatively start **Sales slice 1** (Quotation → SO → Delivery → Invoice),
-which reuses the same atomic-posting + subledger foundation on the order-to-cash side.
+The procure-to-pay posting chain is in place: PO → Goods Receipt (CHG-0019) → Purchase Invoice
+(CHG-0020). The clear next step is **Supplier Payment**: pay against AP open items → allocate via the
+AP subledger and post **Dr AP control / Cr Cash-Bank** (reuses `ISubledgerPosting`/allocation +
+`IGeneralLedgerPoster`; resolve the bank account via the `CashBank` posting key + a bank selector).
+That closes procure-to-pay. Alternatively start **Sales slice 1** (Quotation → SO → Delivery →
+Sales Invoice → Customer Payment), which reuses the same atomic-posting + AR subledger foundation on
+the order-to-cash side.
 
 ## How to resume
 

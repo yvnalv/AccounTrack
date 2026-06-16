@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<PurchasingDbContext>());
         services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
         services.AddScoped<IGoodsReceiptRepository, GoodsReceiptRepository>();
+        services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
 
         // Advance PO status when its approval is decided.
         services.AddScoped<IIntegrationEventHandler<ApprovalDecided>, ApprovalDecidedConsumer>();

@@ -44,11 +44,32 @@ public static class PurchasingEndpoints
                 Send(s.Send(new GetGoodsReceiptQuery(id), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetGoodsReceipt");
 
+        // --- Purchase invoices (against a purchase order) ---
+        po.MapGet("/{id:guid}/invoices", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetPurchaseInvoicesForPurchaseOrderQuery(id), ct)))
+            .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoicesForPurchaseOrder");
+
+        po.MapPost("/{id:guid}/invoices", (Guid id, BillPurchaseRequest body, ISender s, CancellationToken ct) =>
+                Created(s.Send(new PostPurchaseInvoiceCommand(
+                    id, body.SupplierInvoiceNo, body.InvoiceDate, body.DueDate, body.Notes, body.Lines), ct),
+                    $"/api/v1/purchase-orders/{id}/invoices"))
+            .RequireAuthorization("Purchasing.Post").WithName("PostPurchaseInvoice");
+
+        var pi = app.MapGroup("/api/v1/purchase-invoices").WithTags("Purchasing").RequireAuthorization();
+
+        pi.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetPurchaseInvoiceQuery(id), ct)))
+            .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoice");
+
         return app;
     }
 
     public sealed record ReceiveGoodsRequest(
         DateOnly ReceiptDate, string? Notes, IReadOnlyList<GoodsReceiptLineInput> Lines);
+
+    public sealed record BillPurchaseRequest(
+        string? SupplierInvoiceNo, DateOnly InvoiceDate, DateOnly DueDate, string? Notes,
+        IReadOnlyList<PurchaseInvoiceLineInput> Lines);
 
     private static async Task<IResult> Send<T>(Task<Result<T>> task) => (await task).ToHttpResult();
 

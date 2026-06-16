@@ -21,6 +21,9 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
     public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();
     public DbSet<GoodsReceiptNumberSequence> GoodsReceiptNumberSequences => Set<GoodsReceiptNumberSequence>();
+    public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
+    public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
+    public DbSet<PurchaseInvoiceNumberSequence> PurchaseInvoiceNumberSequences => Set<PurchaseInvoiceNumberSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,8 +55,10 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
             b.Property(l => l.LineTaxAmount).HasColumnType("decimal(19,4)");
             b.Property(l => l.LineTotal).HasColumnType("decimal(19,4)");
             b.Property(l => l.ReceivedQuantity).HasColumnType("decimal(19,6)");
+            b.Property(l => l.InvoicedQuantity).HasColumnType("decimal(19,6)");
             b.Property(l => l.Description).HasMaxLength(512);
             b.Ignore(l => l.OutstandingQuantity);
+            b.Ignore(l => l.UninvoicedReceivedQuantity);
             b.Ignore(l => l.IsFullyReceived);
             b.HasIndex(l => l.ProductId);
         });
@@ -89,6 +94,40 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
         modelBuilder.Entity<GoodsReceiptNumberSequence>(b =>
         {
             b.ToTable("GoodsReceiptNumberSequences");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        modelBuilder.Entity<PurchaseInvoice>(b =>
+        {
+            b.ToTable("PurchaseInvoices");
+            b.Property(i => i.Number).IsRequired().HasMaxLength(32);
+            b.Property(i => i.SupplierInvoiceNo).HasMaxLength(64);
+            b.Property(i => i.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(i => i.Notes).HasMaxLength(1024);
+            b.Property(i => i.SubTotal).HasColumnType("decimal(19,4)");
+            b.Property(i => i.TaxTotal).HasColumnType("decimal(19,4)");
+            b.Property(i => i.GrandTotal).HasColumnType("decimal(19,4)");
+            b.HasMany(i => i.Lines).WithOne().HasForeignKey(l => l.PurchaseInvoiceId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(i => i.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.PurchaseOrderId });
+        });
+
+        modelBuilder.Entity<PurchaseInvoiceLine>(b =>
+        {
+            b.ToTable("PurchaseInvoiceLines");
+            b.Property(l => l.Quantity).HasColumnType("decimal(19,6)");
+            b.Property(l => l.UnitPrice).HasColumnType("decimal(19,4)");
+            b.Property(l => l.TaxRate).HasColumnType("decimal(9,6)");
+            b.Property(l => l.LineNet).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineTax).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineTotal).HasColumnType("decimal(19,4)");
+            b.HasIndex(l => l.ProductId);
+        });
+
+        modelBuilder.Entity<PurchaseInvoiceNumberSequence>(b =>
+        {
+            b.ToTable("PurchaseInvoiceNumberSequences");
             b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
@@ -134,4 +173,24 @@ public sealed class GoodsReceiptRepository : IGoodsReceiptRepository
         _db.GoodsReceiptNumberSequences.FirstOrDefaultAsync(ct);
 
     public void AddSequence(GoodsReceiptNumberSequence sequence) => _db.GoodsReceiptNumberSequences.Add(sequence);
+}
+
+public sealed class PurchaseInvoiceRepository : IPurchaseInvoiceRepository
+{
+    private readonly PurchasingDbContext _db;
+    public PurchaseInvoiceRepository(PurchasingDbContext db) => _db = db;
+
+    public void Add(PurchaseInvoice invoice) => _db.PurchaseInvoices.Add(invoice);
+
+    public Task<PurchaseInvoice?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        _db.PurchaseInvoices.Include(i => i.Lines).FirstOrDefaultAsync(i => i.Id == id, ct);
+
+    public async Task<IReadOnlyList<PurchaseInvoice>> ListByPurchaseOrderAsync(Guid purchaseOrderId, CancellationToken ct) =>
+        await _db.PurchaseInvoices.Where(i => i.PurchaseOrderId == purchaseOrderId)
+            .OrderByDescending(i => i.Number).ToListAsync(ct);
+
+    public Task<PurchaseInvoiceNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
+        _db.PurchaseInvoiceNumberSequences.FirstOrDefaultAsync(ct);
+
+    public void AddSequence(PurchaseInvoiceNumberSequence sequence) => _db.PurchaseInvoiceNumberSequences.Add(sequence);
 }

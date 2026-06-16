@@ -73,6 +73,51 @@ public sealed class GetGoodsReceiptsForPurchaseOrderHandler
     }
 }
 
+public sealed record GetPurchaseInvoiceQuery(Guid Id) : IQuery<PurchaseInvoiceDto>;
+
+public sealed class GetPurchaseInvoiceHandler : IQueryHandler<GetPurchaseInvoiceQuery, PurchaseInvoiceDto>
+{
+    private readonly IPurchaseInvoiceRepository _invoices;
+    public GetPurchaseInvoiceHandler(IPurchaseInvoiceRepository invoices) => _invoices = invoices;
+
+    public async Task<Result<PurchaseInvoiceDto>> Handle(GetPurchaseInvoiceQuery request, CancellationToken ct)
+    {
+        var invoice = await _invoices.GetByIdAsync(request.Id, ct);
+        if (invoice is null)
+        {
+            return Error.NotFound("PURCHASING.PI_NOT_FOUND", "Purchase invoice not found.");
+        }
+
+        return new PurchaseInvoiceDto(
+            invoice.Id, invoice.Number, invoice.SupplierInvoiceNo, invoice.PurchaseOrderId, invoice.SupplierId,
+            invoice.Currency, invoice.InvoiceDate, invoice.DueDate, invoice.SubTotal, invoice.TaxTotal,
+            invoice.GrandTotal, invoice.JournalEntryId, invoice.ApOpenItemId, invoice.Notes,
+            invoice.Lines.Select(l => new PurchaseInvoiceLineDto(
+                l.PurchaseOrderLineId, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineNet, l.LineTax, l.LineTotal))
+                .ToList());
+    }
+}
+
+public sealed record GetPurchaseInvoicesForPurchaseOrderQuery(Guid PurchaseOrderId)
+    : IQuery<IReadOnlyList<PurchaseInvoiceSummaryDto>>;
+
+public sealed class GetPurchaseInvoicesForPurchaseOrderHandler
+    : IQueryHandler<GetPurchaseInvoicesForPurchaseOrderQuery, IReadOnlyList<PurchaseInvoiceSummaryDto>>
+{
+    private readonly IPurchaseInvoiceRepository _invoices;
+    public GetPurchaseInvoicesForPurchaseOrderHandler(IPurchaseInvoiceRepository invoices) => _invoices = invoices;
+
+    public async Task<Result<IReadOnlyList<PurchaseInvoiceSummaryDto>>> Handle(
+        GetPurchaseInvoicesForPurchaseOrderQuery request, CancellationToken ct)
+    {
+        var invoices = await _invoices.ListByPurchaseOrderAsync(request.PurchaseOrderId, ct);
+        return Result.Success<IReadOnlyList<PurchaseInvoiceSummaryDto>>(invoices
+            .Select(i => new PurchaseInvoiceSummaryDto(
+                i.Id, i.Number, i.PurchaseOrderId, i.InvoiceDate, i.DueDate, i.GrandTotal, i.JournalEntryId))
+            .ToList());
+    }
+}
+
 public sealed record GetPurchaseOrdersQuery : IQuery<IReadOnlyList<PurchaseOrderSummaryDto>>;
 
 public sealed class GetPurchaseOrdersHandler : IQueryHandler<GetPurchaseOrdersQuery, IReadOnlyList<PurchaseOrderSummaryDto>>

@@ -23,3 +23,16 @@ public sealed record GoodsReceiptDto(
 
 public sealed record GoodsReceiptSummaryDto(
     Guid Id, string Number, Guid PurchaseOrderId, DateOnly ReceiptDate, decimal TotalCost, Guid? JournalEntryId);
+
+public sealed record PurchaseInvoiceLineDto(
+    Guid PurchaseOrderLineId, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
+    decimal LineNet, decimal LineTax, decimal LineTotal);
+
+public sealed record PurchaseInvoiceDto(
+    Guid Id, string Number, string? SupplierInvoiceNo, Guid PurchaseOrderId, Guid SupplierId, string Currency,
+    DateOnly InvoiceDate, DateOnly DueDate, decimal SubTotal, decimal TaxTotal, decimal GrandTotal,
+    Guid? JournalEntryId, Guid? ApOpenItemId, string? Notes, IReadOnlyList<PurchaseInvoiceLineDto> Lines);
+
+public sealed record PurchaseInvoiceSummaryDto(
+    Guid Id, string Number, Guid PurchaseOrderId, DateOnly InvoiceDate, DateOnly DueDate, decimal GrandTotal,
+    Guid? JournalEntryId);

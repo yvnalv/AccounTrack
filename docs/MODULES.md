@@ -19,7 +19,7 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Accounting | 🟡 Slice 1 + reports + posting engine + subledgers | chart of accounts, fiscal periods (open/close/lock), double-entry journal posting + reversal, trial balance, **Profit & Loss + Balance Sheet** (derived from GL), **posting-rule / account-determination engine** (configurable, most-specific-wins, health check), **AR/AP subledgers** (open items, payment allocation, aging). Remaining slice 2: period-close snapshots, year-end close, Cash Flow |
 | Master Data | ✅ Implemented | products (+ categories, units of measure), customers, suppliers, warehouses, tax codes; create + list, dev seed |
 | Inventory | 🟡 Slice 1 | transaction ledger (source of truth), moving-average buckets, receive/adjust/transfer, on-hand + stock-card; `IInventoryLedger`. Slice 2: GL posting on moves, stock opname, negative-stock setting, FIFO option |
-| Purchasing | 🟡 Slice 1 + Goods Receipt | Purchase Orders (lines, totals, PPN) with Approval + Process Tracker + Notification; **Goods Receipt** receives against a PO and atomically writes the inventory ledger + Dr Inventory/Cr GR-IR journal (cross-module unit of work). Slice 2 remaining: Purchase Invoice (AP/VAT, clear GR-IR), Supplier Payment |
+| Purchasing | 🟡 Slice 1 + GR + Invoice | Purchase Orders (lines, totals, PPN) with Approval + Process Tracker + Notification; **Goods Receipt** (atomic inventory ledger + Dr Inventory/Cr GR-IR); **Purchase Invoice** (atomic Dr GR-IR + VAT Input / Cr AP + AP subledger item, three-way-match lite clears GR-IR). Slice 2 remaining: Supplier Payment |
 | Sales / Reporting | ◻️ Planned | Phase 2 |
 | Manufacturing | ◻️ Planned | Phase 3 |
 

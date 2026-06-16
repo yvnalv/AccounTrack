@@ -1,5 +1,36 @@
 # Accountrack Changelog
 
+## [2026-06-16 08:22:54 UTC]
+
+CHG-0020 — Purchasing: Purchase Invoice (AP/VAT, clear GR-IR) + AP subledger
+
+- Added **Purchase Invoice** (Purchasing slice 2): bill a supplier for goods received against a PO.
+  In one cross-module atomic transaction (reusing CHG-0019's `ICrossModuleUnitOfWork`) it posts
+  **Dr GR/IR + Dr VAT Input / Cr AP control** (accounts resolved by posting rules, AP line carrying
+  the supplier as subledger party), opens an **AP subledger open item**, advances the PO's invoiced
+  quantities, and records the invoice linked to its journal + open item.
+- **Three-way-match lite:** a line can only be invoiced up to what has been *received and not yet
+  invoiced* (`UninvoicedReceivedQuantity`), so the GR/IR accrual is cleared by exactly what was billed.
+- New cross-module contract `ISubledgerPosting` (`Modules.Contracts.Accounting`,
+  `OpenPayableAsync`/`OpenReceivableAsync`); Accounting exposes a save-less adapter resolving the
+  company's functional currency.
+- **Api:** `POST /api/v1/purchase-orders/{id}/invoices`, `GET .../invoices`,
+  `GET /api/v1/purchase-invoices/{id}` (Purchasing.Post / Purchasing.View).
+- **Persistence:** EF migration `AddPurchaseInvoices` (PurchaseInvoices/Lines/sequence +
+  `InvoicedQuantity` on PurchaseOrderLines).
+- **Tests:** 4 new (invoice-quantity guard; handler posts a balanced Dr GR-IR+VAT / Cr AP journal,
+  opens the AP item, advances the PO; over-invoice guard; zero-tax omits the VAT line). Full suite
+  now 157, green.
+- **Verified end-to-end:** PO 10 @ 100 + PPN 11% → received 10 → invoiced 10. Invoice net 1,000 /
+  VAT 110 / gross 1,110; balanced journal Dr GR-IR 1,000 + Dr VAT Input 110 / Cr AP 1,110; the GR/IR
+  accrual for this PO cleared to zero; AP open item 1,110 outstanding, shown in the 1–30 aging bucket;
+  PO status Received.
+- Completes the core **procure-to-pay** posting chain (PO → Goods Receipt → Purchase Invoice).
+  Remaining: Supplier Payment (allocate AP open items, Dr AP / Cr Cash-Bank). See
+  [docs/POSTING_RULES.md](docs/POSTING_RULES.md), [docs/ACCOUNTING_DESIGN.md](docs/ACCOUNTING_DESIGN.md).
+
+---
+
 ## [2026-06-14 15:01:50 UTC]
 
 CHG-0019 — Purchasing: Goods Receipt + cross-module atomic posting

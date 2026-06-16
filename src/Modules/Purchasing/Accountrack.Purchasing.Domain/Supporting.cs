@@ -37,10 +37,36 @@ public sealed class GoodsReceiptNumberSequence : TenantOwnedEntity
     }
 }
 
+/// <summary>Per-company gapless counter for purchase-invoice numbers.</summary>
+public sealed class PurchaseInvoiceNumberSequence : TenantOwnedEntity
+{
+    private PurchaseInvoiceNumberSequence() { }
+
+    public PurchaseInvoiceNumberSequence(int next = 1) => Next = next;
+
+    public int Next { get; private set; }
+
+    public string Take(DateOnly date)
+    {
+        var value = Next;
+        Next++;
+        return $"PI/{date.Year:D4}{date.Month:D2}/{value:D5}";
+    }
+}
+
 public static class PurchasingErrors
 {
     public static readonly Error NotFound =
         Error.NotFound("PURCHASING.PO_NOT_FOUND", "Purchase order not found.");
+
+    public static readonly Error NoInvoiceLines =
+        Error.BusinessRule("BR-PUR-3", "A purchase invoice requires at least one line.", "PURCHASING.NO_INVOICE_LINES");
+
+    public static Error OverInvoice(decimal uninvoicedReceived, decimal requested) =>
+        Error.BusinessRule(
+            "BR-PUR-3",
+            $"Cannot invoice {requested}; only {uninvoicedReceived} has been received and not yet invoiced on this line.",
+            "PURCHASING.OVER_INVOICE");
 
     public static readonly Error NotReceivable =
         Error.Conflict("PURCHASING.NOT_RECEIVABLE", "Goods can only be received against an approved purchase order.");

@@ -20,6 +20,15 @@ public interface IGoodsReceiptRepository
     void AddSequence(GoodsReceiptNumberSequence sequence);
 }
 
+public interface IPurchaseInvoiceRepository
+{
+    void Add(PurchaseInvoice invoice);
+    Task<PurchaseInvoice?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<PurchaseInvoice>> ListByPurchaseOrderAsync(Guid purchaseOrderId, CancellationToken ct);
+    Task<PurchaseInvoiceNumberSequence?> GetSequenceAsync(CancellationToken ct);
+    void AddSequence(PurchaseInvoiceNumberSequence sequence);
+}
+
 public interface IPurchasingUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken ct);
