@@ -1,5 +1,17 @@
 # Accountrack Changelog
 
+## [2026-06-16 14:28:34 UTC]
+
+CHG-0030 — Frontend fix: content no longer floats away from the sidebar
+
+- The routed content was centered (`mx-auto max-w-[1440px]`), so on wide screens it drifted right,
+  leaving a large gap next to the sidebar and misaligning with the left-hugging top-bar title.
+- Now the content container is **left-aligned** at the same gutter as the top bar (`max-w-[1600px]`,
+  no auto-centering) — extra width on very wide screens falls to the right instead of as a left gap.
+  Applies to every page (fixed once in `AppShell`).
+
+---
+
 ## [2026-06-16 14:15:17 UTC]
 
 CHG-0029 — Frontend: drive order-to-cash from the Sales Order detail (deliver + invoice)

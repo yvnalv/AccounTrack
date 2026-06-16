@@ -31,7 +31,9 @@ const subtitle = computed(() =>
     <div class="flex min-w-0 flex-1 flex-col">
       <AppTopbar :title="title" :subtitle="subtitle" />
       <main class="flex-1 overflow-y-auto px-6 lg:px-8 pb-8">
-        <div class="mx-auto max-w-[1440px]">
+        <!-- Left-aligned cap: content hugs the sidebar at the same gutter as the top bar; any
+             extra width on very wide screens falls to the right, not as a left gap. -->
+        <div class="max-w-[1600px]">
           <RouterView />
         </div>
       </main>
