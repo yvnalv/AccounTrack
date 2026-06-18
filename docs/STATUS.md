@@ -8,13 +8,13 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-18 (last change **CHG-0033**)
+- **As of:** 2026-06-18 (last change **CHG-0034**)
 - **Build:** green — backend `net8.0` (186 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-- **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** now drives
-  **both flows end-to-end**: **Sales** (submit → deliver → invoice → receive payment) and
-  **Purchasing** (submit → receive → bill → pay supplier), plus app shell, light/dark toggle, login,
-  finance dashboard. Reusable DataTable/StatusBadge/form kit. Next frontend: read/reporting screens
-  (Inventory, Accounting, Master data) + ⌘K palette + `id` locale.
+- **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** drives both
+  flows end-to-end (**Sales**: submit→deliver→invoice→receive payment; **Purchasing**:
+  submit→receive→bill→pay supplier), plus app shell, light/dark toggle, login, finance dashboard, and
+  **Accounting reports** (Trial Balance / P&L / Balance Sheet). Reusable DataTable/StatusBadge/form
+  kit. Next frontend: Inventory + Master-data screens, ⌘K palette, `id` locale.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`

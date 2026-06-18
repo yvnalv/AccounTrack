@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-06-18 14:17:01 UTC]
+
+CHG-0034 — Frontend: Accounting reports (Trial Balance, P&L, Balance Sheet)
+
+- New **Accounting** area (`/accounting`) with a tabbed layout and three read-only reports driven by
+  the GL endpoints:
+  - **Trial Balance** — accounts with debit/credit, optional from/to date filter, totals + balanced
+    badge (consumes the `{ totals, isBalanced, lines }` DTO).
+  - **Profit & Loss** — revenue/expense sections + net profit/loss, period filter (defaults to this
+    month).
+  - **Balance Sheet** — assets vs. liabilities + equity (incl. current earnings), as-of date,
+    balanced badge.
+- API/types: `lib/reports.ts`, `types/reports.ts`. Nested routes under `/accounting` with the sidebar
+  item active across all three tabs.
+- **Verified:** frontend `npm run build` green; report endpoints smoke — TB balanced
+  (Dr=Cr 2.759.644,21), P&L net 444.482,99 (month), Balance Sheet balanced (assets = L+E 1.007.766,19).
+- The GL is now visible in the UI. Next frontend: Inventory + Master-data screens, ⌘K, `id` locale.
+
+---
+
 ## [2026-06-18 14:08:54 UTC]
 
 CHG-0033 — Frontend: Supplier Payment screen — completes procure-to-pay in the UI

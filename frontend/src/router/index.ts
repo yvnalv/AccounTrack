@@ -24,7 +24,17 @@ const router = createRouter({
         { path: 'purchasing/pay-supplier', name: 'purchasingPaySupplier', component: () => import('@/views/purchasing/SupplierPaymentView.vue'), meta: { titleKey: 'purchasing.payment.title' } },
         { path: 'purchasing/:id', name: 'purchaseOrderDetail', component: () => import('@/views/purchasing/PurchaseOrderDetailView.vue'), meta: { titleKey: 'purchasing.title' } },
         { path: 'inventory', name: 'inventory', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.inventory' } },
-        { path: 'accounting', name: 'accounting', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.accounting' } },
+        {
+          path: 'accounting',
+          component: () => import('@/views/accounting/AccountingView.vue'),
+          meta: { titleKey: 'accounting.title' },
+          children: [
+            { path: '', name: 'accounting', redirect: { name: 'accountingTrialBalance' } },
+            { path: 'trial-balance', name: 'accountingTrialBalance', component: () => import('@/views/accounting/TrialBalanceView.vue') },
+            { path: 'profit-loss', name: 'accountingProfitLoss', component: () => import('@/views/accounting/ProfitLossView.vue') },
+            { path: 'balance-sheet', name: 'accountingBalanceSheet', component: () => import('@/views/accounting/BalanceSheetView.vue') },
+          ],
+        },
         { path: 'master-data', name: 'masterData', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.masterData' } },
         { path: 'approvals', name: 'approvals', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.approvals' } },
         { path: 'settings', name: 'settings', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.settings' } },
