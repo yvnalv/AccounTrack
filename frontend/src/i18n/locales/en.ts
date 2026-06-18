@@ -21,6 +21,14 @@ export default {
     language: 'Language',
   },
   theme: { toggle: 'Toggle theme', light: 'Light', dark: 'Dark' },
+  command: {
+    placeholder: 'Type a command or search…',
+    navigate: 'Navigate',
+    actions: 'Actions',
+    toggleTheme: 'Toggle light / dark',
+    toggleLanguage: 'Switch language (EN / ID)',
+    empty: 'No results.',
+  },
   login: {
     title: 'Sign in to Accountrack',
     subtitle: 'Use your work email and password.',

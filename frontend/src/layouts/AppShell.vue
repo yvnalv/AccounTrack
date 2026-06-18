@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppTopbar from '@/components/layout/AppTopbar.vue'
+import CommandPalette from '@/components/CommandPalette.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -38,5 +39,6 @@ const subtitle = computed(() =>
         </div>
       </main>
     </div>
+    <CommandPalette />
   </div>
 </template>

@@ -1,5 +1,22 @@
 # Accountrack Changelog
 
+## [2026-06-18 14:57:38 UTC]
+
+CHG-0038 — Frontend: ⌘K command palette
+
+- Added a **command palette** opened with **⌘K / Ctrl+K** (or by clicking the sidebar search, now
+  wired up). Type to fuzzy-filter; ↑/↓ to move, Enter to run, Esc to close; mouse hover also selects.
+- Commands: **Navigate** to any module/screen (dashboard, sales + new + receive payment, purchasing +
+  new + pay supplier, inventory, the three accounting reports, the four master-data tabs) and
+  **Actions** (toggle light/dark, switch language EN/ID, sign out). Labels are localised, so the
+  palette is bilingual too.
+- New `useCommandPalette` composable (shared open-state singleton); `CommandPalette` mounted once in
+  the app shell.
+- **Verified:** frontend `npm run build` green (vue-tsc).
+- Next frontend: Approvals screen, Settings; (record search within the palette is a later enhancement).
+
+---
+
 ## [2026-06-18 14:52:02 UTC]
 
 CHG-0037 — Frontend: Bahasa Indonesia locale + language toggle

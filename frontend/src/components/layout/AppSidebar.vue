@@ -2,6 +2,7 @@
 import type { Component } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useCommandPalette } from '@/composables/useCommandPalette'
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-vue-next'
 
 const { t } = useI18n()
+const palette = useCommandPalette()
 
 interface NavItem {
   to: RouteLocationRaw
@@ -70,6 +72,7 @@ const groups: { label: string; items: NavItem[] }[] = [
       <button
         type="button"
         class="flex w-full items-center gap-2 rounded-control bg-white/5 px-3 h-10 text-sm text-sidebar-muted transition-colors hover:bg-white/10"
+        @click="palette.open()"
       >
         <Search :size="16" />
         <span class="flex-1 text-left">{{ t('common.search') }}</span>

@@ -22,6 +22,14 @@ export default {
     language: 'Bahasa',
   },
   theme: { toggle: 'Ganti tema', light: 'Terang', dark: 'Gelap' },
+  command: {
+    placeholder: 'Ketik perintah atau cari…',
+    navigate: 'Navigasi',
+    actions: 'Tindakan',
+    toggleTheme: 'Ganti terang / gelap',
+    toggleLanguage: 'Ganti bahasa (EN / ID)',
+    empty: 'Tidak ada hasil.',
+  },
   login: {
     title: 'Masuk ke Accountrack',
     subtitle: 'Gunakan email dan kata sandi kerja Anda.',
