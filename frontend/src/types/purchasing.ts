@@ -78,3 +78,17 @@ export interface PoLineQuantityInput {
   purchaseOrderLineId: string
   quantity: number
 }
+
+export interface SupplierPaymentAllocationInput {
+  apOpenItemId: string
+  amount: number
+}
+
+export interface CreateSupplierPayment {
+  supplierId: string
+  cashAccountId: string
+  paymentDate: string
+  reference: string | null
+  notes: string | null
+  allocations: SupplierPaymentAllocationInput[]
+}

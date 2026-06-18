@@ -1,5 +1,22 @@
 # Accountrack Changelog
 
+## [2026-06-18 14:08:54 UTC]
+
+CHG-0033 — Frontend: Supplier Payment screen — completes procure-to-pay in the UI
+
+- New **Pay supplier** screen (`/purchasing/pay-supplier`, reachable from the Purchase orders header):
+  pick a supplier → its **open bills** load (amounts prefilled to outstanding, editable) → choose a
+  **cash/bank account** + date/reference → **Record payment** posts `POST /api/v1/supplier-payments`
+  (Dr AP / Cr Cash-Bank + AP allocation), then reloads remaining open bills.
+- Generalised the open-item type to `SubledgerOpenItem` (AR + AP share it); added
+  `accountingApi.apOpenItems` and `purchasingApi.createSupplierPayment`.
+- **Verified:** frontend `npm run build` green; e2e smoke — open AP bill PI/202606/00001 (1.110) paid
+  via account 1010 → one fewer open bill.
+- **Procure-to-pay is now fully drivable from the UI** (PO → submit → receive → bill → pay), matching
+  order-to-cash. Next frontend: read/reporting screens (Inventory, Accounting, Master data).
+
+---
+
 ## [2026-06-18 14:01:03 UTC]
 
 CHG-0032 — Frontend: Purchasing screens (PO list + create + detail → receive + bill)

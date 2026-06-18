@@ -1,4 +1,5 @@
-export interface ArOpenItem {
+/** An AR or AP subledger open item (same shape for both). */
+export interface SubledgerOpenItem {
   id: string
   documentNo: string
   documentDate: string

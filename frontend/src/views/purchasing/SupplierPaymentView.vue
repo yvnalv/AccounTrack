@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft } from 'lucide-vue-next'
-import { salesApi } from '@/lib/sales'
+import { purchasingApi } from '@/lib/purchasing'
 import { masterData } from '@/lib/masterData'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
 import { formatMoney } from '@/lib/format'
@@ -27,9 +27,9 @@ interface AllocRow {
 const { t } = useI18n()
 const router = useRouter()
 
-const customers = ref<NamedRef[]>([])
+const suppliers = ref<NamedRef[]>([])
 const accounts = ref<AccountRef[]>([])
-const form = ref({ customerId: '', cashAccountId: '', paymentDate: new Date().toISOString().slice(0, 10), reference: '' })
+const form = ref({ supplierId: '', cashAccountId: '', paymentDate: new Date().toISOString().slice(0, 10), reference: '' })
 const rows = ref<AllocRow[]>([])
 const loadingItems = ref(false)
 const submitting = ref(false)
@@ -37,27 +37,27 @@ const error = ref('')
 const success = ref('')
 
 onMounted(async () => {
-  const [c, a] = await Promise.all([masterData.customers(), accountingApi.accounts()])
-  customers.value = c
+  const [s, a] = await Promise.all([masterData.suppliers(), accountingApi.accounts()])
+  suppliers.value = s
   accounts.value = cashAccounts(a)
 })
 
-const customerOptions = computed(() => customers.value.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })))
+const supplierOptions = computed(() => suppliers.value.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` })))
 const accountOptions = computed(() => accounts.value.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` })))
 
-async function loadOpenItems(customerId: string) {
+async function loadOpenItems(supplierId: string) {
   rows.value = []
-  if (!customerId) return
+  if (!supplierId) return
   loadingItems.value = true
   try {
-    const items: SubledgerOpenItem[] = await accountingApi.arOpenItems(customerId)
+    const items: SubledgerOpenItem[] = await accountingApi.apOpenItems(supplierId)
     rows.value = items.map((i) => ({
       id: i.id,
       documentNo: i.documentNo,
       dueDate: i.dueDate,
       currency: i.currency,
       outstanding: i.outstandingAmount,
-      amount: i.outstandingAmount, // default: pay in full; edit down to skip
+      amount: i.outstandingAmount,
     }))
   } finally {
     loadingItems.value = false
@@ -65,7 +65,7 @@ async function loadOpenItems(customerId: string) {
 }
 
 watch(
-  () => form.value.customerId,
+  () => form.value.supplierId,
   (id) => {
     error.value = ''
     success.value = ''
@@ -76,32 +76,30 @@ watch(
 const currency = computed(() => rows.value[0]?.currency ?? 'IDR')
 const total = computed(() => rows.value.reduce((s, r) => s + (r.amount > 0 ? r.amount : 0), 0))
 const canSubmit = computed(
-  () => !!form.value.customerId && !!form.value.cashAccountId && rows.value.some((r) => r.amount > 0),
+  () => !!form.value.supplierId && !!form.value.cashAccountId && rows.value.some((r) => r.amount > 0),
 )
 
 async function submit() {
   error.value = ''
   success.value = ''
   if (!canSubmit.value) {
-    error.value = t('sales.payment.needAlloc')
+    error.value = t('purchasing.payment.needAlloc')
     return
   }
   submitting.value = true
   try {
-    await salesApi.createCustomerPayment({
-      customerId: form.value.customerId,
+    await purchasingApi.createSupplierPayment({
+      supplierId: form.value.supplierId,
       cashAccountId: form.value.cashAccountId,
       paymentDate: form.value.paymentDate,
       reference: form.value.reference || null,
       notes: null,
-      allocations: rows.value
-        .filter((r) => r.amount > 0)
-        .map((r) => ({ arOpenItemId: r.id, amount: r.amount })),
+      allocations: rows.value.filter((r) => r.amount > 0).map((r) => ({ apOpenItemId: r.id, amount: r.amount })),
     })
-    success.value = t('sales.payment.success')
-    await loadOpenItems(form.value.customerId)
+    success.value = t('purchasing.payment.success')
+    await loadOpenItems(form.value.supplierId)
   } catch {
-    error.value = t('sales.payment.failed')
+    error.value = t('purchasing.payment.failed')
   } finally {
     submitting.value = false
   }
@@ -112,42 +110,42 @@ async function submit() {
   <div class="space-y-5">
     <button
       class="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-text"
-      @click="router.push({ name: 'sales' })"
+      @click="router.push({ name: 'purchasing' })"
     >
-      <ArrowLeft :size="16" /> {{ t('sales.backToList') }}
+      <ArrowLeft :size="16" /> {{ t('purchasing.backToList') }}
     </button>
 
     <AppCard>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <FormField :label="t('sales.payment.customer')" required>
-          <AppSelect v-model="form.customerId" :options="customerOptions" :placeholder="t('sales.payment.selectCustomer')" />
+        <FormField :label="t('purchasing.payment.supplier')" required>
+          <AppSelect v-model="form.supplierId" :options="supplierOptions" :placeholder="t('purchasing.payment.selectSupplier')" />
         </FormField>
-        <FormField :label="t('sales.payment.cashAccount')" required>
-          <AppSelect v-model="form.cashAccountId" :options="accountOptions" :placeholder="t('sales.payment.selectAccount')" />
+        <FormField :label="t('purchasing.payment.cashAccount')" required>
+          <AppSelect v-model="form.cashAccountId" :options="accountOptions" :placeholder="t('purchasing.payment.selectAccount')" />
         </FormField>
-        <FormField :label="t('sales.payment.date')" required>
+        <FormField :label="t('purchasing.payment.date')" required>
           <AppInput v-model="form.paymentDate" type="date" />
         </FormField>
-        <FormField :label="t('sales.payment.reference')">
-          <AppInput v-model="form.reference" :placeholder="t('sales.payment.reference')" />
+        <FormField :label="t('purchasing.payment.reference')">
+          <AppInput v-model="form.reference" :placeholder="t('purchasing.payment.reference')" />
         </FormField>
       </div>
     </AppCard>
 
-    <AppCard v-if="form.customerId" :title="t('sales.payment.openItems')" :padded="false">
+    <AppCard v-if="form.supplierId" :title="t('purchasing.payment.openItems')" :padded="false">
       <p v-if="loadingItems" class="px-4 py-6 text-center text-sm text-text-muted">{{ t('common.loading') }}</p>
       <p v-else-if="rows.length === 0" class="px-4 py-8 text-center text-sm text-text-muted">
-        {{ t('sales.payment.noOpenItems') }}
+        {{ t('purchasing.payment.noOpenItems') }}
       </p>
       <template v-else>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-border text-xs uppercase tracking-wide text-text-muted">
-                <th class="px-4 py-2.5 text-left font-semibold">{{ t('sales.payment.invoice') }}</th>
-                <th class="px-4 py-2.5 text-left font-semibold">{{ t('sales.payment.due') }}</th>
-                <th class="px-4 py-2.5 text-right font-semibold">{{ t('sales.payment.outstanding') }}</th>
-                <th class="px-4 py-2.5 text-right font-semibold w-44">{{ t('sales.payment.amount') }}</th>
+                <th class="px-4 py-2.5 text-left font-semibold">{{ t('purchasing.payment.bill') }}</th>
+                <th class="px-4 py-2.5 text-left font-semibold">{{ t('purchasing.payment.due') }}</th>
+                <th class="px-4 py-2.5 text-right font-semibold">{{ t('purchasing.payment.outstanding') }}</th>
+                <th class="px-4 py-2.5 text-right font-semibold w-44">{{ t('purchasing.payment.amount') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -156,14 +154,7 @@ async function submit() {
                 <td class="px-4 py-2.5 text-text-muted">{{ row.dueDate }}</td>
                 <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(row.outstanding, row.currency) }}</td>
                 <td class="px-4 py-2">
-                  <input
-                    v-model.number="row.amount"
-                    type="number"
-                    min="0"
-                    :max="row.outstanding"
-                    step="any"
-                    class="field-input text-right tnum"
-                  />
+                  <input v-model.number="row.amount" type="number" min="0" :max="row.outstanding" step="any" class="field-input text-right tnum" />
                 </td>
               </tr>
             </tbody>
@@ -176,11 +167,11 @@ async function submit() {
           </div>
           <div class="flex items-center gap-4">
             <div class="text-sm">
-              <span class="text-text-muted">{{ t('sales.payment.total') }}: </span>
+              <span class="text-text-muted">{{ t('purchasing.payment.total') }}: </span>
               <span class="font-semibold text-text tnum">{{ formatMoney(total, currency) }}</span>
             </div>
             <AppButton :disabled="!canSubmit || submitting" @click="submit">
-              {{ submitting ? t('sales.payment.saving') : t('sales.payment.submit') }}
+              {{ submitting ? t('purchasing.payment.saving') : t('purchasing.payment.submit') }}
             </AppButton>
           </div>
         </div>

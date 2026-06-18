@@ -1,10 +1,13 @@
 import { http, unwrap } from './api'
-import type { AccountRef, ArOpenItem } from '@/types/accounting'
+import type { AccountRef, SubledgerOpenItem } from '@/types/accounting'
 
 export const accountingApi = {
   /** Open (unsettled) AR items for a customer. */
   arOpenItems: (partyId: string) =>
-    unwrap<ArOpenItem[]>(http.get('/ar/open-items', { params: { partyId } })),
+    unwrap<SubledgerOpenItem[]>(http.get('/ar/open-items', { params: { partyId } })),
+  /** Open (unsettled) AP items for a supplier. */
+  apOpenItems: (partyId: string) =>
+    unwrap<SubledgerOpenItem[]>(http.get('/ap/open-items', { params: { partyId } })),
   accounts: () => unwrap<AccountRef[]>(http.get('/accounts')),
 }
 

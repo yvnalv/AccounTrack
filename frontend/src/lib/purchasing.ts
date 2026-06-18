@@ -1,6 +1,7 @@
 import { http, unwrap } from './api'
 import type {
   CreatePurchaseOrder,
+  CreateSupplierPayment,
   GoodsReceiptSummary,
   PoLineQuantityInput,
   PurchaseInvoiceSummary,
@@ -25,4 +26,7 @@ export const purchasingApi = {
     id: string,
     body: { supplierInvoiceNo: string | null; invoiceDate: string; dueDate: string; notes: string | null; lines: PoLineQuantityInput[] },
   ) => unwrap<string>(http.post(`/purchase-orders/${id}/invoices`, body)),
+
+  createSupplierPayment: (body: CreateSupplierPayment) =>
+    unwrap<string>(http.post('/supplier-payments', body)),
 }
