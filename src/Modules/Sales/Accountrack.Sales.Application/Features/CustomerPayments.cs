@@ -1,4 +1,5 @@
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Company;
@@ -19,7 +20,7 @@ public sealed record CustomerPaymentAllocationInput(Guid ArOpenItemId, decimal A
 /// </summary>
 public sealed record PostCustomerPaymentCommand(
     Guid CustomerId, Guid CashAccountId, DateOnly PaymentDate, string? Reference, string? Notes,
-    IReadOnlyList<CustomerPaymentAllocationInput> Allocations) : ICommand<Guid>;
+    IReadOnlyList<CustomerPaymentAllocationInput> Allocations) : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class PostCustomerPaymentValidator : AbstractValidator<PostCustomerPaymentCommand>
 {

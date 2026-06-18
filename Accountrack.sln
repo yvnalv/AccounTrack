@@ -153,6 +153,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Accountrack.Sales.Api", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Accountrack.Sales.UnitTests", "tests\Accountrack.Sales.UnitTests\Accountrack.Sales.UnitTests.csproj", "{0F875FA2-FF71-4126-81BD-218648D53020}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Accountrack.BuildingBlocks.UnitTests", "tests\Accountrack.BuildingBlocks.UnitTests\Accountrack.BuildingBlocks.UnitTests.csproj", "{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -895,6 +897,18 @@ Global
 		{0F875FA2-FF71-4126-81BD-218648D53020}.Release|x64.Build.0 = Release|Any CPU
 		{0F875FA2-FF71-4126-81BD-218648D53020}.Release|x86.ActiveCfg = Release|Any CPU
 		{0F875FA2-FF71-4126-81BD-218648D53020}.Release|x86.Build.0 = Release|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Debug|x64.Build.0 = Debug|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Debug|x86.Build.0 = Debug|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Release|x64.ActiveCfg = Release|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Release|x64.Build.0 = Release|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Release|x86.ActiveCfg = Release|Any CPU
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -973,5 +987,6 @@ Global
 		{70ED561E-84FA-400F-B814-1ED5412B128E} = {D2CAED6B-FC59-4178-6320-5EDC21A9F743}
 		{1DEE601F-79A5-4420-98CC-6B367C16D7DF} = {D2CAED6B-FC59-4178-6320-5EDC21A9F743}
 		{0F875FA2-FF71-4126-81BD-218648D53020} = {D2CAED6B-FC59-4178-6320-5EDC21A9F743}
+		{FE5CAB4C-D814-42EF-B45B-1C0892AA320F} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

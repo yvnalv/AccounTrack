@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Identity.Infrastructure.Authentication;
 
 namespace Accountrack.Api.Infrastructure;
@@ -9,6 +10,25 @@ namespace Accountrack.Api.Infrastructure;
 public sealed class SystemClock : IClock
 {
     public DateTime UtcNow => DateTime.UtcNow;
+}
+
+/// <summary>Idempotency key for the current request, read from the <c>Idempotency-Key</c> header (ADR-0021).</summary>
+public sealed class HttpContextIdempotencyContext : IIdempotencyContext
+{
+    public const string HeaderName = "Idempotency-Key";
+
+    private readonly IHttpContextAccessor _accessor;
+
+    public HttpContextIdempotencyContext(IHttpContextAccessor accessor) => _accessor = accessor;
+
+    public string? Key
+    {
+        get
+        {
+            var value = _accessor.HttpContext?.Request.Headers[HeaderName].ToString();
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+    }
 }
 
 /// <summary>Current user resolved from the authenticated principal's JWT claims (SECURITY.md §2).</summary>

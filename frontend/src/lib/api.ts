@@ -21,10 +21,18 @@ export function getAuthToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
 
+const MUTATING_METHODS = new Set(['post', 'put', 'patch'])
+
 http.interceptors.request.use((config) => {
   const token = getAuthToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  // Idempotency-Key on mutating requests (ADR-0021): one key per logical send, so a transport
+  // retry of the same request replays rather than double-posts. Callers may set their own.
+  const method = (config.method ?? 'get').toLowerCase()
+  if (MUTATING_METHODS.has(method) && !config.headers['Idempotency-Key']) {
+    config.headers['Idempotency-Key'] = crypto.randomUUID()
   }
   return config
 })

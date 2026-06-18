@@ -329,6 +329,23 @@ row.
 **Consequences.** (+) Safe under retries and concurrent edits. (−) Handlers must check/record
 idempotency keys; conflicts surface to the user.
 
+**Implementation (CHG-0040).** Command-level idempotency is implemented as a MediatR pipeline
+behavior (`IdempotencyBehavior`, between Logging and Validation). Commands opt in with the
+`IIdempotentCommand` marker and must return `Result<Guid>`. The key comes from the
+`Idempotency-Key` request header (`IIdempotencyContext`); it is scoped per
+`{tenant}:{commandType}:{key}` and persisted in `platform.IdempotencyKeys` via `IIdempotencyStore`
+(its own short-lived connection, never the shared cross-module transaction). A replayed key
+short-circuits the handler and returns the original id. The frontend axios client sends a fresh
+`Idempotency-Key` on every POST/PUT/PATCH so a transport-level retry replays rather than
+double-posts. Marked commands: the create commands (Sales/Purchase Order) and all six posting
+commands (Goods Receipt, Purchase Invoice, Supplier Payment, Delivery Order, Sales Invoice,
+Customer Payment) plus manual Journal posting.
+
+**Known limitation.** The result id is recorded *after* the command commits, so a crash in the
+narrow window between commit and `SaveAsync` would let a retry re-execute (double-post). True
+exactly-once requires writing the key inside the same transaction; that is a future hardening step
+once a durable outbox lands. RowVersion optimistic concurrency on documents is still pending.
+
 ---
 
 ## ADR-0022: Period-balance snapshots for reporting

@@ -1,3 +1,4 @@
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Inventory;
@@ -19,7 +20,7 @@ public sealed record GoodsReceiptLineInput(Guid PurchaseOrderLineId, decimal Qua
 /// </summary>
 public sealed record PostGoodsReceiptCommand(
     Guid PurchaseOrderId, DateOnly ReceiptDate, string? Notes, IReadOnlyList<GoodsReceiptLineInput> Lines)
-    : ICommand<Guid>;
+    : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class PostGoodsReceiptValidator : AbstractValidator<PostGoodsReceiptCommand>
 {

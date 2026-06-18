@@ -8,16 +8,18 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-18 (last change **CHG-0039**)
-- **Build:** green — backend `net8.0` (186 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-06-18 (last change **CHG-0040**)
+- **Build:** green — backend `net8.0` (191 tests; +5 idempotency-behavior); **frontend** `frontend/`
+  builds (vue-tsc + vite).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
   (TB/P&L/Balance Sheet); **Inventory** (on-hand + stock card); **Master data** (products/customers/
   suppliers/warehouses lists + create), **Approvals** (pending list + approve/reject), **English +
   Bahasa Indonesia**, and a **⌘K command palette**. Every core nav item has a real UI (only Settings
-  is still a placeholder). Reusable DataTable/StatusBadge/form/modal kit. Next: Settings; backend
-  debts (idempotency keys, period-close snapshots, cross-tenant test suite).
+  is still a placeholder). Reusable DataTable/StatusBadge/form/modal kit. **Idempotency** for
+  posting/create commands landed (CHG-0040). Next: Settings; backend debts (period-close snapshots,
+  cross-tenant test suite, durable outbox).
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -72,8 +74,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
   `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
   flows will reuse it.
-- **Idempotency for atomic flows:** posting is not yet idempotent (no inbox/dedupe key) — re-posting a
-  Goods Receipt would double-receive. Add idempotency keys before exposing retries (ADR-0021).
+- **Idempotency for atomic flows:** ✅ command-level idempotency done (CHG-0040) —
+  `IdempotencyBehavior` keyed off the `Idempotency-Key` header dedupes replays of the posting/create
+  commands (ADR-0021). Remaining hardening: write the key in the same transaction (exactly-once) +
+  RowVersion optimistic concurrency on documents.
 - **Frontend:** Vue 3 SPA — **pause for a UI/UX design discussion before building** (user
   preference: not template/AI-ish).
 
@@ -90,7 +94,8 @@ CRUD screen (**Sales** list + Sales-Order create/detail); then the other modules
 locale; refresh-token rotation; self-hosted font.
 
 Backend threads that can be picked up independently if desired (none block the frontend):
-- **Idempotency keys** for the atomic posting flows (ADR-0021) — retries are not yet dedupe-safe.
+- **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021). Remaining:
+  same-transaction key write (exactly-once) + RowVersion concurrency.
 - **Reporting:** Cash Flow, AR/AP aging already exist; VAT report (Output − Input); GL/account detail.
 - **Accounting:** period-close balance snapshots, year-end close to retained earnings.
 - **Inventory slice 2:** GL posting on adjustments/transfers; stock opname.
@@ -101,9 +106,9 @@ After order-to-cash, the backend is MVP-functional end to end — the natural ne
 frontend**, which requires the **UI/UX design discussion** before any build (user preference: not
 template/AI-ish). Pause and raise it then.
 
-Other open threads (not blocking): **idempotency keys** for atomic posting (ADR-0021); a dev
-**customer seed** (none seeded today); **Inventory slice 2** GL posting on adjustments/transfers;
-**Accounting** period-close snapshots / Cash Flow; purchase/sales **returns**.
+Other open threads (not blocking): a dev **customer seed** (none seeded today); **Inventory slice 2**
+GL posting on adjustments/transfers; **Accounting** period-close snapshots / Cash Flow; purchase/sales
+**returns**; idempotency **exactly-once** hardening (same-transaction key + RowVersion).
 
 ## How to resume
 

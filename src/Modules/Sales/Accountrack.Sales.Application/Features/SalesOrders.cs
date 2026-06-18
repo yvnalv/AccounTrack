@@ -1,4 +1,5 @@
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.Approval;
 using Accountrack.Modules.Contracts.Company;
@@ -19,7 +20,7 @@ public sealed record CreateSoLine(Guid ProductId, decimal Quantity, decimal Unit
 
 public sealed record CreateSalesOrderCommand(
     Guid CustomerId, Guid WarehouseId, DateOnly OrderDate, string? Notes,
-    IReadOnlyList<CreateSoLine> Lines) : ICommand<Guid>;
+    IReadOnlyList<CreateSoLine> Lines) : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class CreateSalesOrderValidator : AbstractValidator<CreateSalesOrderCommand>
 {

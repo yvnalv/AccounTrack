@@ -2,6 +2,7 @@ using Accountrack.Accounting.Application.Abstractions;
 using Accountrack.Accounting.Application.Contracts;
 using Accountrack.Accounting.Domain;
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.Company;
 using Accountrack.SharedKernel.Results;
@@ -13,7 +14,7 @@ public sealed record PostJournalLine(Guid AccountId, decimal Debit, decimal Cred
 
 /// <summary>Posts a manual, balanced journal entry into the active company's books.</summary>
 public sealed record PostJournalCommand(
-    DateOnly Date, string Description, IReadOnlyList<PostJournalLine> Lines) : ICommand<Guid>;
+    DateOnly Date, string Description, IReadOnlyList<PostJournalLine> Lines) : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class PostJournalCommandValidator : AbstractValidator<PostJournalCommand>
 {

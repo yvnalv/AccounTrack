@@ -1,4 +1,5 @@
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.Approval;
 using Accountrack.Modules.Contracts.Company;
@@ -20,7 +21,7 @@ public sealed record CreatePoLine(Guid ProductId, decimal Quantity, decimal Unit
 
 public sealed record CreatePurchaseOrderCommand(
     Guid SupplierId, Guid WarehouseId, DateOnly OrderDate, string? Notes,
-    IReadOnlyList<CreatePoLine> Lines) : ICommand<Guid>;
+    IReadOnlyList<CreatePoLine> Lines) : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class CreatePurchaseOrderValidator : AbstractValidator<CreatePurchaseOrderCommand>
 {

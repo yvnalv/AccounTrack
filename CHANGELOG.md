@@ -1,5 +1,36 @@
 # Accountrack Changelog
 
+## [2026-06-18 16:46:08 UTC]
+
+CHG-0040 — Idempotency for posting/create commands (ADR-0021)
+
+- Added command-level idempotency so a retried request never double-posts. New
+  `IdempotencyBehavior` MediatR pipeline behavior (registered between Logging and Validation):
+  for commands marked `IIdempotentCommand` returning `Result<Guid>`, it derives a key
+  `{tenant}:{commandType}:{Idempotency-Key}` and short-circuits a replay with the original id.
+- New abstractions in `Accountrack.Application.Abstractions.Idempotency`: `IIdempotentCommand`
+  marker, `IIdempotencyContext` (request key), `IIdempotencyStore`. SQL store
+  (`Infrastructure.Common`) persists keys in `platform.IdempotencyKeys` over its own short-lived
+  connection (never the shared cross-module transaction); table ensured at startup.
+- Host wiring: `HttpContextIdempotencyContext` reads the `Idempotency-Key` header; store registered
+  as a singleton bound to the Default connection.
+- Marked commands: `CreateSalesOrderCommand`, `CreatePurchaseOrderCommand`,
+  `PostGoodsReceiptCommand`, `PostPurchaseInvoiceCommand`, `PostSupplierPaymentCommand`,
+  `PostDeliveryOrderCommand`, `PostSalesInvoiceCommand`, `PostCustomerPaymentCommand`,
+  `PostJournalCommand`.
+- Frontend: axios request interceptor sends a fresh `Idempotency-Key` (crypto.randomUUID) on every
+  POST/PUT/PATCH so a transport retry replays rather than double-posts.
+- Tests: new `Accountrack.BuildingBlocks.UnitTests` with 5 behavior tests (first call records;
+  replay returns stored id without running the handler; no key / non-idempotent command bypass the
+  store; failed results are not recorded). All green; full solution builds.
+- **Verified (e2e):** posting the same journal twice with one `Idempotency-Key` returned the
+  identical id (no second journal); a new key produced a new journal.
+- **Known limitation** (documented in ADR-0021): the key is recorded after commit, leaving a narrow
+  crash-between-commit-and-save window. Exactly-once needs the key written in the same transaction —
+  a future hardening step with the durable outbox.
+
+---
+
 ## [2026-06-18 15:13:50 UTC]
 
 CHG-0039 — Frontend: Approvals screen (pending list + approve/reject)

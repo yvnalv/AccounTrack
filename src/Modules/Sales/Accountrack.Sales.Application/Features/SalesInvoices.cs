@@ -1,3 +1,4 @@
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Transactions;
@@ -17,7 +18,7 @@ public sealed record SalesInvoiceLineInput(Guid SalesOrderLineId, decimal Quanti
 /// </summary>
 public sealed record PostSalesInvoiceCommand(
     Guid SalesOrderId, DateOnly InvoiceDate, DateOnly DueDate, string? Notes,
-    IReadOnlyList<SalesInvoiceLineInput> Lines) : ICommand<Guid>;
+    IReadOnlyList<SalesInvoiceLineInput> Lines) : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class PostSalesInvoiceValidator : AbstractValidator<PostSalesInvoiceCommand>
 {

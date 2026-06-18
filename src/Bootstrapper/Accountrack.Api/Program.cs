@@ -41,6 +41,15 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 builder.Services.AddScoped<ITenantContext, HttpContextTenantContext>();
 
+// Idempotency for atomic posting flows (ADR-0021): key from the Idempotency-Key header; results are
+// recorded in platform.IdempotencyKeys so a replayed command returns the original id instead of
+// double-posting. The store uses its own connection (never the shared cross-module transaction).
+builder.Services.AddScoped<Accountrack.Application.Abstractions.Idempotency.IIdempotencyContext,
+    HttpContextIdempotencyContext>();
+builder.Services.AddSingleton<Accountrack.Application.Abstractions.Idempotency.IIdempotencyStore>(
+    new Accountrack.Infrastructure.Common.Idempotency.IdempotencyStore(
+        builder.Configuration.GetConnectionString("Default")!));
+
 // In-process integration-event dispatch (ADR-0007). Scoped so handlers resolve from the request scope.
 builder.Services.AddScoped<Accountrack.Application.Abstractions.Integration.IIntegrationEventPublisher,
     Accountrack.Infrastructure.Common.Integration.IntegrationEventPublisher>();
@@ -55,6 +64,7 @@ builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
     cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
+    cfg.AddOpenBehavior(typeof(IdempotencyBehavior<,>));
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 
@@ -143,6 +153,10 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
 {
     var migrate = builder.Configuration.GetValue("Database:AutoMigrate", false);
     var seedDev = builder.Configuration.GetValue("Seed:Enabled", false);
+
+    // Platform-level idempotency key store (ADR-0021), independent of any module schema.
+    await Accountrack.Infrastructure.Common.Idempotency.IdempotencyStore.EnsureTableAsync(
+        builder.Configuration.GetConnectionString("Default")!);
 
     // Audit owns the shared audit table; create it before modules that write to it.
     await app.Services.InitializeAuditLogModuleAsync(migrate);
