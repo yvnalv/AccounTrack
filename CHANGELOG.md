@@ -1,5 +1,23 @@
 # Accountrack Changelog
 
+## [2026-06-18 14:21:25 UTC]
+
+CHG-0035 — Frontend: Inventory — stock on-hand + stock card
+
+- **Stock on hand** (`/inventory`) — DataTable of buckets (product, warehouse, on-hand qty,
+  moving-average cost, value); rows open the stock card.
+- **Stock card** (`/inventory/stock-card?productId=&warehouseId=`) — the product's movement ledger
+  (newest first): date, type (labelled), source, signed qty (inbound green / outbound red), unit
+  cost, running qty + running average cost.
+- API/types: `lib/inventory.ts` (`onHand`, `stockCard`, `isInbound`), `types/inventory.ts`.
+- **Verified:** frontend `npm run build` green; endpoints smoke — on-hand bucket (qty 108, value
+  492.602,98) and a 12-entry stock card with correct running qty/avg and Sales/Purchasing/Manual
+  sources.
+- Stock levels + moving-average cost are now visible in the UI. Next frontend: Master-data screens,
+  ⌘K palette, `id` locale.
+
+---
+
 ## [2026-06-18 14:17:01 UTC]
 
 CHG-0034 — Frontend: Accounting reports (Trial Balance, P&L, Balance Sheet)

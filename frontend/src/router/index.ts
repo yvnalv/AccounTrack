@@ -23,7 +23,8 @@ const router = createRouter({
         { path: 'purchasing/new', name: 'purchaseOrderCreate', component: () => import('@/views/purchasing/PurchaseOrderCreateView.vue'), meta: { titleKey: 'purchasing.new' } },
         { path: 'purchasing/pay-supplier', name: 'purchasingPaySupplier', component: () => import('@/views/purchasing/SupplierPaymentView.vue'), meta: { titleKey: 'purchasing.payment.title' } },
         { path: 'purchasing/:id', name: 'purchaseOrderDetail', component: () => import('@/views/purchasing/PurchaseOrderDetailView.vue'), meta: { titleKey: 'purchasing.title' } },
-        { path: 'inventory', name: 'inventory', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.inventory' } },
+        { path: 'inventory', name: 'inventory', component: () => import('@/views/inventory/InventoryView.vue'), meta: { titleKey: 'inventory.title' } },
+        { path: 'inventory/stock-card', name: 'inventoryStockCard', component: () => import('@/views/inventory/StockCardView.vue'), meta: { titleKey: 'inventory.card.title' } },
         {
           path: 'accounting',
           component: () => import('@/views/accounting/AccountingView.vue'),
