@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import LanguageToggle from '@/components/ui/LanguageToggle.vue'
 
 defineProps<{ title: string; subtitle?: string }>()
 
@@ -35,6 +36,7 @@ function signOut() {
     </div>
 
     <div class="flex items-center gap-2">
+      <LanguageToggle />
       <ThemeToggle />
       <button
         type="button"

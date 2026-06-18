@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import AppButton from '@/components/ui/AppButton.vue'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import LanguageToggle from '@/components/ui/LanguageToggle.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -33,7 +34,8 @@ async function submit() {
 
 <template>
   <div class="grid min-h-full place-items-center bg-bg px-4">
-    <div class="absolute right-4 top-4">
+    <div class="absolute right-4 top-4 flex items-center gap-2">
+      <LanguageToggle />
       <ThemeToggle />
     </div>
 

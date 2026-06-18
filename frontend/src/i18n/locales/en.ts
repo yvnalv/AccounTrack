@@ -18,6 +18,7 @@ export default {
     retry: 'Retry',
     comingSoon: 'Coming soon',
     comingSoonBody: 'This area is part of the roadmap and not built yet.',
+    language: 'Language',
   },
   theme: { toggle: 'Toggle theme', light: 'Light', dark: 'Dark' },
   login: {

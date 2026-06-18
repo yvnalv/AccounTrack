@@ -1,5 +1,21 @@
 # Accountrack Changelog
 
+## [2026-06-18 14:52:02 UTC]
+
+CHG-0037 — Frontend: Bahasa Indonesia locale + language toggle
+
+- Added the **`id` (Bahasa Indonesia)** locale — a full translation of every UI string mirroring the
+  EN catalog (nav, login, dashboard, Sales, Purchasing, Inventory, Accounting, Master data, statuses).
+  Satisfies the CLAUDE.md non-negotiable: English default + Indonesian supported.
+- **Language toggle** (`LanguageToggle`, EN ⇄ ID) in the top bar and on the login screen; choice
+  persisted in `localStorage` and restored on load (English default).
+- `i18n/index.ts` registers both locales with `savedLocale()`/`persistLocale()`; English remains the
+  fallback. Number/money formatting stays `id-ID` regardless of UI language.
+- **Verified:** frontend `npm run build` green (vue-tsc).
+- Next frontend: ⌘K command palette, Approvals screen, Settings.
+
+---
+
 ## [2026-06-18 14:46:41 UTC]
 
 CHG-0036 — Frontend: Master Data screens (products / customers / suppliers / warehouses)

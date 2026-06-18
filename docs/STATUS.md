@@ -8,14 +8,14 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-18 (last change **CHG-0036**)
+- **As of:** 2026-06-18 (last change **CHG-0037**)
 - **Build:** green — backend `net8.0` (186 tests); **frontend** `frontend/` builds (vue-tsc + vite).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
   (TB/P&L/Balance Sheet); **Inventory** (on-hand + stock card); **Master data** (products/customers/
-  suppliers/warehouses lists + create). Reusable DataTable/StatusBadge/form/modal kit. Next: ⌘K
-  palette, `id` locale, Approvals screen.
+  suppliers/warehouses lists + create), and **English + Bahasa Indonesia** with a language toggle.
+  Reusable DataTable/StatusBadge/form/modal kit. Next: ⌘K palette, Approvals screen, Settings.
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
