@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-06-18 14:46:41 UTC]
+
+CHG-0036 — Frontend: Master Data screens (products / customers / suppliers / warehouses)
+
+- New **Master data** area (`/master-data`) with a tabbed layout and four list+create screens, so the
+  app is self-sufficient (no more API-only setup):
+  - **Products** — list + create (code, name, unit-of-measure, optional category, stock-tracked/
+    sold/purchased flags).
+  - **Customers** — list + create (code, name, tax id, payment terms, credit limit).
+  - **Suppliers** — list + create (code, name, tax id, payment terms).
+  - **Warehouses** — list + create (code, name, address).
+- Added a reusable **`AppModal`** (teleported overlay, Esc/backdrop close) used by the create forms.
+- API/types: `lib/masterData.ts` gains `unitsOfMeasure`/`productCategories` + `create*`;
+  `types/masterdata.ts` typed DTOs. Nested routes under `/master-data`.
+- **Verified:** frontend `npm run build` green; create endpoints smoke — warehouse, customer,
+  supplier, and product (UoM "PCS") all created successfully.
+- Next frontend: ⌘K command palette, `id` locale, Approvals screen.
+
+---
+
 ## [2026-06-18 14:21:25 UTC]
 
 CHG-0035 — Frontend: Inventory — stock on-hand + stock card
