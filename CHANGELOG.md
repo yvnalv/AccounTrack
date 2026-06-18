@@ -1,5 +1,22 @@
 # Accountrack Changelog
 
+## [2026-06-18 15:13:50 UTC]
+
+CHG-0039 — Frontend: Approvals screen (pending list + approve/reject)
+
+- New **Approvals** screen (`/approvals`) listing the current user's pending approval requests
+  (`GET /api/v1/approval-requests/mine`): document type, reference, and level progress
+  (current/max), with **Approve** / **Reject** actions.
+- Decision modal with an optional comment → `POST .../approve` or `.../reject`, then refreshes the
+  list. Localised (EN/ID), incl. document-type labels.
+- API/types: `lib/approval.ts`, `types/approval.ts`. Replaces the last non-Settings nav placeholder.
+- **Verified:** frontend `npm run build` green; `/mine` smoke returns success (empty in dev, since no
+  approval rules are seeded → submissions auto-approve; the screen shows its empty state).
+- All core modules now have real UIs (Dashboard, Sales, Purchasing, Inventory, Accounting, Master
+  data, Approvals); Settings remains a placeholder.
+
+---
+
 ## [2026-06-18 14:57:38 UTC]
 
 CHG-0038 — Frontend: ⌘K command palette

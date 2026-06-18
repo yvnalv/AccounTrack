@@ -48,7 +48,7 @@ const router = createRouter({
             { path: 'warehouses', name: 'masterDataWarehouses', component: () => import('@/views/masterdata/WarehousesView.vue') },
           ],
         },
-        { path: 'approvals', name: 'approvals', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.approvals' } },
+        { path: 'approvals', name: 'approvals', component: () => import('@/views/ApprovalsView.vue'), meta: { titleKey: 'approvals.title' } },
         { path: 'settings', name: 'settings', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.settings' } },
       ],
     },
