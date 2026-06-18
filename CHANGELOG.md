@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-18 14:01:03 UTC]
+
+CHG-0032 — Frontend: Purchasing screens (PO list + create + detail → receive + bill)
+
+- Replicated the Sales pattern for procure-to-pay, reusing the shared DataTable/StatusBadge/form kit:
+  - **Purchase Orders list** (`/purchasing`) — number, supplier, date, status, total; New action; rows
+    open the detail.
+  - **Create PO** (`/purchasing/new`) — supplier/warehouse/date header + dynamic line-items editor.
+  - **PO detail** (`/purchasing/:id`) — header + status, line table (ordered/received/invoiced),
+    totals; **Submit for approval** (Draft), **Receive outstanding** (posts a goods receipt → stock +
+    Dr Inventory/Cr GR-IR), **Enter bill** (posts a purchase invoice for received-uninvoiced qty →
+    Dr GR-IR+VAT/Cr AP + AP open item); **Goods receipts** and **Bills** document lists with a
+    "Posted" badge.
+- API/types: `lib/purchasing.ts`, `types/purchasing.ts`, suppliers lookup added to `lib/masterData.ts`.
+- **Backend:** `PurchaseOrderLineDto` now exposes `InvoicedQuantity` (parity with Sales) + mapping.
+- **Verified:** frontend `npm run build` green; e2e smoke — PO 8 @ 90 + PPN → submit → receive (GR
+  posted) → bill (PI 799,20 posted); detail reflects received/invoiced and lists both documents.
+- Supplier Payment screen is the next slice. (Cleared the stale-host-bin trap again after the DTO change.)
+
+---
+
 ## [2026-06-18 13:47:49 UTC]
 
 CHG-0031 — Frontend: Customer Payment (receive) screen — completes order-to-cash in the UI

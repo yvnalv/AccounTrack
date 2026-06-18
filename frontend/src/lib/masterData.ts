@@ -3,6 +3,7 @@ import type { NamedRef, Product } from '@/types/masterdata'
 
 export const masterData = {
   customers: () => unwrap<NamedRef[]>(http.get('/customers')),
+  suppliers: () => unwrap<NamedRef[]>(http.get('/suppliers')),
   warehouses: () => unwrap<NamedRef[]>(http.get('/warehouses')),
   products: () => unwrap<Product[]>(http.get('/products')),
 }

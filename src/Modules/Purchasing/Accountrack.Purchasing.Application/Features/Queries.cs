@@ -13,7 +13,7 @@ internal static class PurchaseOrderMapping
         o.ApprovalRequestId, o.SubTotal, o.TaxTotal, o.GrandTotal, o.Notes,
         o.Lines.Select(l => new PurchaseOrderLineDto(
             l.Id, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineSubTotal, l.LineTaxAmount, l.LineTotal,
-            l.Description, l.ReceivedQuantity, l.OutstandingQuantity))
+            l.Description, l.ReceivedQuantity, l.InvoicedQuantity, l.OutstandingQuantity))
             .ToList());
 }
 

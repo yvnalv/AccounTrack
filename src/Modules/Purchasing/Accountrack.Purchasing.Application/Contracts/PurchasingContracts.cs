@@ -3,7 +3,7 @@ namespace Accountrack.Purchasing.Application.Contracts;
 public sealed record PurchaseOrderLineDto(
     Guid Id, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
     decimal LineSubTotal, decimal LineTaxAmount, decimal LineTotal, string? Description,
-    decimal ReceivedQuantity, decimal OutstandingQuantity);
+    decimal ReceivedQuantity, decimal InvoicedQuantity, decimal OutstandingQuantity);
 
 public sealed record PurchaseOrderDto(
     Guid Id, string Number, Guid SupplierId, Guid WarehouseId, string Currency, DateOnly OrderDate,
