@@ -1,5 +1,6 @@
 import { http, unwrap } from './api'
 import type {
+  CreateCustomerPayment,
   CreateSalesOrder,
   DeliverySummary,
   LineQuantityInput,
@@ -25,4 +26,7 @@ export const salesApi = {
     id: string,
     body: { invoiceDate: string; dueDate: string; notes: string | null; lines: LineQuantityInput[] },
   ) => unwrap<string>(http.post(`/sales-orders/${id}/invoices`, body)),
+
+  createCustomerPayment: (body: CreateCustomerPayment) =>
+    unwrap<string>(http.post('/customer-payments', body)),
 }

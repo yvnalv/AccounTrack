@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Plus } from 'lucide-vue-next'
+import { Plus, Wallet } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney } from '@/lib/format'
@@ -48,7 +48,10 @@ function openOrder(row: Record<string, unknown>) {
 
 <template>
   <div class="space-y-4">
-    <div class="flex justify-end">
+    <div class="flex justify-end gap-2">
+      <AppButton variant="secondary" @click="router.push({ name: 'salesReceivePayment' })">
+        <Wallet :size="16" /> {{ t('sales.receivePayment') }}
+      </AppButton>
       <AppButton @click="router.push({ name: 'salesOrderCreate' })">
         <Plus :size="16" /> {{ t('sales.new') }}
       </AppButton>

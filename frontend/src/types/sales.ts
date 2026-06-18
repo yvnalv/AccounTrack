@@ -55,6 +55,20 @@ export interface LineQuantityInput {
   quantity: number
 }
 
+export interface CustomerPaymentAllocationInput {
+  arOpenItemId: string
+  amount: number
+}
+
+export interface CreateCustomerPayment {
+  customerId: string
+  cashAccountId: string
+  paymentDate: string
+  reference: string | null
+  notes: string | null
+  allocations: CustomerPaymentAllocationInput[]
+}
+
 export interface SalesOrder {
   id: string
   number: string

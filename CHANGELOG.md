@@ -1,5 +1,23 @@
 # Accountrack Changelog
 
+## [2026-06-18 13:47:49 UTC]
+
+CHG-0031 — Frontend: Customer Payment (receive) screen — completes order-to-cash in the UI
+
+- New **Receive payment** screen (`/sales/receive-payment`, reachable from the Sales orders header):
+  pick a customer → its **open AR invoices** load (amounts prefilled to outstanding, editable down to
+  skip/part-pay) → choose a **cash/bank account** (10xx) and date/reference → **Record payment**
+  posts `POST /api/v1/customer-payments` (Dr Cash-Bank / Cr AR + AR allocation), then reloads the
+  remaining open items.
+- API/types: `lib/accounting.ts` (`arOpenItems(partyId)`, `accounts()` + `cashAccounts` filter),
+  `salesApi.createCustomerPayment`, `types/accounting.ts`.
+- **Verified:** frontend `npm run build` green; e2e smoke — open AR item SI/202606/00002 (2.664)
+  settled via account 1010 → 0 open items remain.
+- **Order-to-cash is now fully drivable from the UI**: Sales Order → submit → deliver → invoice →
+  receive payment. Next: replicate the pattern for Purchasing screens.
+
+---
+
 ## [2026-06-16 14:28:34 UTC]
 
 CHG-0030 — Frontend fix: content no longer floats away from the sidebar
