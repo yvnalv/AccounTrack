@@ -49,7 +49,7 @@ const router = createRouter({
           ],
         },
         { path: 'approvals', name: 'approvals', component: () => import('@/views/ApprovalsView.vue'), meta: { titleKey: 'approvals.title' } },
-        { path: 'settings', name: 'settings', component: () => import('@/views/PlaceholderView.vue'), meta: { titleKey: 'nav.settings' } },
+        { path: 'settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { titleKey: 'nav.settings' } },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },

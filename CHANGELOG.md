@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-19 11:59:59 UTC]
+
+CHG-0041 — Frontend: Settings screen (company / profile / preferences)
+
+- New **Settings** screen (`/settings`) replacing the last placeholder, so every nav item now has a
+  real UI. Three cards:
+  - **Company** — read-only code, functional currency, fiscal-year-start (localised month name);
+    editable display name / legal name / tax ID (NPWP) / time zone via `PUT /api/v1/companies/{id}`.
+    Editing is gated on the `Admin.Companies` permission (read-only notice otherwise). When the user
+    has more than one company, a selector picks which to edit.
+  - **Profile** — name / email / roles from the session.
+  - **Preferences** — light/dark theme toggle and EN/ID language selector (persisted), reusing the
+    existing theme store + i18n.
+- New `lib/company.ts` + `types/company.ts`; added a **Settings** entry to the ⌘K command palette.
+- i18n: full `settings` block in EN + ID.
+- **Verified:** `npm run build` (vue-tsc + vite) green; e2e against the running API — `GET /companies`
+  lists the company, `PUT` updates name/legal-name/tax-id (200, persisted on re-fetch), dev company
+  restored to its seeded state afterward.
+
+---
+
 ## [2026-06-18 16:46:08 UTC]
 
 CHG-0040 — Idempotency for posting/create commands (ADR-0021)

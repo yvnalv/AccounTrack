@@ -15,6 +15,7 @@ import {
   Moon,
   Languages,
   LogOut,
+  Settings,
   CornerDownLeft,
 } from 'lucide-vue-next'
 import { useCommandPalette } from '@/composables/useCommandPalette'
@@ -60,6 +61,7 @@ const commands = computed<Command[]>(() => {
     { id: 'md-customers', label: t('masterData.tabs.customers'), group: nav, icon: Database, run: go('masterDataCustomers') },
     { id: 'md-suppliers', label: t('masterData.tabs.suppliers'), group: nav, icon: Database, run: go('masterDataSuppliers') },
     { id: 'md-warehouses', label: t('masterData.tabs.warehouses'), group: nav, icon: Database, run: go('masterDataWarehouses') },
+    { id: 'settings', label: t('nav.settings'), group: nav, icon: Settings, run: go('settings') },
     { id: 'theme', label: t('command.toggleTheme'), group: actions, icon: Moon, run: () => theme.toggle() },
     {
       id: 'lang',
