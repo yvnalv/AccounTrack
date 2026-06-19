@@ -48,9 +48,16 @@ public interface IJournalPoster
 public sealed record TrialBalanceRow(
     string AccountCode, string AccountName, string AccountType, decimal Debit, decimal Credit, decimal Balance);
 
+/// <summary>Period debit/credit movement on a single account, derived from posted journal lines.</summary>
+public sealed record AccountMovementRow(Guid AccountId, decimal Debit, decimal Credit);
+
 public interface IAccountingReadStore
 {
     Task<IReadOnlyList<TrialBalanceRow>> GetTrialBalanceAsync(DateOnly? fromDate, DateOnly? toDate, CancellationToken ct);
+
+    /// <summary>Summed debit/credit per account over the period for the given accounts (posted lines only).</summary>
+    Task<IReadOnlyList<AccountMovementRow>> GetAccountMovementsAsync(
+        IReadOnlyCollection<Guid> accountIds, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct);
 }
 
 public interface IPostingRuleRepository

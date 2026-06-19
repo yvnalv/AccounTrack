@@ -81,6 +81,10 @@ public static class AccountingEndpoints
             (await sender.Send(new GetBalanceSheetQuery(asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow)), ct)).ToHttpResult())
             .WithName("GetBalanceSheet");
 
+        reports.MapGet("/vat", async (DateOnly? fromDate, DateOnly? toDate, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetVatReportQuery(fromDate, toDate), ct)).ToHttpResult())
+            .WithName("GetVatReport");
+
         // --- Dashboard ---
         app.MapGet("/api/v1/dashboard/summary", async (ISender sender, CancellationToken ct) =>
             (await sender.Send(new GetDashboardSummaryQuery(), ct)).ToHttpResult())

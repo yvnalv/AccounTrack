@@ -8,9 +8,9 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-19 (last change **CHG-0042**)
-- **Build:** green — backend `net8.0` (219 tests; +28 cross-tenant isolation suite); **frontend**
-  `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-06-19 (last change **CHG-0043**)
+- **Build:** green — backend `net8.0` (219 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **VAT (PPN) report** — Output − Input (CHG-0043).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -20,7 +20,7 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
   (CHG-0041). Every nav item now has a real UI; no placeholders remain. Reusable
   DataTable/StatusBadge/form/modal kit. **Idempotency** for posting/create commands landed
   (CHG-0040); the **cross-tenant isolation suite** landed (CHG-0042). Next: backend debts
-  (period-close snapshots, durable outbox); returns; reporting (VAT report).
+  (period-close snapshots, durable outbox); returns. (VAT report — done, CHG-0043.)
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -62,7 +62,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   **Delivery Order** → atomic stock issue + Dr COGS/Cr Inventory (CHG-0023); **Sales Invoice** →
   atomic Dr AR/Cr Revenue+VAT + AR open item (CHG-0024); **Customer Payment** → atomic Dr Cash-Bank/
   Cr AR + AR allocation (CHG-0025). (Returns are a later enhancement.)
-- ◻️ **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, VAT, inventory valuation
+- 🟡 **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, **VAT (CHG-0043)** done; inventory
+  valuation + GL/account detail open
 
 ### Phase 3 / 4
 - ◻️ Manufacturing, CRM, Assets, Payroll, multi-currency, FIFO, AI/BI (see ROADMAP.md)
@@ -99,7 +100,8 @@ locale; refresh-token rotation; self-hosted font.
 Backend threads that can be picked up independently if desired (none block the frontend):
 - **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021). Remaining:
   same-transaction key write (exactly-once) + RowVersion concurrency.
-- **Reporting:** Cash Flow, AR/AP aging already exist; VAT report (Output − Input); GL/account detail.
+- **Reporting:** Cash Flow, AR/AP aging already exist; **VAT report (Output − Input) — done
+  (CHG-0043)**; GL/account detail still open.
 - **Accounting:** period-close balance snapshots, year-end close to retained earnings.
 - **Inventory slice 2:** GL posting on adjustments/transfers; stock opname.
 - **Returns:** purchase & sales returns/credit notes.

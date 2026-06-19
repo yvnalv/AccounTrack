@@ -280,6 +280,7 @@ export default {
       trialBalance: 'Neraca saldo',
       profitLoss: 'Laba rugi',
       balanceSheet: 'Neraca',
+      vat: 'PPN',
     },
     filters: { from: 'Dari', to: 'Sampai', asOf: 'Per tanggal', apply: 'Terapkan' },
     account: 'Akun',
@@ -303,6 +304,13 @@ export default {
       netProfit: 'Laba bersih',
       netLoss: 'Rugi bersih',
       empty: 'Tidak ada aktivitas pada periode ini.',
+    },
+    vat: {
+      outputTax: 'PPN Keluaran',
+      inputTax: 'PPN Masukan',
+      payable: 'PPN kurang bayar',
+      creditCarried: 'PPN lebih bayar (dikompensasi)',
+      note: 'Neto = Keluaran − Masukan. Angka positif adalah kurang bayar ke kantor pajak; angka negatif adalah lebih bayar yang dikompensasikan.',
     },
     bs: {
       assets: 'Aset',

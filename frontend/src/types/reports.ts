@@ -32,6 +32,18 @@ export interface ProfitAndLoss {
   netProfit: number
 }
 
+export interface VatReport {
+  fromDate: string | null
+  toDate: string | null
+  outputAccountCode: string
+  outputAccountName: string
+  outputTax: number
+  inputAccountCode: string
+  inputAccountName: string
+  inputTax: number
+  netVatPayable: number
+}
+
 export interface BalanceSheet {
   asOfDate: string
   assets: ReportLine[]

@@ -279,6 +279,7 @@ export default {
       trialBalance: 'Trial balance',
       profitLoss: 'Profit & loss',
       balanceSheet: 'Balance sheet',
+      vat: 'VAT (PPN)',
     },
     filters: { from: 'From', to: 'To', asOf: 'As of', apply: 'Apply' },
     account: 'Account',
@@ -302,6 +303,13 @@ export default {
       netProfit: 'Net profit',
       netLoss: 'Net loss',
       empty: 'No activity in this period.',
+    },
+    vat: {
+      outputTax: 'VAT Output (PPN Keluaran)',
+      inputTax: 'VAT Input (PPN Masukan)',
+      payable: 'VAT payable',
+      creditCarried: 'VAT credit carried forward',
+      note: 'Net = Output − Input. A positive figure is payable to the tax office; a negative figure is an overpayment carried forward.',
     },
     bs: {
       assets: 'Assets',

@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-06-19 12:23:48 UTC]
+
+CHG-0043 — VAT (PPN) report — Output − Input
+
+- New report `GET /api/v1/reports/vat?fromDate&toDate` (ADR-0012): VAT Output (PPN Keluaran, collected
+  on sales) minus VAT Input (PPN Masukan, paid on purchases) for a period; net > 0 is payable to the
+  tax office, net < 0 is an overpayment carried forward.
+- Derived from the GL (posted journal lines only), with the VAT accounts resolved from the
+  posting-rule engine (keys `VATOutput`/`VATInput`) so it follows configuration, not hardcoded codes.
+  If a company hasn't configured those rules the report returns the engine's *unresolved* error.
+- Backend: `GetVatReportQuery` + handler; new `IAccountingReadStore.GetAccountMovementsAsync` (per-
+  account debit/credit sums over a period for given accounts).
+- Frontend: new **VAT (PPN)** tab under Accounting (period filter + Output/Input/Net card), a
+  command-palette entry, and EN/ID strings.
+- **Verified (e2e):** report math matches the GL — posting a balanced journal of +110 Output / +55
+  Input shifted the report by exactly that (net −48,259.20 → −48,204.20). Full suite 219 tests green;
+  frontend build green.
+
+---
+
 ## [2026-06-19 12:13:05 UTC]
 
 CHG-0042 — Cross-tenant data-isolation integration suite (MULTI_TENANCY.md §9)

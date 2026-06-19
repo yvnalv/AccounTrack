@@ -141,4 +141,23 @@ public sealed class AccountingReadStore : IAccountingReadStore
 
         return await query.ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<AccountMovementRow>> GetAccountMovementsAsync(
+        IReadOnlyCollection<Guid> accountIds, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct)
+    {
+        var query =
+            from line in _db.JournalLines
+            join entry in _db.JournalEntries on line.JournalEntryId equals entry.Id
+            where accountIds.Contains(line.AccountId)
+                && entry.Status != JournalStatus.Draft
+                && (fromDate == null || entry.Date >= fromDate)
+                && (toDate == null || entry.Date <= toDate)
+            group line by line.AccountId into g
+            select new AccountMovementRow(
+                g.Key,
+                g.Sum(x => x.Debit.Amount),
+                g.Sum(x => x.Credit.Amount));
+
+        return await query.ToListAsync(ct);
+    }
 }

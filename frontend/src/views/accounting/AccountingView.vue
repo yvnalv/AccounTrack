@@ -8,6 +8,7 @@ const tabs = [
   { to: { name: 'accountingTrialBalance' }, label: t('accounting.tabs.trialBalance') },
   { to: { name: 'accountingProfitLoss' }, label: t('accounting.tabs.profitLoss') },
   { to: { name: 'accountingBalanceSheet' }, label: t('accounting.tabs.balanceSheet') },
+  { to: { name: 'accountingVat' }, label: t('accounting.tabs.vat') },
 ]
 </script>
 
