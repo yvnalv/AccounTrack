@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-06-19 12:13:05 UTC]
+
+CHG-0042 — Cross-tenant data-isolation integration suite (MULTI_TENANCY.md §9)
+
+- New `Accountrack.IntegrationTests` project covering the non-negotiable that a tenant can never see
+  another tenant's data (#33). 28 tests, all green against a real SQL Server.
+- **Behavioral isolation** (real SQL Server provider, exercises the global query filters + the
+  tenancy-stamping interceptor exactly as in production), probed via Master Data's `Customer`:
+  - cross-tenant query returns zero foreign rows;
+  - the active-company filter isolates companies within a single tenant;
+  - insert stamps TenantId/CompanyId from the ambient context (app code never sets them);
+  - modifying another tenant's row (reached via `IgnoreQueryFilters`) throws *Tenant mismatch*;
+  - inserting with no established tenant context is rejected.
+- **Model conventions** (offline, no DB): reflects over **all 11 module DbContexts** and asserts every
+  tenant-scoped entity has a global query filter and every soft-deletable entity filters `IsDeleted`
+  — catching a new entity that forgets the tenant base class or a context that skips
+  `ApplyAccountrackConventions`. A guard test asserts ≥11 contexts are discovered so the data-driven
+  tests can't silently pass on an empty set.
+- **Infra note:** TESTING.md prescribes Testcontainers; Docker is unavailable in this environment, so
+  the fixture targets a local/CI SQL Server (env `ACCOUNTRACK_TEST_SQL`, default localhost) and
+  **skips** the behavioral tests when none is reachable (the offline model-convention tests always
+  run). The fixture creates/drops a throwaway `Accountrack_IsolationTests` database.
+- Full suite now **219 tests** (was 191), zero failures.
+
+---
+
 ## [2026-06-19 11:59:59 UTC]
 
 CHG-0041 — Frontend: Settings screen (company / profile / preferences)

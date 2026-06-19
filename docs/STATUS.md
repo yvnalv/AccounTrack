@@ -8,9 +8,9 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-19 (last change **CHG-0041**)
-- **Build:** green — backend `net8.0` (191 tests; +5 idempotency-behavior); **frontend** `frontend/`
-  builds (vue-tsc + vite).
+- **As of:** 2026-06-19 (last change **CHG-0042**)
+- **Build:** green — backend `net8.0` (219 tests; +28 cross-tenant isolation suite); **frontend**
+  `frontend/` builds (vue-tsc + vite).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -19,8 +19,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
   Bahasa Indonesia**, and a **⌘K command palette**, plus **Settings** — company/profile/preferences
   (CHG-0041). Every nav item now has a real UI; no placeholders remain. Reusable
   DataTable/StatusBadge/form/modal kit. **Idempotency** for posting/create commands landed
-  (CHG-0040). Next: backend debts (period-close snapshots, cross-tenant test suite, durable outbox);
-  returns; reporting (VAT report).
+  (CHG-0040); the **cross-tenant isolation suite** landed (CHG-0042). Next: backend debts
+  (period-close snapshots, durable outbox); returns; reporting (VAT report).
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -42,7 +42,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **In-process integration events** — publisher + handlers building block (ADR-0007) (CHG-0013)
 - ✅ **Cross-module atomic transactions** — shared connection + unit of work (INTEGRATION_EVENTS.md §2) (CHG-0019)
 - ✅ **Notification** — in-app notifications consuming approval events; list + mark-read (CHG-0014)
-- ◻️ **Cross-tenant isolation integration suite** (Testcontainers) — MULTI_TENANCY.md §9
+- ✅ **Cross-tenant isolation integration suite** — behavioral (real SQL Server) + model-convention
+  reflection over all 11 contexts (CHG-0042). MULTI_TENANCY.md §9. (Uses local/CI SQL Server with
+  skip, not Testcontainers — Docker unavailable here.)
 
 ### Phase 2 — Core ERP
 - 🟡 **Accounting** (slice 1 + reports + posting engine + subledgers) — chart of accounts, fiscal

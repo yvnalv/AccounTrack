@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Accountrack.IntegrationTests</RootNamespace>
+    <AssemblyName>Accountrack.IntegrationTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
+    <PackageReference Include="FluentAssertions" Version="6.12.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Accounting\Accountrack.Accounting.Infrastructure\Accountrack.Accounting.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Approval\Accountrack.Approval.Infrastructure\Accountrack.Approval.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\AuditLog\Accountrack.AuditLog.Infrastructure\Accountrack.AuditLog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\CompanyManagement\Accountrack.CompanyManagement.Infrastructure\Accountrack.CompanyManagement.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Accountrack.Identity.Infrastructure\Accountrack.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\Accountrack.Inventory.Infrastructure\Accountrack.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\MasterData\Accountrack.MasterData.Infrastructure\Accountrack.MasterData.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notification\Accountrack.Notification.Infrastructure\Accountrack.Notification.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ProcessTracker\Accountrack.ProcessTracker.Infrastructure\Accountrack.ProcessTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Purchasing\Accountrack.Purchasing.Infrastructure\Accountrack.Purchasing.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Sales\Accountrack.Sales.Infrastructure\Accountrack.Sales.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -42,13 +42,20 @@ Testing strategy for Accountrack. Required: unit + integration tests. High-prior
 - Document state and approval state stay consistent; process timeline reflects transitions.
 
 ### Security & Tenancy (SECURITY.md, MULTI_TENANCY.md §9)
-- Cross-tenant query returns zero foreign rows.
-- Un-granted company → 403; forged TenantId/CompanyId overridden/rejected.
-- Every tenant-owned entity has a global query filter (reflection test).
-- No `IgnoreQueryFilters` outside the allow-list (architecture test).
-- Background job without tenant context cannot read tenant data.
-- AuthZ: each protected endpoint denies without the required permission.
+- Cross-tenant query returns zero foreign rows. ✅ `Accountrack.IntegrationTests` (CHG-0042)
+- Insert stamps tenant/company from ambient context; cross-tenant modify & no-context insert are
+  rejected. ✅ (CHG-0042)
+- Every tenant-scoped entity has a global query filter (reflection over all 11 contexts). ✅ (CHG-0042)
+- Un-granted company → 403; forged TenantId/CompanyId overridden/rejected. ◻️ (API-level, pending)
+- No `IgnoreQueryFilters` outside the allow-list (architecture test). ◻️ pending — current allow-list
+  is `**/Seed/**`, Identity login/refresh repositories, and `CompanyDirectory`.
+- Background job without tenant context cannot read tenant data. ◻️ pending.
+- AuthZ: each protected endpoint denies without the required permission. ◻️ pending.
 - Auth: lockout, refresh rotation, reuse-detection revocation.
+
+> **Isolation-suite infra:** TESTING.md prescribes Testcontainers; where Docker is unavailable the
+> suite targets a local/CI SQL Server (env `ACCOUNTRACK_TEST_SQL`, default localhost) and skips the
+> behavioral tests if none is reachable. The offline model-convention tests always run.
 
 ## 3. Conventions
 
