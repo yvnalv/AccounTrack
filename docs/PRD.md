@@ -69,6 +69,17 @@ system (accounting, sales, purchasing, inventory, manufacturing, reporting, auto
 - Financial + inventory + sales/purchasing operational reports; export (PDF/Excel); drill-down;
   permission-gated.
 
+### Expenses (ADR-0030)
+- Operating-expense vouchers (electricity, transport, rent, supplies, salaries-as-cash, etc.):
+  category → expense GL account via posting rules, optional tax, paid or on-account (AP), automatic
+  atomic posting, approvals. (Full payroll is Phase 3.)
+
+### Cross-Cutting: Records & Bulk Data
+- **CRUD across the app (ADR-0029):** Edit + deactivate (soft-delete) for master data; status-gated
+  edit/cancel for draft documents; posted documents corrected by reversal/return only.
+- **Import/Export (ADR-0031):** CSV/Excel import with per-entity templates and a validated dry-run;
+  CSV/Excel export of lists; PDF export of documents and financial reports.
+
 ## 5. Key Non-Functional Requirements
 
 - **Correctness & auditability** first; books reconcile; full traceability end-to-end.

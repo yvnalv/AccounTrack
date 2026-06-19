@@ -46,6 +46,13 @@ Goal: end-to-end operations with integrated accounting and inventory.
 12. **Reporting** — Trial Balance, P&L, Balance Sheet, Cash Flow, AR/AP Aging, GL, VAT, inventory
     valuation/stock-card; export + drill-down.
 13. **Frontend** — Vue 3 SPA covering the above, i18n (EN/ID).
+14. **CRUD completion** (ADR-0029) — Edit + deactivate (soft-delete) across master data; status-gated
+    edit/cancel for draft documents; posted documents stay reversal-only. Distinct Edit/Delete/Cancel
+    permissions + UI.
+15. **Expenses** (ADR-0030) — operating-expense vouchers, expense categories → GL via posting rules,
+    automatic posting (Dr Expense [+ VAT Input] / Cr Cash-Bank or AP), approvals.
+16. **Data Import/Export** (ADR-0031) — CSV/Excel import (template + dry-run + commit) starting with
+    master data; CSV/Excel list export; PDF for documents and financial reports.
 
 Exit criteria (MVP done): run a full accounting month end-to-end across two companies; books
 reconcile (TB balances, subledgers reconcile to control accounts, inventory reconciles to GL);

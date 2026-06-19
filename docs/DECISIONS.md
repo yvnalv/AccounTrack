@@ -468,3 +468,87 @@ untracked entities as Added (insert).
 matches the client-generated-GUID design. The column DDL is unchanged (`uniqueidentifier` PK), so
 no migration change was required. (−) The app must always set `Id` (already done by the `Entity`
 base).
+
+---
+
+## ADR-0029: Edit/Delete policy — full CRUD for master data, reversal-only for posted documents
+
+- **Status:** Accepted — **Date:** 2026-06-19
+
+**Context.** Early screens shipped as list + create only. The product needs editing and removal
+across the app, but business correctness and auditability (#12 soft delete, #28 posted journals
+immutable, BR-X-2/BR-ACC-3) forbid a blanket "edit + hard delete everything."
+
+**Decision.** CRUD capability is **tiered by record kind:**
+- **Master data** (products, categories, UoM, customers, suppliers, warehouses, tax codes, chart of
+  accounts, posting rules): **Edit** is allowed; **Delete is soft-delete / deactivate only** — never
+  physical. A record that is **referenced by any non-cancelled transaction or is a system/seeded
+  record** cannot be deactivated while in use (it can only be deactivated to stop *future* use).
+- **Transactional documents** (SO/PO, deliveries/receipts, invoices, payments, journals, expenses):
+  status-gated. A **Draft** may be edited and cancelled; once **Posted/Approved** it is **immutable**
+  — corrections are made by **reversal, cancellation, or a return/credit note**, never in-place edit
+  or delete (BR-ACC-3).
+- Every edit, deactivate, and cancel is audited (BR-X-3) and permission-gated (separate
+  `*.Edit` / `*.Delete` / `*.Cancel` permissions).
+
+**Consequences.** (+) Uniform, predictable UX (every list gets Edit + Deactivate where legal) without
+violating accounting integrity or the audit trail. (−) "Delete" never removes rows; the UI must
+communicate deactivate-vs-delete and surface why a record can't be deactivated. New rules:
+BR-X-7/BR-X-8.
+
+---
+
+## ADR-0030: Expenses module (operating-expense vouchers)
+
+- **Status:** Accepted — **Date:** 2026-06-19
+
+**Context.** The MVP records expenses only indirectly (purchase invoices for goods, or manual
+journals). Businesses need to capture day-to-day operating costs — electricity, transport, rent,
+supplies, wages-as-cash — without hand-writing journals.
+
+**Decision.** Add an **Expenses** module (Phase 2). An **Expense Voucher** has a date, payee
+(optional supplier or free-text), one or more lines each with an **expense category**, amount, and
+optional tax (PPN Input where creditable), and a payment method (cash/bank now, or on-account → AP).
+**Expense categories** map to **expense GL accounts via the posting-rule engine** (ADR-0024), so no
+account is hardcoded. Posting is automatic and atomic (ADR-0019): **Dr Expense (+ Dr VAT Input) /
+Cr Cash-Bank** (or **Cr AP** when unpaid), reusing the AP subledger for payables. Approvals and the
+process tracker apply like other documents.
+
+Scope boundary: this is **expense recording**, not **Payroll** — full payroll (employees,
+components, statutory deductions, PPh 21) remains **Phase 3** (CLAUDE.md roadmap). Salaries paid as a
+simple cash expense are supported here via a "Salaries & Wages" category.
+
+**Consequences.** (+) Complete operating-expense capture with correct, configurable posting; P&L and
+Cash Flow become meaningful. (−) New module surface (domain/app/infra/api + UI), category master,
+and posting-rule keys for expense accounts. New rules: BR-EXP-*.
+
+---
+
+## ADR-0031: Data import (CSV/Excel) and export (CSV/Excel/PDF)
+
+- **Status:** Accepted — **Date:** 2026-06-19
+
+**Context.** Users need bulk onboarding (master data, opening balances) and to get data out for
+sharing/filing, rather than entering or reading records one-by-one.
+
+**Decision.** A **cross-cutting import/export capability** in a shared building block, opted into per
+entity:
+- **Import** — **CSV and Excel (.xlsx)**. Each importable entity publishes a **downloadable
+  template** with documented columns. Import is a **two-step, validated** flow: upload → **dry-run
+  preview** returning per-row validation results (and a "would create/update/skip" summary) →
+  **commit**. Imports are **row-validated against the same domain rules** as single create, run inside
+  a transaction, are **audited**, permission-gated (`*.Import`), and respect tenant/company context.
+  Updates match on the entity's natural key (e.g. Code). Large files run **asynchronously** (Hangfire,
+  Phase 4 infra) — until then a synchronous row cap applies.
+- **Export** — **CSV and Excel** for any list/grid (respecting current filters), and **PDF** for
+  documents and financial reports (invoices, TB/P&L/BS/VAT, statements). Exports are permission-gated
+  (`*.Export`) and tenant-scoped.
+- **Library choice:** a maintained, commercial-use-friendly spreadsheet library for .xlsx
+  (e.g. ClosedXML / EPPlus-Polyform-noncommercial-aware — to be finalized at implementation, recorded
+  here) and an HTML-to-PDF or report renderer for PDF. CSV uses a minimal hand-rolled/`CsvHelper`
+  writer.
+
+**Consequences.** (+) Bulk operations and portability across the whole app from one mechanism; safe
+(dry-run + validation + audit). (−) Per-entity column maps/templates to maintain; a library
+dependency and its licensing to vet; async pipeline needed for very large files. New rules:
+BR-IMP-*.

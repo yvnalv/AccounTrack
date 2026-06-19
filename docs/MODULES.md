@@ -21,8 +21,14 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Inventory | 🟡 Slice 1 | transaction ledger (source of truth), moving-average buckets, receive/adjust/transfer, on-hand + stock-card; `IInventoryLedger`. Slice 2: GL posting on moves, stock opname, negative-stock setting, FIFO option |
 | Purchasing | ✅ Procure-to-pay | Purchase Orders (Approval + Process Tracker + Notification); **Goods Receipt** (atomic inventory + Dr Inventory/Cr GR-IR); **Purchase Invoice** (atomic Dr GR-IR + VAT Input / Cr AP + AP subledger, three-way-match lite clears GR-IR); **Supplier Payment** (atomic Dr AP / Cr Cash-Bank + AP allocation). Returns are a later enhancement |
 | Sales | ✅ Order-to-cash | Sales Orders (Approval + event-driven status); **Delivery Order** (atomic stock issue + Dr COGS/Cr Inventory); **Sales Invoice** (atomic Dr AR / Cr Revenue + VAT Output + AR subledger); **Customer Payment** (atomic Dr Cash-Bank / Cr AR + AR allocation). Returns are a later enhancement |
-| Reporting | ◻️ Planned | Phase 2 |
+| Reporting | 🟡 Partial | TB/P&L/BS/VAT + AR/AP aging/Cash Flow done; GL drill-down + export pending |
+| Expenses | ◻️ Planned | Phase 2 — operating-expense vouchers, category→GL via posting rules (ADR-0030) |
+| Data Import/Export | ◻️ Planned | Cross-cutting — CSV/Excel import (template + dry-run), CSV/Excel/PDF export (ADR-0031) |
 | Manufacturing | ◻️ Planned | Phase 3 |
+
+> **CRUD status (ADR-0029):** master-data and transactional screens currently ship **list + create**;
+> **Edit** and **deactivate/cancel** (soft-delete, status-gated) are a planned cross-module pass. The
+> "full CRUD" notes below are the target, not yet the implemented state.
 
 (Authoritative change history is in [`../CHANGELOG.md`](../CHANGELOG.md).)
 
@@ -143,6 +149,29 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
   drill-down; report-level permissions.
 - **Depends on:** Accounting, Inventory, Sales, Purchasing (read).
 - **MVP:** the financial + inventory + sales/purchasing operational reports.
+
+### Expenses (ADR-0030)
+- **Purpose:** capture day-to-day operating expenses without manual journals.
+- **Responsibilities:** expense vouchers (date, payee, lines), expense **categories** mastered and
+  mapped to expense GL accounts via posting rules; automatic atomic posting (Dr Expense [+ VAT Input]
+  / Cr Cash-Bank or AP); approvals + process tracker.
+- **Depends on:** Master Data (categories/payees), Accounting (posting/AP), Approval.
+- **Emits:** `ExpensePosted`.
+- **MVP:** create/list/edit (draft), post, pay-or-on-account; PPh withholding is Phase 3. Payroll is
+  out of scope (Phase 3) — salaries-as-cash use a category.
+
+## Cross-Cutting Capabilities
+
+### Data Import & Export (ADR-0031)
+- **Purpose:** bulk data in/out across every list-bearing module.
+- **Responsibilities:** per-entity CSV/Excel **import** with a downloadable template + **dry-run
+  preview** (per-row validation, create/update/skip summary) + transactional commit; **export** of
+  lists to CSV/Excel (honoring filters) and documents/reports to PDF. Shared building block opted into
+  per entity; reuses each entity's domain validation. Permission-gated (`*.Import` / `*.Export`),
+  tenant-scoped, audited.
+- **Depends on:** every module that exposes importable/exportable entities.
+- **MVP:** master-data import first (onboarding) + list export; PDF for documents/reports next; async
+  for large files later (Hangfire).
 
 ### Manufacturing (Phase 3 — not MVP)
 - **Purpose:** BOM, production orders, WIP, finished goods, production costing.

@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-06-19 12:42:31 UTC]
+
+CHG-0044 — Docs: scope expansion — CRUD policy, Expenses module, Import/Export
+
+- Recorded three product/architecture decisions (docs only; no code):
+  - **ADR-0029 — Edit/Delete policy:** master data gets Edit + deactivate (soft-delete, never
+    physical; can't deactivate while referenced); transactional docs are status-gated (drafts
+    editable, posted immutable → reversal/return only). New BR-X-7/BR-X-8.
+  - **ADR-0030 — Expenses module:** operating-expense vouchers (electricity, transport, rent,
+    salaries-as-cash…), categories → expense GL via posting rules, automatic atomic posting
+    (Dr Expense [+ VAT Input] / Cr Cash-Bank or AP), approvals; payroll stays Phase 3. New BR-EXP-*.
+  - **ADR-0031 — Data Import/Export:** CSV/Excel import with per-entity templates + validated dry-run
+    + commit; CSV/Excel list export; PDF for documents/reports; permissioned, tenant-scoped, audited;
+    master data first. New BR-IMP-*.
+- Propagated to CLAUDE.md (new Expenses module, Data Import & Export, Record Management policy
+  sections), MODULES.md (status rows + module/capability entries + CRUD-status note), ROADMAP.md
+  (Phase 2 items 14–16), PRD.md (functional scope), BUSINESS_RULES.md, and STATUS.md backlog.
+
+---
+
 ## [2026-06-19 12:23:48 UTC]
 
 CHG-0043 — VAT (PPN) report — Output − Input

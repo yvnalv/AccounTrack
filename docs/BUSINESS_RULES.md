@@ -18,6 +18,13 @@ configurable per company with the stated default.
   per-company sequence with a configurable format.
 - **BR-X-6 (config)** A cancelled document's number is not reused; sequences are not rewound
   (default). Gap reporting is available.
+- **BR-X-7** Master data (products, categories, UoM, customers, suppliers, warehouses, tax codes,
+  chart of accounts, posting rules) supports **Edit** and **deactivate (soft-delete)**, never
+  physical delete (ADR-0029). A record **referenced by a non-cancelled transaction**, or a
+  **system/seeded** record, cannot be deactivated while in use — deactivation only stops future use.
+- **BR-X-8** Transactional documents are status-gated: a **Draft** may be edited or cancelled; once
+  **Posted/Approved** it is immutable and corrected only by reversal/cancellation/return-credit-note
+  (cf. BR-ACC-3). Edit, Delete/Deactivate, and Cancel are distinct, audited, permissioned actions.
 
 ## Accounting
 
@@ -91,6 +98,32 @@ configurable per company with the stated default.
 - **BR-PUR-6** A Purchase Invoice is matched against PO and receipt (three-way match policy);
   price variance posts to a variance account.
 - **BR-PUR-7** A Purchase Return removes goods from stock and adjusts AP/GR-IR accordingly.
+
+## Expenses (ADR-0030)
+
+- **BR-EXP-1 (invariant)** An expense voucher has at least one line; each line has an expense
+  category and a positive amount.
+- **BR-EXP-2** Each expense category resolves to an expense GL account via the posting-rule engine
+  (ADR-0024); no expense account is hardcoded.
+- **BR-EXP-3** Posting an expense is automatic and atomic: **Dr Expense (+ Dr VAT Input where
+  creditable) / Cr Cash-Bank** when paid, or **Cr AP** when unpaid (creating an AP open item).
+- **BR-EXP-4** A posted expense voucher is immutable; correct it by reversal (cf. BR-ACC-3, BR-X-8).
+- **BR-EXP-5 (config)** An expense over a configured threshold requires approval.
+- **BR-EXP-6** Payroll proper (employees, statutory deductions, PPh 21) is out of scope here
+  (Phase 3); salaries paid as cash use a "Salaries & Wages" expense category.
+
+## Data Import / Export (ADR-0031)
+
+- **BR-IMP-1** Import accepts CSV and Excel (.xlsx) against a published per-entity template.
+- **BR-IMP-2** Import is two-step: a **dry-run** returns per-row validation + a create/update/skip
+  summary; only an explicit **commit** writes data, inside a transaction.
+- **BR-IMP-3** Imported rows are validated against the same domain rules as single create/edit;
+  invalid rows are reported by row number and do not block valid rows only if the user opts into
+  partial commit (default: all-or-nothing).
+- **BR-IMP-4** Import updates match on the entity's natural key (e.g. Code); tenant/company come from
+  context, never the file. Imports are audited and require the entity's `*.Import` permission.
+- **BR-IMP-5** Export (CSV/Excel for lists honoring active filters; PDF for documents and financial
+  reports) is tenant-scoped and requires the entity's `*.Export` permission.
 
 ## Approval & Process
 

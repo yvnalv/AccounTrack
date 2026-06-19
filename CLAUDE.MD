@@ -403,6 +403,49 @@ Additional confirmed design (2026-06-13 — see [docs/ACCOUNTING_DESIGN.md](docs
 
 ---
 
+# Expenses Module
+
+(Confirmed 2026-06-19 — see [ADR-0030](docs/DECISIONS.md).)
+
+Responsibilities:
+
+* Operating-expense vouchers (electricity, transportation, rent, supplies, salaries-as-cash, etc.)
+* Expense categories mapped to expense GL accounts via the posting-rule engine (never hardcoded)
+* Automatic atomic posting: Dr Expense (+ Dr VAT Input where creditable) / Cr Cash-Bank, or Cr AP when unpaid
+* Approval support and process tracking
+
+Scope: expense recording only. Full Payroll (employees, statutory deductions, PPh 21) remains Phase 3.
+
+---
+
+# Data Import and Export
+
+(Confirmed 2026-06-19 — see [ADR-0031](docs/DECISIONS.md).)
+
+A cross-cutting capability available to every list-bearing module:
+
+* **Import** from CSV and Excel (.xlsx) using a per-entity downloadable template; a validated
+  two-step flow (dry-run preview with per-row results → commit), reusing each entity's domain
+  validation; audited, permission-gated (`*.Import`), tenant-scoped.
+* **Export** lists to CSV/Excel (honoring active filters) and documents/financial reports to PDF;
+  permission-gated (`*.Export`), tenant-scoped.
+* Master-data import is delivered first (bulk onboarding); large files run asynchronously later.
+
+---
+
+# Record Management (CRUD) Policy
+
+(Confirmed 2026-06-19 — see [ADR-0029](docs/DECISIONS.md).)
+
+* **Master data** supports Edit and **deactivate (soft-delete)** — never physical delete. A record
+  referenced by a non-cancelled transaction, or a system/seeded record, cannot be deactivated while
+  in use.
+* **Transactional documents** are status-gated: Drafts may be edited/cancelled; **posted documents
+  are immutable** and corrected only by reversal/cancellation/return-credit-note.
+* Edit, Delete/Deactivate, and Cancel are distinct, audited, configurable permissions.
+
+---
+
 # Manufacturing Module
 
 Not included in MVP.

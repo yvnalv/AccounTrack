@@ -70,6 +70,14 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## Deferred backlog (planned slices / debts)
 
+- **Returns:** sales returns (credit note: stock back at original COGS, reverse Revenue/VAT/AR) and
+  purchase returns (debit note: stock out, adjust AP/GR-IR/VAT Input). (BR-SAL-8, BR-PUR-7.)
+- **CRUD completion (ADR-0029):** Edit + deactivate (soft-delete) across master data; status-gated
+  edit/cancel for draft documents; distinct Edit/Delete/Cancel permissions + UI. (BR-X-7/8.)
+- **Expenses module (ADR-0030):** operating-expense vouchers, category→GL via posting rules,
+  automatic posting (Dr Expense [+ VAT Input] / Cr Cash-Bank or AP), approvals. (BR-EXP-*.)
+- **Data Import/Export (ADR-0031):** CSV/Excel import (template + dry-run + commit), CSV/Excel list
+  export, PDF for documents/reports — master data first. (BR-IMP-*.)
 - **Accounting slice 2 (remaining):** period-close balance snapshots, year-end close to retained
   earnings, Cash Flow report. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017;
   AR/AP subledgers — CHG-0018.)
