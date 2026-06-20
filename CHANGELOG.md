@@ -1,5 +1,33 @@
 # Accountrack Changelog
 
+## [2026-06-20 04:13:17 UTC]
+
+CHG-0046 — Sales returns (credit notes) — order-to-cash (BR-SAL-8)
+
+- New **Sales Return / credit note** against a **posted sales invoice**. Atomically (one cross-module
+  transaction): restocks each line at its **original delivered cost** (Dr Inventory / Cr COGS),
+  reverses billing (Dr Revenue + Dr VAT Output / Cr AR control), reduces the invoice's AR open item,
+  and records the credit note. Returns are bounded per invoice line by invoiced-not-yet-returned qty.
+- **Domain:** `SalesReturn` aggregate + `SalesReturnNumberSequence` (CRN/ prefix); `ReturnedQuantity`
+  / `ReturnableQuantity` + `Return()` on `SalesInvoiceLine`. New `LedgerSource`/`JournalSource`
+  values `SalesReturn`/`PurchaseReturn` for drill-down.
+- **API:** `POST /api/v1/sales-invoices/{id}/returns`, `GET /api/v1/sales-orders/{id}/returns`,
+  `GET /api/v1/sales-returns/{id}` (Sales.Post / Sales.View). EF migration `AddSalesReturns`
+  (3 tables + the `ReturnedQuantity` column). Fixed a latent bug: `ListBySalesOrderAsync` now
+  `Include`s delivery lines (delivery `TotalCost` summaries were 0).
+- **Frontend:** the Sales Order detail page gets a **Return** action per posted invoice (modal with
+  per-line returnable quantities) and a **Returns** card listing the SO's credit notes; EN/ID strings.
+- **Tests:** +4 Sales (domain return bounds; handler reverses billing + restocks at cost, balanced
+  journal, AR allocation; rejects unposted invoice / over-return). Full suite **229** green.
+- **Verified (e2e):** SO → deliver → invoice (55,500) → return 4 then 6 — stock restored 90→94→100,
+  COGS reversal cost 6,000 on the second return, VAT Output reduced by exactly the credited tax,
+  invoice returnable 10→6→0, over-return rejected, both credit notes listed on the order.
+- **Known limitation:** the credit reduces the invoice's outstanding receivable (allocation), so a
+  return cannot exceed what is still owed on that invoice; crediting a fully-paid invoice (cash
+  refund / customer credit) is a later enhancement. Purchase returns are still pending.
+
+---
+
 ## [2026-06-20 03:12:53 UTC]
 
 CHG-0045 — Master-data CRUD: Edit + activate/deactivate (ADR-0029)

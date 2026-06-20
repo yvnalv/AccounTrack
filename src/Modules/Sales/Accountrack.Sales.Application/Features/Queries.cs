@@ -93,7 +93,8 @@ public sealed class GetSalesInvoiceHandler : IQueryHandler<GetSalesInvoiceQuery,
             invoice.InvoiceDate, invoice.DueDate, invoice.SubTotal, invoice.TaxTotal, invoice.GrandTotal,
             invoice.JournalEntryId, invoice.ArOpenItemId, invoice.Notes,
             invoice.Lines.Select(l => new SalesInvoiceLineDto(
-                l.SalesOrderLineId, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineNet, l.LineTax, l.LineTotal))
+                l.Id, l.SalesOrderLineId, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineNet, l.LineTax, l.LineTotal,
+                l.ReturnableQuantity))
                 .ToList());
     }
 }
@@ -152,6 +153,48 @@ public sealed class GetCustomerPaymentsHandler : IQueryHandler<GetCustomerPaymen
         var payments = await _payments.ListByCustomerAsync(request.CustomerId, ct);
         return Result.Success<IReadOnlyList<CustomerPaymentSummaryDto>>(payments
             .Select(p => new CustomerPaymentSummaryDto(p.Id, p.Number, p.CustomerId, p.PaymentDate, p.TotalAmount, p.JournalEntryId))
+            .ToList());
+    }
+}
+
+public sealed record GetSalesReturnQuery(Guid Id) : IQuery<SalesReturnDto>;
+
+public sealed class GetSalesReturnHandler : IQueryHandler<GetSalesReturnQuery, SalesReturnDto>
+{
+    private readonly ISalesReturnRepository _returns;
+    public GetSalesReturnHandler(ISalesReturnRepository returns) => _returns = returns;
+
+    public async Task<Result<SalesReturnDto>> Handle(GetSalesReturnQuery request, CancellationToken ct)
+    {
+        var r = await _returns.GetByIdAsync(request.Id, ct);
+        if (r is null)
+        {
+            return Error.NotFound("SALES.RETURN_NOT_FOUND", "Sales return not found.");
+        }
+
+        return new SalesReturnDto(
+            r.Id, r.Number, r.SalesInvoiceId, r.SalesOrderId, r.CustomerId, r.WarehouseId, r.Currency,
+            r.ReturnDate, r.SubTotal, r.TaxTotal, r.GrandTotal, r.TotalCost, r.JournalEntryId, r.Notes,
+            r.Lines.Select(l => new SalesReturnLineDto(
+                l.SalesInvoiceLineId, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.UnitCost,
+                l.LineNet, l.LineTax, l.LineTotal, l.LineCost)).ToList());
+    }
+}
+
+public sealed record GetReturnsForSalesOrderQuery(Guid SalesOrderId) : IQuery<IReadOnlyList<SalesReturnSummaryDto>>;
+
+public sealed class GetReturnsForSalesOrderHandler
+    : IQueryHandler<GetReturnsForSalesOrderQuery, IReadOnlyList<SalesReturnSummaryDto>>
+{
+    private readonly ISalesReturnRepository _returns;
+    public GetReturnsForSalesOrderHandler(ISalesReturnRepository returns) => _returns = returns;
+
+    public async Task<Result<IReadOnlyList<SalesReturnSummaryDto>>> Handle(
+        GetReturnsForSalesOrderQuery request, CancellationToken ct)
+    {
+        var items = await _returns.ListBySalesOrderAsync(request.SalesOrderId, ct);
+        return Result.Success<IReadOnlyList<SalesReturnSummaryDto>>(items
+            .Select(r => new SalesReturnSummaryDto(r.Id, r.Number, r.SalesInvoiceId, r.ReturnDate, r.GrandTotal, r.JournalEntryId))
             .ToList());
     }
 }

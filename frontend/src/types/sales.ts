@@ -55,6 +55,50 @@ export interface LineQuantityInput {
   quantity: number
 }
 
+export interface SalesInvoiceLine {
+  id: string
+  salesOrderLineId: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  taxRate: number
+  lineNet: number
+  lineTax: number
+  lineTotal: number
+  returnableQuantity: number
+}
+
+export interface SalesInvoice {
+  id: string
+  number: string
+  salesOrderId: string
+  customerId: string
+  currency: string
+  invoiceDate: string
+  dueDate: string
+  subTotal: number
+  taxTotal: number
+  grandTotal: number
+  journalEntryId: string | null
+  arOpenItemId: string | null
+  notes: string | null
+  lines: SalesInvoiceLine[]
+}
+
+export interface SalesReturnSummary {
+  id: string
+  number: string
+  salesInvoiceId: string
+  returnDate: string
+  grandTotal: number
+  journalEntryId: string | null
+}
+
+export interface ReturnLineInput {
+  salesInvoiceLineId: string
+  quantity: number
+}
+
 export interface CustomerPaymentAllocationInput {
   arOpenItemId: string
   amount: number

@@ -38,6 +38,15 @@ public interface ICustomerPaymentRepository
     void AddSequence(CustomerPaymentNumberSequence sequence);
 }
 
+public interface ISalesReturnRepository
+{
+    void Add(SalesReturn salesReturn);
+    Task<SalesReturn?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<SalesReturn>> ListBySalesOrderAsync(Guid salesOrderId, CancellationToken ct);
+    Task<SalesReturnNumberSequence?> GetSequenceAsync(CancellationToken ct);
+    void AddSequence(SalesReturnNumberSequence sequence);
+}
+
 public interface ISalesUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken ct);

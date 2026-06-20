@@ -27,6 +27,9 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
     public DbSet<CustomerPayment> CustomerPayments => Set<CustomerPayment>();
     public DbSet<CustomerPaymentAllocation> CustomerPaymentAllocations => Set<CustomerPaymentAllocation>();
     public DbSet<CustomerPaymentNumberSequence> CustomerPaymentNumberSequences => Set<CustomerPaymentNumberSequence>();
+    public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
+    public DbSet<SalesReturnLine> SalesReturnLines => Set<SalesReturnLine>();
+    public DbSet<SalesReturnNumberSequence> SalesReturnNumberSequences => Set<SalesReturnNumberSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -121,6 +124,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
             b.Property(l => l.LineNet).HasColumnType("decimal(19,4)");
             b.Property(l => l.LineTax).HasColumnType("decimal(19,4)");
             b.Property(l => l.LineTotal).HasColumnType("decimal(19,4)");
+            b.Property(l => l.ReturnedQuantity).HasColumnType("decimal(19,6)");
             b.HasIndex(l => l.ProductId);
         });
 
@@ -154,6 +158,43 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
         modelBuilder.Entity<CustomerPaymentNumberSequence>(b =>
         {
             b.ToTable("CustomerPaymentNumberSequences");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        modelBuilder.Entity<SalesReturn>(b =>
+        {
+            b.ToTable("SalesReturns");
+            b.Property(r => r.Number).IsRequired().HasMaxLength(32);
+            b.Property(r => r.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(r => r.Notes).HasMaxLength(1024);
+            b.Property(r => r.SubTotal).HasColumnType("decimal(19,4)");
+            b.Property(r => r.TaxTotal).HasColumnType("decimal(19,4)");
+            b.Property(r => r.GrandTotal).HasColumnType("decimal(19,4)");
+            b.HasMany(r => r.Lines).WithOne().HasForeignKey(l => l.SalesReturnId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(r => r.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.Ignore(r => r.TotalCost);
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.SalesOrderId });
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.SalesInvoiceId });
+        });
+
+        modelBuilder.Entity<SalesReturnLine>(b =>
+        {
+            b.ToTable("SalesReturnLines");
+            b.Property(l => l.Quantity).HasColumnType("decimal(19,6)");
+            b.Property(l => l.UnitPrice).HasColumnType("decimal(19,4)");
+            b.Property(l => l.TaxRate).HasColumnType("decimal(9,6)");
+            b.Property(l => l.UnitCost).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineNet).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineTax).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineTotal).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineCost).HasColumnType("decimal(19,4)");
+            b.HasIndex(l => l.ProductId);
+        });
+
+        modelBuilder.Entity<SalesReturnNumberSequence>(b =>
+        {
+            b.ToTable("SalesReturnNumberSequences");
             b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
@@ -192,7 +233,7 @@ public sealed class DeliveryOrderRepository : IDeliveryOrderRepository
         _db.DeliveryOrders.Include(d => d.Lines).FirstOrDefaultAsync(d => d.Id == id, ct);
 
     public async Task<IReadOnlyList<DeliveryOrder>> ListBySalesOrderAsync(Guid salesOrderId, CancellationToken ct) =>
-        await _db.DeliveryOrders.Where(d => d.SalesOrderId == salesOrderId)
+        await _db.DeliveryOrders.Include(d => d.Lines).Where(d => d.SalesOrderId == salesOrderId)
             .OrderByDescending(d => d.Number).ToListAsync(ct);
 
     public Task<DeliveryOrderNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
@@ -239,4 +280,24 @@ public sealed class CustomerPaymentRepository : ICustomerPaymentRepository
         _db.CustomerPaymentNumberSequences.FirstOrDefaultAsync(ct);
 
     public void AddSequence(CustomerPaymentNumberSequence sequence) => _db.CustomerPaymentNumberSequences.Add(sequence);
+}
+
+public sealed class SalesReturnRepository : ISalesReturnRepository
+{
+    private readonly SalesDbContext _db;
+    public SalesReturnRepository(SalesDbContext db) => _db = db;
+
+    public void Add(SalesReturn salesReturn) => _db.SalesReturns.Add(salesReturn);
+
+    public Task<SalesReturn?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        _db.SalesReturns.Include(r => r.Lines).FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public async Task<IReadOnlyList<SalesReturn>> ListBySalesOrderAsync(Guid salesOrderId, CancellationToken ct) =>
+        await _db.SalesReturns.Where(r => r.SalesOrderId == salesOrderId)
+            .OrderByDescending(r => r.Number).ToListAsync(ct);
+
+    public Task<SalesReturnNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
+        _db.SalesReturnNumberSequences.FirstOrDefaultAsync(ct);
+
+    public void AddSequence(SalesReturnNumberSequence sequence) => _db.SalesReturnNumberSequences.Add(sequence);
 }

@@ -68,6 +68,15 @@ public sealed class SalesInvoice : TenantOwnedEntity, IAggregateRoot
         ArOpenItemId = arOpenItemId;
     }
 
+    /// <summary>Records a returned quantity against one invoice line (credit note — BR-SAL-8).</summary>
+    public void ReturnLine(Guid invoiceLineId, decimal quantity)
+    {
+        var line = _lines.FirstOrDefault(l => l.Id == invoiceLineId)
+            ?? throw new InvalidOperationException("Sales-invoice line not found.");
+
+        line.Return(quantity);
+    }
+
     private void Recalculate()
     {
         SubTotal = Math.Round(_lines.Sum(l => l.LineNet), 4, MidpointRounding.ToEven);
@@ -102,6 +111,27 @@ public sealed class SalesInvoiceLine : Entity
     public decimal LineNet { get; private set; }
     public decimal LineTax { get; private set; }
     public decimal LineTotal { get; private set; }
+
+    /// <summary>Cumulative quantity credited back via sales returns (BR-SAL-8).</summary>
+    public decimal ReturnedQuantity { get; private set; }
+
+    /// <summary>Quantity still eligible to be returned/credited on this line.</summary>
+    public decimal ReturnableQuantity => Quantity - ReturnedQuantity;
+
+    internal void Return(decimal quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Returned quantity must be positive.");
+        }
+
+        if (quantity > ReturnableQuantity)
+        {
+            throw new InvalidOperationException("Returned quantity exceeds the invoiced, not-yet-returned quantity.");
+        }
+
+        ReturnedQuantity += quantity;
+    }
 
     internal static SalesInvoiceLine Create(Guid salesOrderLineId, Guid productId, decimal quantity, decimal unitPrice, decimal taxRate) =>
         new(salesOrderLineId, productId, quantity, unitPrice, taxRate);

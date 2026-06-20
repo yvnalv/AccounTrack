@@ -64,4 +64,6 @@ public enum JournalSource
     GoodsReceipt = 5,
     StockAdjustment = 6,
     PeriodClose = 7,
+    SalesReturn = 8,
+    PurchaseReturn = 9,
 }

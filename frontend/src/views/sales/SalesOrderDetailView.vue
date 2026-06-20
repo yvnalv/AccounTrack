@@ -2,13 +2,19 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Undo2 } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
-import type { DeliverySummary, SalesInvoiceSummary, SalesOrder } from '@/types/sales'
+import type {
+  DeliverySummary,
+  SalesInvoiceSummary,
+  SalesOrder,
+  SalesReturnSummary,
+} from '@/types/sales'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppCard from '@/components/ui/AppCard.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 const { t } = useI18n()
@@ -18,11 +24,25 @@ const router = useRouter()
 const order = ref<SalesOrder | null>(null)
 const deliveries = ref<DeliverySummary[]>([])
 const invoices = ref<SalesInvoiceSummary[]>([])
+const returns = ref<SalesReturnSummary[]>([])
 const products = ref(new Map<string, string>())
 const customers = ref(new Map<string, string>())
 const loading = ref(true)
 const busy = ref<'' | 'submit' | 'deliver' | 'invoice'>('')
 const error = ref('')
+
+interface ReturnRow {
+  salesInvoiceLineId: string
+  productId: string
+  returnable: number
+  qty: number
+}
+const returnModal = ref(false)
+const returnInvoiceNo = ref('')
+const returnInvoiceId = ref('')
+const returnRows = ref<ReturnRow[]>([])
+const returnSaving = ref(false)
+const returnError = ref('')
 
 const id = computed(() => String(route.params.id))
 const currency = computed(() => order.value?.currency ?? 'IDR')
@@ -33,20 +53,54 @@ const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString(
 async function load() {
   loading.value = true
   try {
-    const [o, prods, custs, dels, invs] = await Promise.all([
+    const [o, prods, custs, dels, invs, rets] = await Promise.all([
       salesApi.get(id.value),
       masterData.products(),
       masterData.customers(),
       salesApi.deliveries(id.value),
       salesApi.invoices(id.value),
+      salesApi.returns(id.value),
     ])
     order.value = o
     products.value = nameMap(prods)
     customers.value = nameMap(custs)
     deliveries.value = dels
     invoices.value = invs
+    returns.value = rets
   } finally {
     loading.value = false
+  }
+}
+
+async function openReturn(inv: SalesInvoiceSummary) {
+  returnError.value = ''
+  returnInvoiceId.value = inv.id
+  returnInvoiceNo.value = inv.number
+  const detail = await salesApi.getInvoice(inv.id)
+  returnRows.value = detail.lines
+    .filter((l) => l.returnableQuantity > 0)
+    .map((l) => ({ salesInvoiceLineId: l.id, productId: l.productId, returnable: l.returnableQuantity, qty: 0 }))
+  returnModal.value = true
+}
+
+async function submitReturn() {
+  const lines = returnRows.value
+    .filter((r) => r.qty > 0)
+    .map((r) => ({ salesInvoiceLineId: r.salesInvoiceLineId, quantity: r.qty }))
+  if (lines.length === 0) {
+    returnError.value = t('sales.detail.returnNeedLine')
+    return
+  }
+  returnSaving.value = true
+  returnError.value = ''
+  try {
+    await salesApi.createReturn(returnInvoiceId.value, { returnDate: today(), notes: null, lines })
+    returnModal.value = false
+    await load()
+  } catch {
+    returnError.value = t('sales.detail.returnFailed')
+  } finally {
+    returnSaving.value = false
   }
 }
 
@@ -214,8 +268,17 @@ onMounted(load)
                 <td class="px-4 py-2.5 text-text">{{ inv.number }}</td>
                 <td class="px-4 py-2.5 text-text-muted">{{ t('sales.detail.due') }} {{ inv.dueDate }}</td>
                 <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(inv.grandTotal, currency) }}</td>
-                <td class="px-4 py-2.5 text-right">
+                <td class="px-3 py-2.5 text-right">
                   <StatusBadge v-if="inv.journalEntryId" tone="positive" :label="t('sales.detail.posted')" />
+                </td>
+                <td class="px-3 py-2.5 text-right">
+                  <button
+                    v-if="inv.journalEntryId"
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                    @click="openReturn(inv)"
+                  >
+                    <Undo2 :size="14" /> {{ t('sales.detail.return') }}
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -224,9 +287,62 @@ onMounted(load)
         </AppCard>
       </div>
 
+      <!-- Returns (credit notes) -->
+      <AppCard v-if="returns.length" :title="t('sales.detail.returns')" :padded="false">
+        <table class="w-full text-sm">
+          <tbody>
+            <tr v-for="r in returns" :key="r.id" class="border-b border-border last:border-0">
+              <td class="px-4 py-2.5 text-text">{{ r.number }}</td>
+              <td class="px-4 py-2.5 text-text-muted">{{ r.returnDate }}</td>
+              <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(r.grandTotal, currency) }}</td>
+              <td class="px-4 py-2.5 text-right">
+                <StatusBadge v-if="r.journalEntryId" tone="positive" :label="t('sales.detail.posted')" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </AppCard>
+
       <AppCard v-if="order.notes" :title="t('sales.detail.notes')">
         <p class="text-sm text-text">{{ order.notes }}</p>
       </AppCard>
     </template>
+
+    <AppModal v-model="returnModal" :title="`${t('sales.detail.returnTitle')} · ${returnInvoiceNo}`">
+      <div class="space-y-3">
+        <p v-if="returnRows.length === 0" class="text-sm text-text-muted">
+          {{ t('sales.detail.returnNothing') }}
+        </p>
+        <table v-else class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border text-xs uppercase tracking-wide text-text-muted">
+              <th class="py-2 text-left font-semibold">{{ t('sales.detail.product') }}</th>
+              <th class="py-2 text-right font-semibold">{{ t('sales.detail.returnable') }}</th>
+              <th class="py-2 text-right font-semibold">{{ t('sales.detail.returnQty') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in returnRows" :key="row.salesInvoiceLineId" class="border-b border-border last:border-0">
+              <td class="py-2 text-text">{{ products.get(row.productId) ?? '—' }}</td>
+              <td class="py-2 text-right text-text-muted tnum">{{ formatNumber(row.returnable) }}</td>
+              <td class="py-2 text-right">
+                <input
+                  v-model.number="row.qty"
+                  type="number" min="0" :max="row.returnable" step="any"
+                  class="field-input w-28 text-right tnum"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="returnError" class="text-sm text-negative">{{ returnError }}</p>
+      </div>
+      <template #footer>
+        <AppButton variant="ghost" @click="returnModal = false">{{ t('masterData.cancel') }}</AppButton>
+        <AppButton :disabled="returnSaving || returnRows.length === 0" @click="submitReturn">
+          {{ returnSaving ? t('sales.detail.returning') : t('sales.detail.return') }}
+        </AppButton>
+      </template>
+    </AppModal>
   </div>
 </template>

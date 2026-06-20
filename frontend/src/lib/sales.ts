@@ -4,9 +4,12 @@ import type {
   CreateSalesOrder,
   DeliverySummary,
   LineQuantityInput,
+  ReturnLineInput,
+  SalesInvoice,
   SalesInvoiceSummary,
   SalesOrder,
   SalesOrderSummary,
+  SalesReturnSummary,
 } from '@/types/sales'
 
 export const salesApi = {
@@ -29,4 +32,11 @@ export const salesApi = {
 
   createCustomerPayment: (body: CreateCustomerPayment) =>
     unwrap<string>(http.post('/customer-payments', body)),
+
+  getInvoice: (invoiceId: string) => unwrap<SalesInvoice>(http.get(`/sales-invoices/${invoiceId}`)),
+  returns: (id: string) => unwrap<SalesReturnSummary[]>(http.get(`/sales-orders/${id}/returns`)),
+  createReturn: (
+    invoiceId: string,
+    body: { returnDate: string; notes: string | null; lines: ReturnLineInput[] },
+  ) => unwrap<string>(http.post(`/sales-invoices/${invoiceId}/returns`, body)),
 }

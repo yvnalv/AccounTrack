@@ -25,8 +25,8 @@ public sealed record DeliveryOrderSummaryDto(
     Guid Id, string Number, Guid SalesOrderId, DateOnly DeliveryDate, decimal TotalCost, Guid? JournalEntryId);
 
 public sealed record SalesInvoiceLineDto(
-    Guid SalesOrderLineId, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
-    decimal LineNet, decimal LineTax, decimal LineTotal);
+    Guid Id, Guid SalesOrderLineId, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
+    decimal LineNet, decimal LineTax, decimal LineTotal, decimal ReturnableQuantity);
 
 public sealed record SalesInvoiceDto(
     Guid Id, string Number, Guid SalesOrderId, Guid CustomerId, string Currency,
@@ -46,3 +46,15 @@ public sealed record CustomerPaymentDto(
 
 public sealed record CustomerPaymentSummaryDto(
     Guid Id, string Number, Guid CustomerId, DateOnly PaymentDate, decimal TotalAmount, Guid? JournalEntryId);
+
+public sealed record SalesReturnLineDto(
+    Guid SalesInvoiceLineId, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
+    decimal UnitCost, decimal LineNet, decimal LineTax, decimal LineTotal, decimal LineCost);
+
+public sealed record SalesReturnDto(
+    Guid Id, string Number, Guid SalesInvoiceId, Guid SalesOrderId, Guid CustomerId, Guid WarehouseId,
+    string Currency, DateOnly ReturnDate, decimal SubTotal, decimal TaxTotal, decimal GrandTotal,
+    decimal TotalCost, Guid? JournalEntryId, string? Notes, IReadOnlyList<SalesReturnLineDto> Lines);
+
+public sealed record SalesReturnSummaryDto(
+    Guid Id, string Number, Guid SalesInvoiceId, DateOnly ReturnDate, decimal GrandTotal, Guid? JournalEntryId);

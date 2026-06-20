@@ -71,10 +71,45 @@ public sealed class CustomerPaymentNumberSequence : TenantOwnedEntity
     }
 }
 
+/// <summary>Per-company gapless counter for sales-return (credit-note) numbers.</summary>
+public sealed class SalesReturnNumberSequence : TenantOwnedEntity
+{
+    private SalesReturnNumberSequence() { }
+
+    public SalesReturnNumberSequence(int next = 1) => Next = next;
+
+    public int Next { get; private set; }
+
+    public string Take(DateOnly date)
+    {
+        var value = Next;
+        Next++;
+        return $"CRN/{date.Year:D4}{date.Month:D2}/{value:D5}";
+    }
+}
+
 public static class SalesErrors
 {
     public static readonly Error NotFound =
         Error.NotFound("SALES.SO_NOT_FOUND", "Sales order not found.");
+
+    public static readonly Error ReturnInvoiceNotFound =
+        Error.NotFound("SALES.RETURN_INVOICE_NOT_FOUND", "The sales invoice being returned was not found.");
+
+    public static readonly Error InvoiceNotPosted =
+        Error.Conflict("SALES.INVOICE_NOT_POSTED", "Only a posted sales invoice can be returned.");
+
+    public static readonly Error NoReturnLines =
+        Error.BusinessRule("BR-SAL-8", "A sales return requires at least one line.", "SALES.NO_RETURN_LINES");
+
+    public static Error SalesInvoiceLineNotFound(Guid lineId) =>
+        Error.Validation("SALES.SI_LINE_NOT_FOUND", $"Sales-invoice line {lineId} does not exist on this invoice.");
+
+    public static Error OverReturn(decimal returnable, decimal requested) =>
+        Error.BusinessRule(
+            "BR-SAL-8",
+            $"Cannot return {requested}; only {returnable} is invoiced and not yet returned on this line.",
+            "SALES.OVER_RETURN");
 
     public static readonly Error NoAllocations =
         Error.BusinessRule("BR-SAL-4", "A customer payment requires at least one allocation.", "SALES.NO_ALLOCATIONS");
