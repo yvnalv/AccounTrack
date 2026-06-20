@@ -83,5 +83,20 @@ public sealed class Product : TenantOwnedEntity, IAggregateRoot, IHasCode
 
     public void Rename(string name) => Name = name.Trim();
 
+    /// <summary>
+    /// Edits the mutable fields. Code and base UoM are immutable after creation (the base UoM
+    /// underpins inventory costing — changing it would corrupt historical valuation).
+    /// </summary>
+    public void Update(string name, Guid? categoryId, bool isStockTracked, bool isSold, bool isPurchased)
+    {
+        Name = name.Trim();
+        CategoryId = categoryId;
+        IsStockTracked = isStockTracked;
+        IsSold = isSold;
+        IsPurchased = isPurchased;
+    }
+
+    public void Activate() => IsActive = true;
+
     public void Deactivate() => IsActive = false;
 }

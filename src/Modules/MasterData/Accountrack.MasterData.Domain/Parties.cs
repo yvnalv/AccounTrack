@@ -36,6 +36,22 @@ public sealed class Customer : TenantOwnedEntity, IAggregateRoot, IHasCode
         };
     }
 
+    /// <summary>Edits the mutable fields. Code (the natural key) is immutable after creation.</summary>
+    public void Update(string name, string? taxId, int paymentTermDays, decimal creditLimit)
+    {
+        if (paymentTermDays < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(paymentTermDays));
+        }
+
+        Name = name.Trim();
+        TaxId = taxId?.Trim();
+        PaymentTermDays = paymentTermDays;
+        CreditLimit = creditLimit;
+    }
+
+    public void Activate() => IsActive = true;
+
     public void Deactivate() => IsActive = false;
 }
 
@@ -70,6 +86,21 @@ public sealed class Supplier : TenantOwnedEntity, IAggregateRoot, IHasCode
             PaymentTermDays = paymentTermDays,
         };
     }
+
+    /// <summary>Edits the mutable fields. Code (the natural key) is immutable after creation.</summary>
+    public void Update(string name, string? taxId, int paymentTermDays)
+    {
+        if (paymentTermDays < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(paymentTermDays));
+        }
+
+        Name = name.Trim();
+        TaxId = taxId?.Trim();
+        PaymentTermDays = paymentTermDays;
+    }
+
+    public void Activate() => IsActive = true;
 
     public void Deactivate() => IsActive = false;
 }

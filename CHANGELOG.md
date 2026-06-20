@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-06-20 03:12:53 UTC]
+
+CHG-0045 — Master-data CRUD: Edit + activate/deactivate (ADR-0029)
+
+- Master data now supports **Edit** and **deactivate/reactivate** (soft, reversible) for customers,
+  suppliers, warehouses, and products — completing list+create into full CRUD. Code (the natural key)
+  and a product's base UoM are immutable after creation; "delete" is deactivation, never a physical
+  row removal (BR-X-7).
+- **Domain:** `Update(...)` + `Activate()`/`Deactivate()` on Customer, Supplier, Warehouse, Product.
+- **Application:** `Update*Command` (+ validators) and `Set*ActiveCommand` handlers for the four
+  entities; not-found returns the entity's `*_NOT_FOUND` error.
+- **API:** `PUT /api/v1/{entity}/{id}` (edit) and `PUT /api/v1/{entity}/{id}/active` (activate/
+  deactivate), permission-gated by `MasterData.Manage`. (Distinct `*.Edit`/`*.Delete` permissions
+  remain a later refinement per ADR-0029.)
+- **Frontend:** edit reuses each create modal (code/base-UoM disabled in edit); a new shared
+  `RowActions` cell (Edit · Activate/Deactivate) and a Status badge column on all four master-data
+  tables; bilingual labels (EN/ID). New `lib/masterData` update/setActive methods.
+- **Tests:** +6 (domain update/activate, immutable code/UoM, update-handler not-found + save,
+  set-active). Full suite **225** green.
+- **Verified (e2e):** create → `PUT` edit (name/taxId/terms/credit changed) → `PUT .../active`
+  deactivate, confirmed via list (`isActive: false`).
+
+---
+
 ## [2026-06-19 12:42:31 UTC]
 
 CHG-0044 — Docs: scope expansion — CRUD policy, Expenses module, Import/Export

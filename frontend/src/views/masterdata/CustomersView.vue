@@ -10,6 +10,8 @@ import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import FormField from '@/components/ui/FormField.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
+import RowActions from '@/components/ui/RowActions.vue'
 import type { Column } from '@/components/ui/types'
 
 const { t } = useI18n()
@@ -18,6 +20,7 @@ const loading = ref(true)
 const modalOpen = ref(false)
 const saving = ref(false)
 const error = ref('')
+const editingId = ref<string | null>(null)
 const form = reactive({ code: '', name: '', taxId: '', paymentTermDays: 30, creditLimit: 0 })
 
 const columns = computed<Column[]>(() => [
@@ -26,6 +29,8 @@ const columns = computed<Column[]>(() => [
   { key: 'taxId', label: t('masterData.fields.taxId') },
   { key: 'paymentTermDays', label: t('masterData.fields.terms'), align: 'right', numeric: true },
   { key: 'creditLimit', label: t('masterData.fields.creditLimit'), align: 'right', numeric: true },
+  { key: 'isActive', label: t('masterData.status') },
+  { key: 'actions', label: t('masterData.actions'), align: 'right' },
 ])
 
 async function load() {
@@ -39,7 +44,21 @@ async function load() {
 onMounted(load)
 
 function openNew() {
+  editingId.value = null
   Object.assign(form, { code: '', name: '', taxId: '', paymentTermDays: 30, creditLimit: 0 })
+  error.value = ''
+  modalOpen.value = true
+}
+
+function openEdit(row: Customer) {
+  editingId.value = row.id
+  Object.assign(form, {
+    code: row.code,
+    name: row.name,
+    taxId: row.taxId ?? '',
+    paymentTermDays: row.paymentTermDays,
+    creditLimit: row.creditLimit,
+  })
   error.value = ''
   modalOpen.value = true
 }
@@ -48,13 +67,22 @@ async function save() {
   error.value = ''
   saving.value = true
   try {
-    await masterData.createCustomer({
-      code: form.code,
-      name: form.name,
-      taxId: form.taxId || null,
-      paymentTermDays: form.paymentTermDays,
-      creditLimit: form.creditLimit,
-    })
+    if (editingId.value) {
+      await masterData.updateCustomer(editingId.value, {
+        name: form.name,
+        taxId: form.taxId || null,
+        paymentTermDays: form.paymentTermDays,
+        creditLimit: form.creditLimit,
+      })
+    } else {
+      await masterData.createCustomer({
+        code: form.code,
+        name: form.name,
+        taxId: form.taxId || null,
+        paymentTermDays: form.paymentTermDays,
+        creditLimit: form.creditLimit,
+      })
+    }
     modalOpen.value = false
     await load()
   } catch {
@@ -62,6 +90,11 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+async function toggleActive(row: Customer) {
+  await masterData.setCustomerActive(row.id, !row.isActive)
+  await load()
 }
 </script>
 
@@ -74,12 +107,22 @@ async function save() {
     <DataTable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
       <template #cell-creditLimit="{ value }">{{ formatMoney(Number(value)) }}</template>
+      <template #cell-isActive="{ value }">
+        <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
+      </template>
+      <template #cell-actions="{ row }">
+        <RowActions
+          :row="(row as unknown as Customer)"
+          @edit="openEdit(row as unknown as Customer)"
+          @toggle="toggleActive(row as unknown as Customer)"
+        />
+      </template>
     </DataTable>
 
-    <AppModal v-model="modalOpen" :title="t('masterData.customers.new')">
+    <AppModal v-model="modalOpen" :title="editingId ? t('masterData.customers.edit') : t('masterData.customers.new')">
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
-          <FormField :label="t('masterData.fields.code')" required><AppInput v-model="form.code" /></FormField>
+          <FormField :label="t('masterData.fields.code')" required><AppInput v-model="form.code" :disabled="!!editingId" /></FormField>
           <FormField :label="t('masterData.fields.name')" required><AppInput v-model="form.name" /></FormField>
         </div>
         <FormField :label="t('masterData.fields.taxId')"><AppInput v-model="form.taxId" /></FormField>

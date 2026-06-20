@@ -10,6 +10,8 @@ import AppModal from '@/components/ui/AppModal.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import FormField from '@/components/ui/FormField.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
+import RowActions from '@/components/ui/RowActions.vue'
 import type { Column } from '@/components/ui/types'
 
 const { t } = useI18n()
@@ -20,6 +22,7 @@ const loading = ref(true)
 const modalOpen = ref(false)
 const saving = ref(false)
 const error = ref('')
+const editingId = ref<string | null>(null)
 const form = reactive({
   code: '',
   name: '',
@@ -36,6 +39,8 @@ const columns = computed<Column[]>(() => [
   { key: 'isStockTracked', label: t('masterData.fields.stockTracked') },
   { key: 'isSold', label: t('masterData.fields.sold') },
   { key: 'isPurchased', label: t('masterData.fields.purchased') },
+  { key: 'isActive', label: t('masterData.status') },
+  { key: 'actions', label: t('masterData.actions'), align: 'right' },
 ])
 
 const uomOptions = computed(() => uoms.value.map((u) => ({ value: u.id, label: `${u.code} — ${u.name}` })))
@@ -62,6 +67,7 @@ async function load() {
 onMounted(load)
 
 function openNew() {
+  editingId.value = null
   Object.assign(form, {
     code: '',
     name: '',
@@ -75,19 +81,44 @@ function openNew() {
   modalOpen.value = true
 }
 
+function openEdit(row: Product) {
+  editingId.value = row.id
+  Object.assign(form, {
+    code: row.code,
+    name: row.name,
+    baseUomId: row.baseUomId,
+    categoryId: row.categoryId ?? '',
+    isStockTracked: row.isStockTracked,
+    isSold: row.isSold,
+    isPurchased: row.isPurchased,
+  })
+  error.value = ''
+  modalOpen.value = true
+}
+
 async function save() {
   error.value = ''
   saving.value = true
   try {
-    await masterData.createProduct({
-      code: form.code,
-      name: form.name,
-      baseUomId: form.baseUomId,
-      categoryId: form.categoryId || null,
-      isStockTracked: form.isStockTracked,
-      isSold: form.isSold,
-      isPurchased: form.isPurchased,
-    })
+    if (editingId.value) {
+      await masterData.updateProduct(editingId.value, {
+        name: form.name,
+        categoryId: form.categoryId || null,
+        isStockTracked: form.isStockTracked,
+        isSold: form.isSold,
+        isPurchased: form.isPurchased,
+      })
+    } else {
+      await masterData.createProduct({
+        code: form.code,
+        name: form.name,
+        baseUomId: form.baseUomId,
+        categoryId: form.categoryId || null,
+        isStockTracked: form.isStockTracked,
+        isSold: form.isSold,
+        isPurchased: form.isPurchased,
+      })
+    }
     modalOpen.value = false
     await load()
   } catch {
@@ -95,6 +126,11 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+async function toggleActive(row: Product) {
+  await masterData.setProductActive(row.id, !row.isActive)
+  await load()
 }
 </script>
 
@@ -114,17 +150,23 @@ async function save() {
       <template #cell-isPurchased="{ value }">
         <Check v-if="value" :size="16" class="text-positive" /><Minus v-else :size="16" class="text-text-muted" />
       </template>
+      <template #cell-isActive="{ value }">
+        <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
+      </template>
+      <template #cell-actions="{ row }">
+        <RowActions :row="(row as unknown as Product)" @edit="openEdit(row as unknown as Product)" @toggle="toggleActive(row as unknown as Product)" />
+      </template>
     </DataTable>
 
-    <AppModal v-model="modalOpen" :title="t('masterData.products.new')">
+    <AppModal v-model="modalOpen" :title="editingId ? t('masterData.products.edit') : t('masterData.products.new')">
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
-          <FormField :label="t('masterData.fields.code')" required><AppInput v-model="form.code" /></FormField>
+          <FormField :label="t('masterData.fields.code')" required><AppInput v-model="form.code" :disabled="!!editingId" /></FormField>
           <FormField :label="t('masterData.fields.name')" required><AppInput v-model="form.name" /></FormField>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <FormField :label="t('masterData.fields.uom')" required>
-            <AppSelect v-model="form.baseUomId" :options="uomOptions" :placeholder="t('masterData.products.selectUom')" />
+            <AppSelect v-model="form.baseUomId" :options="uomOptions" :placeholder="t('masterData.products.selectUom')" :disabled="!!editingId" />
           </FormField>
           <FormField :label="t('masterData.fields.category')">
             <AppSelect v-model="form.categoryId" :options="categoryOptions" />

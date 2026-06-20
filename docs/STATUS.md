@@ -8,9 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-19 (last change **CHG-0043**)
-- **Build:** green — backend `net8.0` (219 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **VAT (PPN) report** — Output − Input (CHG-0043).
+- **As of:** 2026-06-20 (last change **CHG-0045**)
+- **Build:** green — backend `net8.0` (225 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **master-data CRUD** — Edit + activate/deactivate for customers/suppliers/warehouses/
+  products (CHG-0045).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -72,8 +73,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 - **Returns:** sales returns (credit note: stock back at original COGS, reverse Revenue/VAT/AR) and
   purchase returns (debit note: stock out, adjust AP/GR-IR/VAT Input). (BR-SAL-8, BR-PUR-7.)
-- **CRUD completion (ADR-0029):** Edit + deactivate (soft-delete) across master data; status-gated
-  edit/cancel for draft documents; distinct Edit/Delete/Cancel permissions + UI. (BR-X-7/8.)
+- **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
+  suppliers/warehouses/products (CHG-0045). Remaining: UoM/categories/tax-codes/CoA edit; distinct
+  `*.Edit`/`*.Delete` permissions; status-gated edit/cancel for draft documents. (BR-X-7/8.)
 - **Expenses module (ADR-0030):** operating-expense vouchers, category→GL via posting rules,
   automatic posting (Dr Expense [+ VAT Input] / Cr Cash-Bank or AP), approvals. (BR-EXP-*.)
 - **Data Import/Export (ADR-0031):** CSV/Excel import (template + dry-run + commit), CSV/Excel list

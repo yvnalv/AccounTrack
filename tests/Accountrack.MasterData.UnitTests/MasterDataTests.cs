@@ -92,3 +92,90 @@ public class CreateProductHandlerTests
         result.Error.Should().Be(MasterDataErrors.UomNotFound);
     }
 }
+
+public class MasterDataEditTests
+{
+    [Fact]
+    public void Customer_update_changes_mutable_fields()
+    {
+        var c = Customer.Create("C1", "Old", null, 30, 0);
+        c.Update("New Name", "01.234", 14, 5_000_000m);
+
+        c.Name.Should().Be("New Name");
+        c.TaxId.Should().Be("01.234");
+        c.PaymentTermDays.Should().Be(14);
+        c.CreditLimit.Should().Be(5_000_000m);
+        c.Code.Should().Be("C1"); // natural key is immutable
+    }
+
+    [Fact]
+    public void Activate_and_deactivate_toggle_is_active()
+    {
+        var w = Warehouse.Create("WH1", "Main");
+        w.IsActive.Should().BeTrue();
+        w.Deactivate();
+        w.IsActive.Should().BeFalse();
+        w.Activate();
+        w.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Product_update_keeps_code_and_base_uom_immutable()
+    {
+        var uom = Guid.NewGuid();
+        var p = Product.Create("SKU1", "Widget", uom, null);
+        p.Update("Renamed", Guid.NewGuid(), isStockTracked: false, isSold: false, isPurchased: true);
+
+        p.Name.Should().Be("Renamed");
+        p.IsStockTracked.Should().BeFalse();
+        p.IsSold.Should().BeFalse();
+        p.IsPurchased.Should().BeTrue();
+        p.Code.Should().Be("SKU1");
+        p.BaseUomId.Should().Be(uom);
+    }
+}
+
+public class UpdateCustomerHandlerTests
+{
+    private readonly ICodedRepository<Customer> _repo = Substitute.For<ICodedRepository<Customer>>();
+    private readonly IMasterDataUnitOfWork _uow = Substitute.For<IMasterDataUnitOfWork>();
+
+    [Fact]
+    public async Task Returns_not_found_when_customer_missing()
+    {
+        _repo.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Customer?)null);
+
+        var result = await new UpdateCustomerHandler(_repo, _uow)
+            .Handle(new UpdateCustomerCommand(Guid.NewGuid(), "X", null, 30, 0), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("MASTERDATA.CUSTOMER_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task Updates_and_saves_when_found()
+    {
+        var customer = Customer.Create("C1", "Old", null, 30, 0);
+        _repo.GetByIdAsync(customer.Id, Arg.Any<CancellationToken>()).Returns(customer);
+
+        var result = await new UpdateCustomerHandler(_repo, _uow)
+            .Handle(new UpdateCustomerCommand(customer.Id, "New", "NPWP", 7, 1000), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        customer.Name.Should().Be("New");
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Set_active_deactivates_when_false()
+    {
+        var customer = Customer.Create("C1", "Old", null, 30, 0);
+        _repo.GetByIdAsync(customer.Id, Arg.Any<CancellationToken>()).Returns(customer);
+
+        await new SetCustomerActiveHandler(_repo, _uow)
+            .Handle(new SetCustomerActiveCommand(customer.Id, false), CancellationToken.None);
+
+        customer.IsActive.Should().BeFalse();
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+}

@@ -22,6 +22,15 @@ public sealed class Warehouse : TenantOwnedEntity, IAggregateRoot, IHasCode
     public static Warehouse Create(string code, string name, string? address = null) =>
         new(code.Trim().ToUpperInvariant(), name.Trim()) { Address = address?.Trim() };
 
+    /// <summary>Edits the mutable fields. Code (the natural key) is immutable after creation.</summary>
+    public void Update(string name, string? address)
+    {
+        Name = name.Trim();
+        Address = address?.Trim();
+    }
+
+    public void Activate() => IsActive = true;
+
     public void Deactivate() => IsActive = false;
 }
 

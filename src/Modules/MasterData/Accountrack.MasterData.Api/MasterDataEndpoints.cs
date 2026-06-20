@@ -25,18 +25,34 @@ public static class MasterDataEndpoints
         var products = app.MapGroup("/api/v1/products").WithTags("Products").RequireAuthorization();
         products.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetProductsQuery(), ct))).RequireAuthorization(View);
         products.MapPost("/", (CreateProductCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/products")).RequireAuthorization(Manage);
+        products.MapPut("/{id:guid}", (Guid id, UpdateProductBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpdateProductCommand(id, b.Name, b.CategoryId, b.IsStockTracked, b.IsSold, b.IsPurchased), ct))).RequireAuthorization(Manage);
+        products.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new SetProductActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
 
         var customers = app.MapGroup("/api/v1/customers").WithTags("Customers").RequireAuthorization();
         customers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetCustomersQuery(), ct))).RequireAuthorization(View);
         customers.MapPost("/", (CreateCustomerCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/customers")).RequireAuthorization(Manage);
+        customers.MapPut("/{id:guid}", (Guid id, UpdateCustomerBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpdateCustomerCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.CreditLimit), ct))).RequireAuthorization(Manage);
+        customers.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new SetCustomerActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
 
         var suppliers = app.MapGroup("/api/v1/suppliers").WithTags("Suppliers").RequireAuthorization();
         suppliers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetSuppliersQuery(), ct))).RequireAuthorization(View);
         suppliers.MapPost("/", (CreateSupplierCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/suppliers")).RequireAuthorization(Manage);
+        suppliers.MapPut("/{id:guid}", (Guid id, UpdateSupplierBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpdateSupplierCommand(id, b.Name, b.TaxId, b.PaymentTermDays), ct))).RequireAuthorization(Manage);
+        suppliers.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new SetSupplierActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
 
         var warehouses = app.MapGroup("/api/v1/warehouses").WithTags("Warehouses").RequireAuthorization();
         warehouses.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetWarehousesQuery(), ct))).RequireAuthorization(View);
         warehouses.MapPost("/", (CreateWarehouseCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/warehouses")).RequireAuthorization(Manage);
+        warehouses.MapPut("/{id:guid}", (Guid id, UpdateWarehouseBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpdateWarehouseCommand(id, b.Name, b.Address), ct))).RequireAuthorization(Manage);
+        warehouses.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new SetWarehouseActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
 
         var taxCodes = app.MapGroup("/api/v1/tax-codes").WithTags("Tax Codes").RequireAuthorization();
         taxCodes.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetTaxCodesQuery(), ct))).RequireAuthorization(View);
@@ -44,6 +60,13 @@ public static class MasterDataEndpoints
 
         return app;
     }
+
+    // Request bodies for edits — the id comes from the route, the rest from the body.
+    public sealed record SetActiveBody(bool IsActive);
+    public sealed record UpdateCustomerBody(string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit);
+    public sealed record UpdateSupplierBody(string Name, string? TaxId, int PaymentTermDays);
+    public sealed record UpdateWarehouseBody(string Name, string? Address);
+    public sealed record UpdateProductBody(string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased);
 
     private static async Task<IResult> Send<T>(Task<SharedKernel.Results.Result<T>> task) =>
         (await task).ToHttpResult();

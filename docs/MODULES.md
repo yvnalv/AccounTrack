@@ -17,7 +17,7 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Process Tracker | ✅ Implemented | per-document lifecycle timeline; consumes approval integration events (in-process event dispatch, ADR-0007) |
 | Notification | ✅ Implemented | in-app notifications; consumes approval events (notifies the submitter); list + mark-read. Email channel is future |
 | Accounting | 🟡 Slice 1 + reports + posting engine + subledgers | chart of accounts, fiscal periods (open/close/lock), double-entry journal posting + reversal, trial balance, **Profit & Loss + Balance Sheet** (derived from GL), **posting-rule / account-determination engine** (configurable, most-specific-wins, health check), **AR/AP subledgers** (open items, payment allocation, aging). Remaining slice 2: period-close snapshots, year-end close, Cash Flow |
-| Master Data | ✅ Implemented | products (+ categories, units of measure), customers, suppliers, warehouses, tax codes; create + list, dev seed |
+| Master Data | ✅ Implemented | products (+ categories, units of measure), customers, suppliers, warehouses, tax codes; create + list + **edit/activate-deactivate** (customers/suppliers/warehouses/products — CHG-0045), dev seed |
 | Inventory | 🟡 Slice 1 | transaction ledger (source of truth), moving-average buckets, receive/adjust/transfer, on-hand + stock-card; `IInventoryLedger`. Slice 2: GL posting on moves, stock opname, negative-stock setting, FIFO option |
 | Purchasing | ✅ Procure-to-pay | Purchase Orders (Approval + Process Tracker + Notification); **Goods Receipt** (atomic inventory + Dr Inventory/Cr GR-IR); **Purchase Invoice** (atomic Dr GR-IR + VAT Input / Cr AP + AP subledger, three-way-match lite clears GR-IR); **Supplier Payment** (atomic Dr AP / Cr Cash-Bank + AP allocation). Returns are a later enhancement |
 | Sales | ✅ Order-to-cash | Sales Orders (Approval + event-driven status); **Delivery Order** (atomic stock issue + Dr COGS/Cr Inventory); **Sales Invoice** (atomic Dr AR / Cr Revenue + VAT Output + AR subledger); **Customer Payment** (atomic Dr Cash-Bank / Cr AR + AR allocation). Returns are a later enhancement |
@@ -26,9 +26,10 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Data Import/Export | ◻️ Planned | Cross-cutting — CSV/Excel import (template + dry-run), CSV/Excel/PDF export (ADR-0031) |
 | Manufacturing | ◻️ Planned | Phase 3 |
 
-> **CRUD status (ADR-0029):** master-data and transactional screens currently ship **list + create**;
-> **Edit** and **deactivate/cancel** (soft-delete, status-gated) are a planned cross-module pass. The
-> "full CRUD" notes below are the target, not yet the implemented state.
+> **CRUD status (ADR-0029):** master-data customers/suppliers/warehouses/products now have **Edit +
+> activate/deactivate** (CHG-0045); remaining master data (UoM/categories/tax-codes/CoA) and
+> status-gated **edit/cancel** for draft transactional documents are still planned. The "full CRUD"
+> notes below are the target.
 
 (Authoritative change history is in [`../CHANGELOG.md`](../CHANGELOG.md).)
 
