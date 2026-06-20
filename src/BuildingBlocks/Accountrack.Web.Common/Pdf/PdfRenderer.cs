@@ -35,7 +35,7 @@ public static class PdfRenderer
 
                 page.Header().Element(e => Header(e, model, accent));
                 page.Content().PaddingTop(18).Element(e => Body(e, model, accent));
-                page.Footer().Element(e => Footer(e, model));
+                page.Footer().Element(e => Footer(e, model.FooterNote));
             });
         }).GeneratePdf();
     }
@@ -173,11 +173,11 @@ public static class PdfRenderer
         });
     }
 
-    private static void Footer(IContainer container, PdfDocument m)
+    private static void Footer(IContainer container, string? footerNote)
     {
         container.BorderTop(0.5f).BorderColor(Hair).PaddingTop(6).Row(row =>
         {
-            row.RelativeItem().Text(m.FooterNote ?? string.Empty).FontSize(8).FontColor(Faint);
+            row.RelativeItem().Text(footerNote ?? string.Empty).FontSize(8).FontColor(Faint);
             row.RelativeItem().AlignRight().Text(t =>
             {
                 t.DefaultTextStyle(s => s.FontSize(8).FontColor(Faint));
@@ -195,6 +195,97 @@ public static class PdfRenderer
         var result = await task;
         return result.IsSuccess
             ? Microsoft.AspNetCore.Http.Results.File(Render(result.Value), "application/pdf", $"{fileName}.pdf")
+            : result.ToHttpResult();
+    }
+
+    // ---- Financial reports ----
+
+    public static byte[] RenderReport(PdfReport model)
+    {
+        var accent = model.AccentHex;
+
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(38);
+                page.DefaultTextStyle(t => t.FontSize(10).FontColor(Ink).LineHeight(1.2f));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Text(model.Company.Name).FontSize(12).Bold().FontColor(accent);
+                    col.Item().Text(model.Title).FontSize(18).Bold();
+                    if (!string.IsNullOrWhiteSpace(model.Period))
+                    {
+                        col.Item().Text(model.Period!).FontSize(9).FontColor(Muted);
+                    }
+                });
+
+                page.Content().PaddingTop(14).Element(e => ReportTable(e, model, accent));
+                page.Footer().Element(e => Footer(e, model.FooterNote));
+            });
+        }).GeneratePdf();
+    }
+
+    private static void ReportTable(IContainer container, PdfReport m, string accent)
+    {
+        container.Table(table =>
+        {
+            table.ColumnsDefinition(c =>
+            {
+                c.RelativeColumn(4);
+                for (var i = 1; i < m.Columns.Count; i++)
+                {
+                    c.RelativeColumn(2);
+                }
+            });
+
+            table.Header(header =>
+            {
+                for (var i = 0; i < m.Columns.Count; i++)
+                {
+                    var cell = header.Cell().Background(accent).PaddingVertical(6).PaddingHorizontal(8);
+                    (i == 0 ? cell : cell.AlignRight()).Text(m.Columns[i]).FontColor("#FFFFFF").FontSize(9).SemiBold();
+                }
+            });
+
+            foreach (var row in m.Rows)
+            {
+                for (var i = 0; i < m.Columns.Count; i++)
+                {
+                    var value = i < row.Cells.Count ? row.Cells[i] : null;
+                    IContainer cell = table.Cell();
+
+                    cell = row.Style switch
+                    {
+                        PdfRowStyle.SectionHeader => cell.PaddingTop(10).PaddingBottom(2).PaddingHorizontal(8),
+                        PdfRowStyle.GrandTotal => cell.BorderTop(1).BorderColor(accent).PaddingVertical(6).PaddingHorizontal(8),
+                        PdfRowStyle.Subtotal => cell.BorderTop(0.5f).BorderColor(Hair).PaddingVertical(5).PaddingHorizontal(8),
+                        _ => cell.PaddingVertical(4).PaddingHorizontal(8),
+                    };
+
+                    var aligned = i == 0 ? cell : cell.AlignRight();
+                    var text = aligned.Text(value ?? string.Empty);
+
+                    switch (row.Style)
+                    {
+                        case PdfRowStyle.SectionHeader: text.SemiBold().FontColor(Muted).FontSize(9); break;
+                        case PdfRowStyle.GrandTotal: text.Bold().FontColor(accent).FontSize(11); break;
+                        case PdfRowStyle.Subtotal: text.SemiBold(); break;
+                        default: if (i > 0) text.FontColor(Ink); break;
+                    }
+                }
+            }
+        });
+    }
+
+    /// <summary>Turns a successful report model into a downloadable PDF response.</summary>
+    public static async Task<IResult> ReportFile(Task<Result<PdfReport>> task, string fileName)
+    {
+        var result = await task;
+        return result.IsSuccess
+            ? Microsoft.AspNetCore.Http.Results.File(RenderReport(result.Value), "application/pdf", $"{fileName}.pdf")
             : result.ToHttpResult();
     }
 }

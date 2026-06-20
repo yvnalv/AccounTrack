@@ -1,5 +1,22 @@
 # Accountrack Changelog
 
+## [2026-06-20 10:29:52 UTC]
+
+CHG-0053 — Financial-report PDFs — Trial Balance / P&L / Balance Sheet / VAT (ADR-0031)
+
+- New **report PDF** layer reusing QuestPDF: a format-neutral `PdfReport` model (SharedKernel) with
+  section-header / subtotal / grand-total row styles, rendered by `PdfRenderer.RenderReport`
+  (company header, period subtitle, accent table header, emphasised totals, page-numbered footer).
+- PDFs for **Trial Balance**, **Profit & Loss**, **Balance Sheet**, and **VAT (PPN)** via
+  `GET /api/v1/reports/{trial-balance|profit-loss|balance-sheet|vat}/pdf` (`Accounting.View`). The PDF
+  handlers reuse the existing report queries through `ISender`, so the figures match the on-screen
+  reports exactly; the company header (name + NPWP + functional currency) comes from `ICompanyDirectory`.
+- **Frontend:** a **PDF** button next to **Apply** on each of the four report screens, passing the
+  current period/as-of filters. EN/ID strings.
+- Full suite **251** green; e2e: all four reports download as valid `application/pdf`.
+
+---
+
 ## [2026-06-20 10:10:47 UTC]
 
 CHG-0052 — PDF documents — Invoice + Quotation (ADR-0031)

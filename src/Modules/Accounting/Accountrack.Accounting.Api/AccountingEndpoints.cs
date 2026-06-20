@@ -1,5 +1,6 @@
 using Accountrack.Accounting.Application.Features;
 using Accountrack.Accounting.Domain;
+using Accountrack.Web.Common.Pdf;
 using Accountrack.Web.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -84,6 +85,23 @@ public static class AccountingEndpoints
         reports.MapGet("/vat", async (DateOnly? fromDate, DateOnly? toDate, ISender sender, CancellationToken ct) =>
             (await sender.Send(new GetVatReportQuery(fromDate, toDate), ct)).ToHttpResult())
             .WithName("GetVatReport");
+
+        // --- Report PDFs (ADR-0031) ---
+        reports.MapGet("/trial-balance/pdf", (DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
+                PdfRenderer.ReportFile(s.Send(new GetTrialBalancePdfQuery(fromDate, toDate), ct), "trial-balance"))
+            .WithName("GetTrialBalancePdf");
+
+        reports.MapGet("/profit-loss/pdf", (DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
+                PdfRenderer.ReportFile(s.Send(new GetProfitAndLossPdfQuery(fromDate, toDate), ct), "profit-loss"))
+            .WithName("GetProfitAndLossPdf");
+
+        reports.MapGet("/balance-sheet/pdf", (DateOnly? asOfDate, ISender s, CancellationToken ct) =>
+                PdfRenderer.ReportFile(s.Send(new GetBalanceSheetPdfQuery(asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow)), ct), "balance-sheet"))
+            .WithName("GetBalanceSheetPdf");
+
+        reports.MapGet("/vat/pdf", (DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
+                PdfRenderer.ReportFile(s.Send(new GetVatReportPdfQuery(fromDate, toDate), ct), "vat-report"))
+            .WithName("GetVatReportPdf");
 
         // --- Dashboard ---
         app.MapGet("/api/v1/dashboard/summary", async (ISender sender, CancellationToken ct) =>

@@ -329,7 +329,7 @@ export default {
       balanceSheet: 'Neraca',
       vat: 'PPN',
     },
-    filters: { from: 'Dari', to: 'Sampai', asOf: 'Per tanggal', apply: 'Terapkan' },
+    filters: { from: 'Dari', to: 'Sampai', asOf: 'Per tanggal', apply: 'Terapkan', pdf: 'PDF' },
     account: 'Akun',
     amount: 'Jumlah',
     tb: {

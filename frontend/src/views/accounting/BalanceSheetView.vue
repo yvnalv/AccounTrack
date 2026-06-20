@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
+import { downloadFile } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import type { BalanceSheet } from '@/types/reports'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -24,6 +25,11 @@ async function load() {
   }
 }
 onMounted(load)
+
+function pdf() {
+  const q = asOf.value ? `?asOfDate=${asOf.value}` : ''
+  downloadFile(`/reports/balance-sheet/pdf${q}`, 'balance-sheet.pdf')
+}
 </script>
 
 <template>
@@ -31,6 +37,7 @@ onMounted(load)
     <div class="flex flex-wrap items-end gap-3">
       <FormField :label="t('accounting.filters.asOf')"><AppInput v-model="asOf" type="date" /></FormField>
       <AppButton variant="secondary" :disabled="loading" @click="load">{{ t('accounting.filters.apply') }}</AppButton>
+      <AppButton variant="ghost" :disabled="loading || !report" @click="pdf">{{ t('accounting.filters.pdf') }}</AppButton>
       <StatusBadge
         v-if="report && !loading"
         class="mb-1"

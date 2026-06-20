@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
+import { downloadFile } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import type { TrialBalance } from '@/types/reports'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -30,6 +31,13 @@ async function load() {
 onMounted(load)
 
 const rows = computed(() => report.value?.lines ?? [])
+
+function pdf() {
+  const q = new URLSearchParams()
+  if (fromDate.value) q.set('fromDate', fromDate.value)
+  if (toDate.value) q.set('toDate', toDate.value)
+  downloadFile(`/reports/trial-balance/pdf?${q}`, 'trial-balance.pdf')
+}
 </script>
 
 <template>
@@ -38,6 +46,7 @@ const rows = computed(() => report.value?.lines ?? [])
       <FormField :label="t('accounting.filters.from')"><AppInput v-model="fromDate" type="date" /></FormField>
       <FormField :label="t('accounting.filters.to')"><AppInput v-model="toDate" type="date" /></FormField>
       <AppButton variant="secondary" :disabled="loading" @click="load">{{ t('accounting.filters.apply') }}</AppButton>
+      <AppButton variant="ghost" :disabled="loading || !report" @click="pdf">{{ t('accounting.filters.pdf') }}</AppButton>
     </div>
 
     <AppCard :padded="false">

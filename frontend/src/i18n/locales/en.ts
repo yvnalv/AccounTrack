@@ -328,7 +328,7 @@ export default {
       balanceSheet: 'Balance sheet',
       vat: 'VAT (PPN)',
     },
-    filters: { from: 'From', to: 'To', asOf: 'As of', apply: 'Apply' },
+    filters: { from: 'From', to: 'To', asOf: 'As of', apply: 'Apply', pdf: 'PDF' },
     account: 'Account',
     amount: 'Amount',
     tb: {
