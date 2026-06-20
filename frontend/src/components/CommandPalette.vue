@@ -62,6 +62,7 @@ const commands = computed<Command[]>(() => {
     { id: 'md-customers', label: t('masterData.tabs.customers'), group: nav, icon: Database, run: go('masterDataCustomers') },
     { id: 'md-suppliers', label: t('masterData.tabs.suppliers'), group: nav, icon: Database, run: go('masterDataSuppliers') },
     { id: 'md-warehouses', label: t('masterData.tabs.warehouses'), group: nav, icon: Database, run: go('masterDataWarehouses') },
+    { id: 'expenses', label: t('nav.expenses'), group: nav, icon: Wallet, run: go('expenses') },
     { id: 'settings', label: t('nav.settings'), group: nav, icon: Settings, run: go('settings') },
     { id: 'theme', label: t('command.toggleTheme'), group: actions, icon: Moon, run: () => theme.toggle() },
     {

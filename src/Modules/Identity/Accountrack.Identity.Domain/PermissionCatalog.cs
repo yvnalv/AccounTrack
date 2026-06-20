@@ -32,6 +32,10 @@ public static class PermissionCatalog
     public const string MasterDataView = "MasterData.View";
     public const string MasterDataManage = "MasterData.Manage";
 
+    public const string ExpensesView = "Expenses.View";
+    public const string ExpensesManage = "Expenses.Manage";
+    public const string ExpensesPost = "Expenses.Post";
+
     public const string AdminUsers = "Admin.Users";
     public const string AdminRoles = "Admin.Roles";
     public const string AdminCompanies = "Admin.Companies";
@@ -64,6 +68,9 @@ public static class PermissionCatalog
         (AccountingPeriodReopen, "Reopen Fiscal Period"),
         (MasterDataView, "View Master Data"),
         (MasterDataManage, "Manage Master Data"),
+        (ExpensesView, "View Expenses"),
+        (ExpensesManage, "Manage Expense Categories"),
+        (ExpensesPost, "Post Expenses"),
         (AdminUsers, "Manage Users"),
         (AdminRoles, "Manage Roles"),
         (AdminCompanies, "Manage Companies"),

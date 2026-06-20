@@ -8,10 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-20 (last change **CHG-0047**)
-- **Build:** green — backend `net8.0` (234 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **purchase returns** (debit notes) — de-stock at cost + reverse AP/VAT Input (CHG-0047).
-  Returns now complete on both sides (sales CHG-0046 + purchasing CHG-0047).
+- **As of:** 2026-06-20 (last change **CHG-0048**)
+- **Build:** green — backend `net8.0` (238 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Expenses module** — operating-expense vouchers, category→GL via posting rules, atomic
+  Dr Expense (+VAT Input) / Cr Cash-Bank (CHG-0048).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -78,8 +78,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
   suppliers/warehouses/products (CHG-0045). Remaining: UoM/categories/tax-codes/CoA edit; distinct
   `*.Edit`/`*.Delete` permissions; status-gated edit/cancel for draft documents. (BR-X-7/8.)
-- **Expenses module (ADR-0030):** operating-expense vouchers, category→GL via posting rules,
-  automatic posting (Dr Expense [+ VAT Input] / Cr Cash-Bank or AP), approvals. (BR-EXP-*.)
+- **Expenses module (ADR-0030):** 🟡 done (CHG-0048) — vouchers paid from cash/bank, category→GL via
+  posting rules, atomic Dr Expense [+ VAT Input] / Cr Cash-Bank. Remaining: on-account (Cr AP),
+  approvals, category edit/deactivate. (BR-EXP-*.)
 - **Data Import/Export (ADR-0031):** CSV/Excel import (template + dry-run + commit), CSV/Excel list
   export, PDF for documents/reports — master data first. (BR-IMP-*.)
 - **Accounting slice 2 (remaining):** period-close balance snapshots, year-end close to retained

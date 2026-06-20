@@ -49,6 +49,7 @@ const router = createRouter({
             { path: 'warehouses', name: 'masterDataWarehouses', component: () => import('@/views/masterdata/WarehousesView.vue') },
           ],
         },
+        { path: 'expenses', name: 'expenses', component: () => import('@/views/ExpensesView.vue'), meta: { titleKey: 'expenses.title' } },
         { path: 'approvals', name: 'approvals', component: () => import('@/views/ApprovalsView.vue'), meta: { titleKey: 'approvals.title' } },
         { path: 'settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { titleKey: 'nav.settings' } },
       ],

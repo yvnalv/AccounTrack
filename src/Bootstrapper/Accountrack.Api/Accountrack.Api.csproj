@@ -46,6 +46,8 @@
     <ProjectReference Include="..\..\Modules\Purchasing\Accountrack.Purchasing.Infrastructure\Accountrack.Purchasing.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Sales\Accountrack.Sales.Api\Accountrack.Sales.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Sales\Accountrack.Sales.Infrastructure\Accountrack.Sales.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Expenses\Accountrack.Expenses.Api\Accountrack.Expenses.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Expenses\Accountrack.Expenses.Infrastructure\Accountrack.Expenses.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

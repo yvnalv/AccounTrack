@@ -23,6 +23,8 @@ using Accountrack.Purchasing.Api;
 using Accountrack.Purchasing.Infrastructure;
 using Accountrack.Sales.Api;
 using Accountrack.Sales.Infrastructure;
+using Accountrack.Expenses.Api;
+using Accountrack.Expenses.Infrastructure;
 using Accountrack.Identity.Api;
 using Accountrack.Identity.Infrastructure;
 using Accountrack.Identity.Infrastructure.Authentication;
@@ -80,6 +82,7 @@ builder.Services.AddProcessTrackerModule(builder.Configuration);
 builder.Services.AddNotificationModule(builder.Configuration);
 builder.Services.AddPurchasingModule(builder.Configuration);
 builder.Services.AddSalesModule(builder.Configuration);
+builder.Services.AddExpensesModule(builder.Configuration);
 
 // Accept/emit enums as strings in JSON (nicer API ergonomics).
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -147,6 +150,7 @@ app.MapProcessTrackerEndpoints();
 app.MapNotificationEndpoints();
 app.MapPurchasingEndpoints();
 app.MapSalesEndpoints();
+app.MapExpensesEndpoints();
 
 // Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
@@ -154,11 +158,8 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     var migrate = builder.Configuration.GetValue("Database:AutoMigrate", false);
     var seedDev = builder.Configuration.GetValue("Seed:Enabled", false);
 
-    // Platform-level idempotency key store (ADR-0021), independent of any module schema.
-    await Accountrack.Infrastructure.Common.Idempotency.IdempotencyStore.EnsureTableAsync(
-        builder.Configuration.GetConnectionString("Default")!);
-
-    // Audit owns the shared audit table; create it before modules that write to it.
+    // Audit owns the shared audit table; create it before modules that write to it. (Its migration
+    // also creates the database on a first run, so it must precede the platform idempotency table.)
     await app.Services.InitializeAuditLogModuleAsync(migrate);
     // Company before Identity so the dev tenant/company exist before Identity seeds its admin.
     await app.Services.InitializeCompanyModuleAsync(migrate, seedDev);
@@ -171,6 +172,12 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     await app.Services.InitializeNotificationModuleAsync(migrate);
     await app.Services.InitializePurchasingModuleAsync(migrate);
     await app.Services.InitializeSalesModuleAsync(migrate);
+    await app.Services.InitializeExpensesModuleAsync(migrate, seedDev);
+
+    // Platform-level idempotency key store (ADR-0021), independent of any module schema. Created
+    // after the modules so the database exists (the audit migration creates it on a first run).
+    await Accountrack.Infrastructure.Common.Idempotency.IdempotencyStore.EnsureTableAsync(
+        builder.Configuration.GetConnectionString("Default")!);
 }
 
 app.Run();

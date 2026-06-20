@@ -12,6 +12,7 @@ import {
   Database,
   CheckSquare,
   Settings,
+  Receipt,
   Search,
 } from 'lucide-vue-next'
 
@@ -36,6 +37,7 @@ const groups: { label: string; items: NavItem[] }[] = [
       { to: { name: 'sales' }, icon: ShoppingCart, label: t('nav.sales') },
       { to: { name: 'purchasing' }, icon: Truck, label: t('nav.purchasing') },
       { to: { name: 'inventory' }, icon: Boxes, label: t('nav.inventory') },
+      { to: { name: 'expenses' }, icon: Receipt, label: t('nav.expenses') },
       { to: { name: 'accounting' }, icon: BookOpen, label: t('nav.accounting') },
     ],
   },

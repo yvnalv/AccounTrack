@@ -1,5 +1,34 @@
 # Accountrack Changelog
 
+## [2026-06-20 05:15:52 UTC]
+
+CHG-0048 — Expenses module — operating-expense vouchers (ADR-0030)
+
+- New **Expenses** module (Domain/Application/Infrastructure/Api, schema `expenses`) for recording
+  day-to-day operating costs without manual journals (BR-EXP-*).
+- **Expense categories** (seeded: Electricity, Transport, Rent, Supplies, Salaries, Other) each carry
+  a **posting-rule key**; the expense GL account is resolved through the posting-rule engine
+  (ADR-0024), never hardcoded. Accounting seed adds expense accounts 6000–6900 + default rules.
+- **Expense voucher** (paid from a cash/bank account) posts atomically (one cross-module transaction):
+  **Dr Expense per category** (collapsed per account) **+ Dr VAT Input** (where creditable) **/ Cr
+  Cash-Bank** — and is idempotency-keyed.
+- **API:** `GET/POST /api/v1/expense-categories`, `GET /api/v1/expense-vouchers`,
+  `GET /api/v1/expense-vouchers/{id}`, `POST /api/v1/expense-vouchers`
+  (`Expenses.View/Manage/Post`). New RBAC permissions seeded + granted to the admin. EF migration
+  `InitialExpenses`. Module registered in the bootstrapper; idempotency-table creation moved after
+  module migrations (so a first-run/empty database is created before it is used).
+- **Frontend:** new **Expenses** nav item + screen (voucher list + create modal with dynamic lines,
+  category/cash-account pickers, per-line PPN toggle, live total) + ⌘K entry; EN/ID strings.
+- **Tests:** new `Accountrack.Expenses.UnitTests` (4 — voucher totals incl. VAT; handler debits each
+  expense account + VAT and credits cash, balanced; same-category lines collapse; missing/inactive
+  category rejected). Full suite **238** green; arch-fitness clean for the new module.
+- **Verified (e2e):** posting a voucher (Electricity 500k @0% + Transport 100k @11%) created journal
+  EXP/202606/00001 (grand 611,000); P&L expenses 0 → 600,000 split per account, VAT to VAT Input.
+- **Scope:** expense recording, paid via cash/bank. On-account (Cr AP) and full Payroll remain a
+  later phase.
+
+---
+
 ## [2026-06-20 04:38:20 UTC]
 
 CHG-0047 — Purchase returns (debit notes) — procure-to-pay (BR-PUR-7)

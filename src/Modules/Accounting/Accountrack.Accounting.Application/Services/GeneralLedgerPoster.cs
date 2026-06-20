@@ -56,6 +56,7 @@ public sealed class GeneralLedgerPoster : IGeneralLedgerPoster
         LedgerSource.StockAdjustment => JournalSource.StockAdjustment,
         LedgerSource.SalesReturn => JournalSource.SalesReturn,
         LedgerSource.PurchaseReturn => JournalSource.PurchaseReturn,
+        LedgerSource.Expense => JournalSource.Expense,
         _ => JournalSource.Manual,
     };
 }

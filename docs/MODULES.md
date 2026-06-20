@@ -22,7 +22,7 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Purchasing | ✅ Procure-to-pay + returns | Purchase Orders (Approval + Process Tracker + Notification); **Goods Receipt** (atomic inventory + Dr Inventory/Cr GR-IR); **Purchase Invoice** (atomic Dr GR-IR + VAT Input / Cr AP + AP subledger, three-way-match lite clears GR-IR); **Supplier Payment** (atomic Dr AP / Cr Cash-Bank + AP allocation); **Purchase Return / debit note** (atomic de-stock at cost + reverse AP/VAT-Input + variance, reduce payable — CHG-0047). Debiting paid bills pending |
 | Sales | ✅ Order-to-cash + returns | Sales Orders (Approval + event-driven status); **Delivery Order** (atomic stock issue + Dr COGS/Cr Inventory); **Sales Invoice** (atomic Dr AR / Cr Revenue + VAT Output + AR subledger); **Customer Payment** (atomic Dr Cash-Bank / Cr AR + AR allocation); **Sales Return / credit note** (atomic restock at cost + reverse Revenue/VAT/AR, reduce receivable — CHG-0046). Crediting fully-paid invoices pending |
 | Reporting | 🟡 Partial | TB/P&L/BS/VAT + AR/AP aging/Cash Flow done; GL drill-down + export pending |
-| Expenses | ◻️ Planned | Phase 2 — operating-expense vouchers, category→GL via posting rules (ADR-0030) |
+| Expenses | ✅ Implemented | operating-expense vouchers paid from cash/bank; categories→GL via posting rules; atomic Dr Expense (+VAT Input) / Cr Cash-Bank (CHG-0048). On-account (AP) + approvals pending |
 | Data Import/Export | ◻️ Planned | Cross-cutting — CSV/Excel import (template + dry-run), CSV/Excel/PDF export (ADR-0031) |
 | Manufacturing | ◻️ Planned | Phase 3 |
 

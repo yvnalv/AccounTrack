@@ -46,6 +46,12 @@ public static class AccountingDataSeeder
             ("4000", "Sales Revenue", AccountType.Revenue, false, ControlType.None),
             ("5000", "Cost of Goods Sold", AccountType.Expense, false, ControlType.None),
             ("5100", "Inventory Variance", AccountType.Expense, false, ControlType.None),
+            ("6000", "Electricity & Utilities", AccountType.Expense, false, ControlType.None),
+            ("6100", "Transportation", AccountType.Expense, false, ControlType.None),
+            ("6200", "Rent", AccountType.Expense, false, ControlType.None),
+            ("6300", "Office Supplies", AccountType.Expense, false, ControlType.None),
+            ("6400", "Salaries & Wages", AccountType.Expense, false, ControlType.None),
+            ("6900", "Other Operating Expense", AccountType.Expense, false, ControlType.None),
             ("7900", "Rounding Difference", AccountType.Expense, false, ControlType.None),
         };
 
@@ -89,6 +95,13 @@ public static class AccountingDataSeeder
             (PostingRuleKeys.CustomerAdvance, "2400"),
             (PostingRuleKeys.SupplierAdvance, "1400"),
             (PostingRuleKeys.RetainedEarnings, "3900"),
+            // Expense categories (ADR-0030). Keys match Expenses module's seeded categories.
+            ("EXPENSE.ELECTRICITY", "6000"),
+            ("EXPENSE.TRANSPORT", "6100"),
+            ("EXPENSE.RENT", "6200"),
+            ("EXPENSE.SUPPLIES", "6300"),
+            ("EXPENSE.SALARIES", "6400"),
+            ("EXPENSE.OTHER", "6900"),
         };
 
         var accountsByCode = await db.Accounts.IgnoreQueryFilters()

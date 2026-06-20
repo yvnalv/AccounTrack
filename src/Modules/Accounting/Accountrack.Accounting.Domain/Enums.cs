@@ -66,4 +66,5 @@ public enum JournalSource
     PeriodClose = 7,
     SalesReturn = 8,
     PurchaseReturn = 9,
+    Expense = 10,
 }

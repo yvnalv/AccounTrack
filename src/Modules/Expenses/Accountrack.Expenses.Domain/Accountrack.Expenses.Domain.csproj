@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Expenses.Domain: operating-expense vouchers + categories. Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Expenses.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Expenses.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

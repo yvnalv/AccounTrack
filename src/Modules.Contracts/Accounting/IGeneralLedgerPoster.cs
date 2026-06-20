@@ -14,6 +14,7 @@ public enum LedgerSource
     StockAdjustment = 6,
     SalesReturn = 7,
     PurchaseReturn = 8,
+    Expense = 9,
 }
 
 /// <summary>A single journal line: debit XOR credit, plus an optional subledger party for control lines.</summary>
