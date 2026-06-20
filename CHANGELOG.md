@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-06-20 11:18:33 UTC]
+
+CHG-0054 — Purchase-document PDFs + brand-logo polish (ADR-0031)
+
+- **Purchase Order** PDF (`GET /api/v1/purchase-orders/{id}/pdf`) and **Purchase Invoice (bill)** PDF
+  (`GET /api/v1/purchase-invoices/{id}/pdf`), both `Purchasing.View`, reusing the shared `PdfDocument`
+  model + `PdfRenderer`. New `PurchasingPdf` handlers resolve supplier/product names via
+  `IMasterDataLookup` and the company block via `ICompanyDirectory`. The PO renders our company as the
+  seller / the supplier as recipient; the bill renders the supplier as seller / our company as Bill-To,
+  with invoice/due dates and the optional supplier reference number in the meta block.
+- **Brand logo** embedded in every PDF: the teal Accountrack mark (SVG, kept in sync with
+  `docs/frontend/brand/logo-mark.svg`) now sits above the seller name on documents and beside the
+  company name on financial reports, via QuestPDF's vector `.Svg()` (crisp at any zoom, no raster
+  asset). PDFs continue to use QuestPDF's bundled Lato face (clean, professional; embedding the brand
+  UI font Plus Jakarta Sans remains an optional later refinement).
+- **Frontend:** a **PDF** button on the Purchase Order detail header and a **PDF** action per bill in
+  the invoices list (`downloadFile`). EN/ID strings.
+- Full suite **251** green; e2e: PO PDF (~75 KB), bill PDF (~80 KB), and a re-checked Trial Balance
+  report PDF (~61 KB) all download as valid `application/pdf` with the brand logo.
+
+---
+
 ## [2026-06-20 10:29:52 UTC]
 
 CHG-0053 — Financial-report PDFs — Trial Balance / P&L / Balance Sheet / VAT (ADR-0031)

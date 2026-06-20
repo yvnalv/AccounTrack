@@ -8,9 +8,9 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-20 (last change **CHG-0053**)
+- **As of:** 2026-06-20 (last change **CHG-0054**)
 - **Build:** green — backend `net8.0` (251 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **financial-report PDFs** — TB / P&L / Balance Sheet / VAT via QuestPDF (CHG-0053).
+  Latest: **purchase-document PDFs** (PO + bill) + **brand-logo polish** across all PDFs (CHG-0054).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -83,9 +83,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Data Import/Export (ADR-0031):** 🟡 CSV **import** for all four master-data entities
   (CHG-0049/0050); **CSV + Excel export** across all list menus — master data, sales orders, purchase
   orders, inventory on-hand, expenses (CHG-0051, ClosedXML/MIT); **PDF** documents — Invoice +
-  Quotation (CHG-0052) — and **report PDFs** TB/P&L/BS/VAT (CHG-0053), all QuestPDF. Remaining:
-  purchase-document PDFs, PDF logo/font polish, list-export-with-active-filters, Excel *import*,
-  async large files. (BR-IMP-*.)
+  Quotation (CHG-0052), **purchase-document PDFs** PO + bill (CHG-0054) — and **report PDFs**
+  TB/P&L/BS/VAT (CHG-0053), all QuestPDF, with the **brand logo** embedded as vector SVG (CHG-0054).
+  Remaining: optional Plus Jakarta Sans font embedding, list-export-with-active-filters, Excel
+  *import*, async large files. (BR-IMP-*.)
 - **Accounting slice 2 (remaining):** period-close balance snapshots, year-end close to retained
   earnings, Cash Flow report. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017;
   AR/AP subledgers — CHG-0018.)

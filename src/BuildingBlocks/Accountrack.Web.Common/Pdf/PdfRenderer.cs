@@ -21,6 +21,18 @@ public static class PdfRenderer
     private const string Hair = "#E5E7EB";
     private const string Zebra = "#F9FAFB";
 
+    /// <summary>Brand logo mark (teal rounded square + ascending bars) — kept in sync with docs/frontend/brand.</summary>
+    private const string LogoSvg = """
+        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect width="40" height="40" rx="11" fill="#007E6E"/>
+          <g fill="#FFFFFF">
+            <rect x="11" y="21" width="5" height="8" rx="2"/>
+            <rect x="17.5" y="16" width="5" height="13" rx="2"/>
+            <rect x="24" y="11" width="5" height="18" rx="2"/>
+          </g>
+        </svg>
+        """;
+
     public static byte[] Render(PdfDocument model)
     {
         var accent = model.AccentHex;
@@ -46,7 +58,8 @@ public static class PdfRenderer
         {
             row.RelativeItem().Column(col =>
             {
-                col.Item().Text(m.Seller.Name).FontSize(16).Bold().FontColor(accent);
+                col.Item().Width(34).Height(34).Svg(LogoSvg);
+                col.Item().PaddingTop(8).Text(m.Seller.Name).FontSize(16).Bold().FontColor(accent);
                 foreach (var line in m.Seller.Lines)
                 {
                     col.Item().Text(line).FontSize(9).FontColor(Muted);
@@ -214,8 +227,13 @@ public static class PdfRenderer
 
                 page.Header().Column(col =>
                 {
-                    col.Item().Text(model.Company.Name).FontSize(12).Bold().FontColor(accent);
-                    col.Item().Text(model.Title).FontSize(18).Bold();
+                    col.Item().Row(row =>
+                    {
+                        row.ConstantItem(30).Height(30).Svg(LogoSvg);
+                        row.RelativeItem().PaddingLeft(10).AlignMiddle()
+                            .Text(model.Company.Name).FontSize(12).Bold().FontColor(accent);
+                    });
+                    col.Item().PaddingTop(8).Text(model.Title).FontSize(18).Bold();
                     if (!string.IsNullOrWhiteSpace(model.Period))
                     {
                         col.Item().Text(model.Period!).FontSize(9).FontColor(Muted);

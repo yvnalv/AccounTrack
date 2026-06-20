@@ -23,7 +23,7 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Sales | ✅ Order-to-cash + returns | Sales Orders (Approval + event-driven status); **Delivery Order** (atomic stock issue + Dr COGS/Cr Inventory); **Sales Invoice** (atomic Dr AR / Cr Revenue + VAT Output + AR subledger); **Customer Payment** (atomic Dr Cash-Bank / Cr AR + AR allocation); **Sales Return / credit note** (atomic restock at cost + reverse Revenue/VAT/AR, reduce receivable — CHG-0046). Crediting fully-paid invoices pending |
 | Reporting | 🟡 Partial | TB/P&L/BS/VAT + AR/AP aging/Cash Flow done; GL drill-down + export pending |
 | Expenses | ✅ Implemented | operating-expense vouchers paid from cash/bank; categories→GL via posting rules; atomic Dr Expense (+VAT Input) / Cr Cash-Bank (CHG-0048). On-account (AP) + approvals pending |
-| Data Import/Export | 🟡 Partial | Cross-cutting — CSV import for all master data (CHG-0049/0050); CSV+Excel export across all list menus (CHG-0051, ClosedXML); PDF documents — Invoice + Quotation (CHG-0052, QuestPDF). Report PDFs + async pending (ADR-0031) |
+| Data Import/Export | 🟡 Partial | Cross-cutting — CSV import for all master data (CHG-0049/0050); CSV+Excel export across all list menus (CHG-0051, ClosedXML); PDF documents — Invoice + Quotation (CHG-0052), PO + bill (CHG-0054, QuestPDF); report PDFs TB/P&L/BS/VAT (CHG-0053); brand logo embedded in all PDFs (CHG-0054). Excel import + async pending (ADR-0031) |
 | Manufacturing | ◻️ Planned | Phase 3 |
 
 > **CRUD status (ADR-0029):** master-data customers/suppliers/warehouses/products now have **Edit +

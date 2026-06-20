@@ -21,6 +21,10 @@ public static class PurchasingEndpoints
         po.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetPurchaseOrdersQuery(), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseOrders");
 
+        po.MapGet("/{id:guid}/pdf", (Guid id, ISender s, CancellationToken ct) =>
+                Accountrack.Web.Common.Pdf.PdfRenderer.File(s.Send(new GetPurchaseOrderPdfQuery(id), ct), "purchase-order"))
+            .RequireAuthorization("Purchasing.View").WithName("GetPurchaseOrderPdf");
+
         po.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) => Send(s.Send(new GetPurchaseOrderQuery(id), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseOrder");
 
@@ -64,6 +68,10 @@ public static class PurchasingEndpoints
         pi.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetPurchaseInvoiceQuery(id), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoice");
+
+        pi.MapGet("/{id:guid}/pdf", (Guid id, ISender s, CancellationToken ct) =>
+                Accountrack.Web.Common.Pdf.PdfRenderer.File(s.Send(new GetPurchaseInvoicePdfQuery(id), ct), "purchase-invoice"))
+            .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoicePdf");
 
         pi.MapPost("/{id:guid}/returns", (Guid id, ReturnGoodsRequest body, ISender s, CancellationToken ct) =>
                 Created(s.Send(new PostPurchaseReturnCommand(id, body.ReturnDate, body.Notes, body.Lines), ct),

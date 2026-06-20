@@ -203,6 +203,7 @@ export default {
       returns: 'Returns (debit notes)',
       noReceipts: 'No goods receipts yet.',
       noInvoices: 'No bills yet.',
+      pdf: 'PDF',
       return: 'Return',
       returnTitle: 'Return goods',
       returnable: 'Returnable',

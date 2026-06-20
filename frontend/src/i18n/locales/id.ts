@@ -204,6 +204,7 @@ export default {
       returns: 'Retur (nota debit)',
       noReceipts: 'Belum ada penerimaan barang.',
       noInvoices: 'Belum ada tagihan.',
+      pdf: 'PDF',
       return: 'Retur',
       returnTitle: 'Retur barang',
       returnable: 'Dapat diretur',
