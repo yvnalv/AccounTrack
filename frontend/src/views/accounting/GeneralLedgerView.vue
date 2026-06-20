@@ -1,0 +1,123 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { reportsApi } from '@/lib/reports'
+import { accountingApi } from '@/lib/accounting'
+import { downloadFile } from '@/lib/api'
+import { formatMoney } from '@/lib/format'
+import type { GeneralLedger } from '@/types/reports'
+import type { AccountRef } from '@/types/accounting'
+import type { SelectOption } from '@/components/ui/types'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppCard from '@/components/ui/AppCard.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import FormField from '@/components/ui/FormField.vue'
+
+const { t } = useI18n()
+
+const now = new Date()
+const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+const today = now.toISOString().slice(0, 10)
+
+const fromDate = ref(monthStart)
+const toDate = ref(today)
+const accountId = ref('')
+const report = ref<GeneralLedger | null>(null)
+const accounts = ref<AccountRef[]>([])
+const loading = ref(true)
+
+const accountOptions = computed<SelectOption[]>(() => [
+  { value: '', label: t('accounting.gl.allAccounts') },
+  ...accounts.value
+    .filter((a) => a.allowPosting)
+    .map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` })),
+])
+
+async function load() {
+  loading.value = true
+  try {
+    report.value = await reportsApi.generalLedger({
+      accountId: accountId.value || undefined,
+      fromDate: fromDate.value || undefined,
+      toDate: toDate.value || undefined,
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(async () => {
+  accounts.value = await accountingApi.accounts()
+  await load()
+})
+
+function pdf() {
+  const q = new URLSearchParams()
+  if (accountId.value) q.set('accountId', accountId.value)
+  if (fromDate.value) q.set('fromDate', fromDate.value)
+  if (toDate.value) q.set('toDate', toDate.value)
+  downloadFile(`/reports/general-ledger/pdf?${q}`, 'general-ledger.pdf')
+}
+</script>
+
+<template>
+  <div class="space-y-4">
+    <div class="flex flex-wrap items-end gap-3">
+      <FormField :label="t('accounting.gl.account')" class="min-w-56">
+        <AppSelect v-model="accountId" :options="accountOptions" />
+      </FormField>
+      <FormField :label="t('accounting.filters.from')"><AppInput v-model="fromDate" type="date" /></FormField>
+      <FormField :label="t('accounting.filters.to')"><AppInput v-model="toDate" type="date" /></FormField>
+      <AppButton variant="secondary" :disabled="loading" @click="load">{{ t('accounting.filters.apply') }}</AppButton>
+      <AppButton variant="ghost" :disabled="loading || !report" @click="pdf">{{ t('accounting.filters.pdf') }}</AppButton>
+    </div>
+
+    <p v-if="loading" class="text-sm text-text-muted">{{ t('common.loading') }}</p>
+
+    <p v-else-if="!report || report.accounts.length === 0" class="px-4 py-10 text-center text-sm text-text-muted">
+      {{ t('accounting.gl.empty') }}
+    </p>
+
+    <AppCard v-for="acc in report?.accounts ?? []" v-else :key="acc.accountId" :padded="false">
+      <div class="flex items-center justify-between border-b border-border px-4 py-2.5">
+        <h3 class="text-sm font-semibold text-text">{{ acc.accountCode }} · {{ acc.accountName }}</h3>
+        <span class="text-xs text-text-muted">{{ acc.accountType }}</span>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-border text-xs uppercase tracking-wide text-text-muted">
+            <th class="px-4 py-2 text-left font-semibold">{{ t('accounting.gl.date') }}</th>
+            <th class="px-3 py-2 text-left font-semibold">{{ t('accounting.gl.entry') }}</th>
+            <th class="px-3 py-2 text-left font-semibold">{{ t('accounting.gl.description') }}</th>
+            <th class="px-3 py-2 text-right font-semibold">{{ t('accounting.gl.debit') }}</th>
+            <th class="px-3 py-2 text-right font-semibold">{{ t('accounting.gl.credit') }}</th>
+            <th class="px-4 py-2 text-right font-semibold">{{ t('accounting.gl.balance') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-border text-text-muted">
+            <td class="px-4 py-2" colspan="5">{{ t('accounting.gl.opening') }}</td>
+            <td class="px-4 py-2 text-right tnum">{{ formatMoney(acc.openingBalance) }}</td>
+          </tr>
+          <tr v-for="(e, i) in acc.entries" :key="i" class="border-b border-border">
+            <td class="px-4 py-2 text-text-muted tnum">{{ e.date }}</td>
+            <td class="px-3 py-2 text-text-muted">{{ e.entryNo }} · {{ e.source }}</td>
+            <td class="px-3 py-2 text-text">{{ e.description ?? '—' }}</td>
+            <td class="px-3 py-2 text-right text-text tnum">{{ e.debit ? formatMoney(e.debit) : '' }}</td>
+            <td class="px-3 py-2 text-right text-text tnum">{{ e.credit ? formatMoney(e.credit) : '' }}</td>
+            <td class="px-4 py-2 text-right tnum" :class="e.runningBalance < 0 ? 'text-negative' : 'text-text'">{{ formatMoney(e.runningBalance) }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="border-t-2 border-border font-semibold">
+            <td class="px-4 py-2.5" colspan="3">{{ t('accounting.gl.closing') }}</td>
+            <td class="px-3 py-2.5 text-right text-text tnum">{{ formatMoney(acc.totalDebit) }}</td>
+            <td class="px-3 py-2.5 text-right text-text tnum">{{ formatMoney(acc.totalCredit) }}</td>
+            <td class="px-4 py-2.5 text-right tnum" :class="acc.closingBalance < 0 ? 'text-negative' : 'text-text'">{{ formatMoney(acc.closingBalance) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </AppCard>
+  </div>
+</template>

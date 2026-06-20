@@ -1,5 +1,12 @@
 import { http, unwrap } from './api'
-import type { BalanceSheet, CashFlowStatement, ProfitAndLoss, TrialBalance, VatReport } from '@/types/reports'
+import type {
+  BalanceSheet,
+  CashFlowStatement,
+  GeneralLedger,
+  ProfitAndLoss,
+  TrialBalance,
+  VatReport,
+} from '@/types/reports'
 
 interface DateRange {
   fromDate?: string
@@ -17,4 +24,6 @@ export const reportsApi = {
     unwrap<VatReport>(http.get('/reports/vat', { params: range })),
   cashFlow: (range: DateRange = {}) =>
     unwrap<CashFlowStatement>(http.get('/reports/cash-flow', { params: range })),
+  generalLedger: (params: DateRange & { accountId?: string } = {}) =>
+    unwrap<GeneralLedger>(http.get('/reports/general-ledger', { params })),
 }

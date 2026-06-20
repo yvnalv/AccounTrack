@@ -160,4 +160,24 @@ public sealed class AccountingReadStore : IAccountingReadStore
 
         return await query.ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<GeneralLedgerLineRow>> GetGeneralLedgerAsync(
+        Guid? accountId, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct)
+    {
+        var query =
+            from line in _db.JournalLines
+            join entry in _db.JournalEntries on line.JournalEntryId equals entry.Id
+            join account in _db.Accounts on line.AccountId equals account.Id
+            where entry.Status != JournalStatus.Draft
+                && (accountId == null || line.AccountId == accountId)
+                && (fromDate == null || entry.Date >= fromDate)
+                && (toDate == null || entry.Date <= toDate)
+            orderby account.Code, entry.Date, entry.EntryNo
+            select new GeneralLedgerLineRow(
+                account.Id, account.Code, account.Name, account.Type.ToString(),
+                entry.Date, entry.EntryNo, entry.Source.ToString(), entry.SourceDocumentId, line.Description,
+                line.Debit.Amount, line.Credit.Amount);
+
+        return await query.ToListAsync(ct);
+    }
 }

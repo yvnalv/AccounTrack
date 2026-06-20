@@ -58,6 +58,7 @@ const commands = computed<Command[]>(() => {
     { id: 'acc-pl', label: t('accounting.tabs.profitLoss'), group: nav, icon: BookOpen, run: go('accountingProfitLoss') },
     { id: 'acc-bs', label: t('accounting.tabs.balanceSheet'), group: nav, icon: BookOpen, run: go('accountingBalanceSheet') },
     { id: 'acc-cf', label: t('accounting.tabs.cashFlow'), group: nav, icon: BookOpen, run: go('accountingCashFlow') },
+    { id: 'acc-gl', label: t('accounting.tabs.generalLedger'), group: nav, icon: BookOpen, run: go('accountingGeneralLedger') },
     { id: 'acc-vat', label: t('accounting.tabs.vat'), group: nav, icon: BookOpen, run: go('accountingVat') },
     { id: 'md-products', label: t('masterData.tabs.products'), group: nav, icon: Database, run: go('masterDataProducts') },
     { id: 'md-customers', label: t('masterData.tabs.customers'), group: nav, icon: Database, run: go('masterDataCustomers') },

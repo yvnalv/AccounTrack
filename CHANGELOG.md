@@ -1,5 +1,28 @@
 # Accountrack Changelog
 
+## [2026-06-20 13:58:21 UTC]
+
+CHG-0058 — General Ledger / Account-detail report — report + PDF + screen
+
+- New **General Ledger detail** report: every posted journal line over a period — optionally for
+  a single account — grouped by account, with the per-account **opening balance carried forward**
+  into a running balance, plus period debit/credit totals and a closing balance. Balances are
+  signed debit − credit, consistent with the Trial Balance, so the GL drills down to and reconciles
+  with it. Each line carries its entry no., source, and source-document id for drill-down.
+- New read-store query `GetGeneralLedgerAsync` (posted lines, optional account filter, ordered by
+  account then date/entry). `GET /api/v1/reports/general-ledger` and `/general-ledger/pdf`
+  (`Accounting.View`); opening balances reuse the trial-balance-to-date.
+- **Frontend:** a **General ledger** tab in Accounting (+ route + command-palette entry) with an
+  account filter (all/specific), period filters, per-account tables (opening → entries with running
+  balance → closing), and PDF download. EN/ID strings.
+- **Tests:** +2 (opening balance carried into a running balance; from-less grouping/ordering with
+  zero opening). Full suite **259** green; frontend builds.
+- **Verified (e2e):** the GL ties exactly to the Trial Balance (Inventory Variance 5100 closing =
+  TB balance); period-scoped opening + net == closing for Bank; single- and all-account PDFs render
+  as valid `application/pdf`.
+
+---
+
 ## [2026-06-20 13:12:40 UTC]
 
 CHG-0057 — Inventory slice 2 — GL posting on stock moves + stock opname

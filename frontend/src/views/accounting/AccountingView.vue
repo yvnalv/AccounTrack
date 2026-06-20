@@ -9,6 +9,7 @@ const tabs = [
   { to: { name: 'accountingProfitLoss' }, label: t('accounting.tabs.profitLoss') },
   { to: { name: 'accountingBalanceSheet' }, label: t('accounting.tabs.balanceSheet') },
   { to: { name: 'accountingCashFlow' }, label: t('accounting.tabs.cashFlow') },
+  { to: { name: 'accountingGeneralLedger' }, label: t('accounting.tabs.generalLedger') },
   { to: { name: 'accountingVat' }, label: t('accounting.tabs.vat') },
 ]
 </script>

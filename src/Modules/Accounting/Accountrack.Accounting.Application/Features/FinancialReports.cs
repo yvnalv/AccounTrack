@@ -94,6 +94,70 @@ public sealed class GetBalanceSheetHandler : IQueryHandler<GetBalanceSheetQuery,
     }
 }
 
+// ---- General Ledger / Account detail ----
+public sealed record GeneralLedgerEntryDto(
+    DateOnly Date, string EntryNo, string Source, Guid? SourceDocumentId, string? Description,
+    decimal Debit, decimal Credit, decimal RunningBalance);
+
+public sealed record GeneralLedgerAccountDto(
+    Guid AccountId, string AccountCode, string AccountName, string AccountType,
+    decimal OpeningBalance, IReadOnlyList<GeneralLedgerEntryDto> Entries,
+    decimal TotalDebit, decimal TotalCredit, decimal ClosingBalance);
+
+public sealed record GeneralLedgerDto(
+    DateOnly? FromDate, DateOnly? ToDate, Guid? AccountId,
+    IReadOnlyList<GeneralLedgerAccountDto> Accounts);
+
+/// <summary>
+/// General Ledger detail (ADR-0008): every posted journal line over a period — optionally for a
+/// single account — grouped by account, with the per-account opening balance carried forward into a
+/// running balance, plus period debit/credit totals and closing balance. Balances are signed
+/// debit − credit, consistent with the Trial Balance, so they drill down to and reconcile with it.
+/// </summary>
+public sealed record GetGeneralLedgerQuery(Guid? AccountId, DateOnly? FromDate, DateOnly? ToDate)
+    : IQuery<GeneralLedgerDto>;
+
+public sealed class GetGeneralLedgerHandler : IQueryHandler<GetGeneralLedgerQuery, GeneralLedgerDto>
+{
+    private readonly IAccountingReadStore _store;
+
+    public GetGeneralLedgerHandler(IAccountingReadStore store) => _store = store;
+
+    public async Task<Result<GeneralLedgerDto>> Handle(GetGeneralLedgerQuery request, CancellationToken ct)
+    {
+        var lines = await _store.GetGeneralLedgerAsync(request.AccountId, request.FromDate, request.ToDate, ct);
+
+        // Opening balances = each account's signed balance up to the day before the period start.
+        var opening = request.FromDate is { } from
+            ? (await _store.GetTrialBalanceAsync(null, from.AddDays(-1), ct))
+                .ToDictionary(r => r.AccountCode, r => r.Debit - r.Credit)
+            : new Dictionary<string, decimal>();
+
+        var accounts = lines
+            .GroupBy(l => new { l.AccountId, l.AccountCode, l.AccountName, l.AccountType })
+            .OrderBy(g => g.Key.AccountCode)
+            .Select(g =>
+            {
+                var openingBalance = opening.GetValueOrDefault(g.Key.AccountCode, 0m);
+                var running = openingBalance;
+                var entries = new List<GeneralLedgerEntryDto>();
+                foreach (var l in g)
+                {
+                    running += l.Debit - l.Credit;
+                    entries.Add(new GeneralLedgerEntryDto(
+                        l.Date, l.EntryNo, l.Source, l.SourceDocumentId, l.Description, l.Debit, l.Credit, running));
+                }
+
+                return new GeneralLedgerAccountDto(
+                    g.Key.AccountId, g.Key.AccountCode, g.Key.AccountName, g.Key.AccountType,
+                    openingBalance, entries, g.Sum(l => l.Debit), g.Sum(l => l.Credit), running);
+            })
+            .ToList();
+
+        return new GeneralLedgerDto(request.FromDate, request.ToDate, request.AccountId, accounts);
+    }
+}
+
 // ---- Cash Flow Statement ----
 public sealed record CashFlowLineDto(string AccountCode, string AccountName, decimal Amount);
 

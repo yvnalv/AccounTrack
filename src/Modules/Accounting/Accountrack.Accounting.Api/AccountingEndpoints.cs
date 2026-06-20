@@ -90,6 +90,10 @@ public static class AccountingEndpoints
             (await sender.Send(new GetCashFlowStatementQuery(fromDate, toDate), ct)).ToHttpResult())
             .WithName("GetCashFlowStatement");
 
+        reports.MapGet("/general-ledger", async (Guid? accountId, DateOnly? fromDate, DateOnly? toDate, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetGeneralLedgerQuery(accountId, fromDate, toDate), ct)).ToHttpResult())
+            .WithName("GetGeneralLedger");
+
         // --- Report PDFs (ADR-0031) ---
         reports.MapGet("/trial-balance/pdf", (DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
                 PdfRenderer.ReportFile(s.Send(new GetTrialBalancePdfQuery(fromDate, toDate), ct), "trial-balance"))
@@ -110,6 +114,10 @@ public static class AccountingEndpoints
         reports.MapGet("/cash-flow/pdf", (DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
                 PdfRenderer.ReportFile(s.Send(new GetCashFlowPdfQuery(fromDate, toDate), ct), "cash-flow"))
             .WithName("GetCashFlowStatementPdf");
+
+        reports.MapGet("/general-ledger/pdf", (Guid? accountId, DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
+                PdfRenderer.ReportFile(s.Send(new GetGeneralLedgerPdfQuery(accountId, fromDate, toDate), ct), "general-ledger"))
+            .WithName("GetGeneralLedgerPdf");
 
         // --- Dashboard ---
         app.MapGet("/api/v1/dashboard/summary", async (ISender sender, CancellationToken ct) =>

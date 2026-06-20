@@ -81,6 +81,60 @@ public class FinancialReportsTests
     }
 
     [Fact]
+    public async Task GeneralLedger_carries_opening_balance_into_a_running_balance()
+    {
+        var acc = Guid.NewGuid();
+        var from = new DateOnly(2026, 6, 1);
+        // Opening: Cash 1000 had a prior balance of 1,000,000 (Dr) before the period.
+        _store.GetTrialBalanceAsync(null, from.AddDays(-1), Arg.Any<CancellationToken>())
+            .Returns(new List<TrialBalanceRow> { new("1000", "Cash", "Asset", 1_000_000m, 0m, 1_000_000m) });
+        _store.GetGeneralLedgerAsync(acc, from, Arg.Any<DateOnly?>(), Arg.Any<CancellationToken>())
+            .Returns(new List<GeneralLedgerLineRow>
+            {
+                new(acc, "1000", "Cash", "Asset", new DateOnly(2026, 6, 5), "JE-1", "CustomerPayment", null, "Receipt", 500_000m, 0m),
+                new(acc, "1000", "Cash", "Asset", new DateOnly(2026, 6, 9), "JE-2", "Expense", null, "Rent", 0m, 200_000m),
+            });
+
+        var result = await new GetGeneralLedgerHandler(_store)
+            .Handle(new GetGeneralLedgerQuery(acc, from, new DateOnly(2026, 6, 30)), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var account = result.Value.Accounts.Should().ContainSingle().Subject;
+        account.OpeningBalance.Should().Be(1_000_000m);
+        account.Entries.Should().HaveCount(2);
+        account.Entries[0].RunningBalance.Should().Be(1_500_000m);
+        account.Entries[1].RunningBalance.Should().Be(1_300_000m);
+        account.TotalDebit.Should().Be(500_000m);
+        account.TotalCredit.Should().Be(200_000m);
+        account.ClosingBalance.Should().Be(1_300_000m);
+    }
+
+    [Fact]
+    public async Task GeneralLedger_without_from_date_has_zero_opening_and_groups_by_account()
+    {
+        var cash = Guid.NewGuid();
+        var rev = Guid.NewGuid();
+        _store.GetGeneralLedgerAsync(Arg.Any<Guid?>(), Arg.Any<DateOnly?>(), Arg.Any<DateOnly?>(), Arg.Any<CancellationToken>())
+            .Returns(new List<GeneralLedgerLineRow>
+            {
+                new(rev, "4000", "Sales Revenue", "Revenue", new DateOnly(2026, 6, 5), "JE-1", "SalesInvoice", null, null, 0m, 900_000m),
+                new(cash, "1000", "Cash", "Asset", new DateOnly(2026, 6, 5), "JE-1", "SalesInvoice", null, null, 900_000m, 0m),
+            });
+
+        var result = await new GetGeneralLedgerHandler(_store)
+            .Handle(new GetGeneralLedgerQuery(null, null, null), CancellationToken.None);
+
+        var accounts = result.Value.Accounts;
+        accounts.Should().HaveCount(2);
+        accounts[0].AccountCode.Should().Be("1000");       // ordered by code
+        accounts[0].OpeningBalance.Should().Be(0m);
+        accounts[0].ClosingBalance.Should().Be(900_000m);
+        accounts[1].AccountCode.Should().Be("4000");
+        accounts[1].ClosingBalance.Should().Be(-900_000m); // signed debit − credit
+        await _store.DidNotReceive().GetTrialBalanceAsync(Arg.Any<DateOnly?>(), Arg.Any<DateOnly?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task CashFlow_classifies_equity_movement_as_financing()
     {
         // Owner injects 500,000 capital: Dr Bank / Cr Retained Earnings.

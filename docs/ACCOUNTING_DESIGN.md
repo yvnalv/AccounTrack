@@ -138,7 +138,9 @@ Derived from GL + snapshots (ADR-0022), never transactional tables:
   cash/bank (10xx) is the reconciling target, so the three sections always sum to the actual change
   in cash. Investing (non-current assets) & financing-debt detail refine when those accounts exist.
 - **AR/AP Aging** — from open items.
-- **General Ledger / Account Detail** — line-level with drill-down to source documents.
+- **General Ledger / Account Detail** — line-level with drill-down to source documents. Implemented
+  (CHG-0058): posted lines over a period, optional single-account filter, per-account opening balance
+  carried into a running balance + closing; signed debit − credit, reconciles to the Trial Balance.
 - **VAT report** — Output vs Input.
 
 All reports are **company-scoped** and permission-gated; consolidated multi-company reporting

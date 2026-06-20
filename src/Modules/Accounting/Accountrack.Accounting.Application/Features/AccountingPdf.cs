@@ -206,3 +206,51 @@ public sealed class GetCashFlowPdfHandler : IQueryHandler<GetCashFlowPdfQuery, P
             new[] { "", "Amount" }, rows, footer);
     }
 }
+
+// ---- General Ledger / Account detail ----
+public sealed record GetGeneralLedgerPdfQuery(Guid? AccountId, DateOnly? FromDate, DateOnly? ToDate) : IQuery<PdfReport>;
+
+public sealed class GetGeneralLedgerPdfHandler : IQueryHandler<GetGeneralLedgerPdfQuery, PdfReport>
+{
+    private readonly ISender _sender;
+    private readonly ICompanyDirectory _companies;
+    private readonly ITenantContext _tenant;
+    public GetGeneralLedgerPdfHandler(ISender sender, ICompanyDirectory companies, ITenantContext tenant)
+    { _sender = sender; _companies = companies; _tenant = tenant; }
+
+    public async Task<Result<PdfReport>> Handle(GetGeneralLedgerPdfQuery request, CancellationToken ct)
+    {
+        var report = await _sender.Send(new GetGeneralLedgerQuery(request.AccountId, request.FromDate, request.ToDate), ct);
+        if (report.IsFailure) return report.Error;
+        var gl = report.Value;
+        var (company, footer) = await ReportPdf.CompanyAsync(_companies, _tenant, ct);
+
+        var rows = new List<PdfReportRow>();
+        foreach (var acc in gl.Accounts)
+        {
+            rows.Add(new PdfReportRow(new[] { $"{acc.AccountCode}  {acc.AccountName}" }, PdfRowStyle.SectionHeader));
+            rows.Add(new PdfReportRow(new[] { "    Opening balance", null, null, ReportPdf.Amt(acc.OpeningBalance) }));
+            foreach (var e in acc.Entries)
+            {
+                var label = $"    {e.Date:yyyy-MM-dd} · {e.EntryNo} · {e.Source}"
+                    + (string.IsNullOrWhiteSpace(e.Description) ? "" : $" — {e.Description}");
+                rows.Add(new PdfReportRow(new[]
+                {
+                    label, ReportPdf.AmtOrBlank(e.Debit), ReportPdf.AmtOrBlank(e.Credit), ReportPdf.Amt(e.RunningBalance),
+                }));
+            }
+            rows.Add(new PdfReportRow(new[]
+            {
+                "Closing balance", ReportPdf.Amt(acc.TotalDebit), ReportPdf.Amt(acc.TotalCredit), ReportPdf.Amt(acc.ClosingBalance),
+            }, PdfRowStyle.Subtotal));
+        }
+
+        if (rows.Count == 0)
+        {
+            rows.Add(new PdfReportRow(new[] { "No journal activity in this period." }));
+        }
+
+        return new PdfReport("General Ledger", ReportPdf.Period(gl.FromDate, gl.ToDate), company,
+            new[] { "Account / Entry", "Debit", "Credit", "Balance" }, rows, footer);
+    }
+}

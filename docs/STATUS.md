@@ -8,11 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-20 (last change **CHG-0057**)
-- **Build:** green — backend `net8.0` (257 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Inventory slice 2** — stock adjustments post Dr/Cr Inventory↔Variance to the GL
-  atomically + **stock opname** (count→reconcile), with Adjust/Count screen actions (CHG-0057).
-  **Cash Flow Statement** (CHG-0056) completed the core financial-report set.
+- **As of:** 2026-06-20 (last change **CHG-0058**)
+- **Build:** green — backend `net8.0` (259 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **General Ledger / Account-detail report** — line-level drill-down with opening→running→
+  closing balances, account filter, PDF (CHG-0058). Inventory slice 2 GL posting + opname (CHG-0057);
+  Cash Flow Statement (CHG-0056).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -66,8 +66,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   **Delivery Order** → atomic stock issue + Dr COGS/Cr Inventory (CHG-0023); **Sales Invoice** →
   atomic Dr AR/Cr Revenue+VAT + AR open item (CHG-0024); **Customer Payment** → atomic Dr Cash-Bank/
   Cr AR + AR allocation (CHG-0025). (Returns are a later enhancement.)
-- 🟡 **Reporting** — P&L, Balance Sheet, **VAT (CHG-0043)**, **Cash Flow — indirect method
-  (CHG-0056)**, AR/AP aging done; inventory valuation + GL/account detail open
+- 🟡 **Reporting** — P&L, Balance Sheet, **VAT (CHG-0043)**, **Cash Flow (CHG-0056)**,
+  **General Ledger / account detail (CHG-0058)**, AR/AP aging done; inventory valuation report open
 
 ### Phase 3 / 4
 - ◻️ Manufacturing, CRM, Assets, Payroll, multi-currency, FIFO, AI/BI (see ROADMAP.md)
@@ -122,8 +122,8 @@ locale; refresh-token rotation; self-hosted font.
 Backend threads that can be picked up independently if desired (none block the frontend):
 - **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021). Remaining:
   same-transaction key write (exactly-once) + RowVersion concurrency.
-- **Reporting:** Cash Flow, AR/AP aging already exist; **VAT report (Output − Input) — done
-  (CHG-0043)**; GL/account detail still open.
+- **Reporting:** Cash Flow, AR/AP aging, **VAT (CHG-0043)**, **General Ledger / account detail
+  (CHG-0058)** done; inventory valuation report still open.
 - **Accounting:** period-close balance snapshots, year-end close to retained earnings.
 - **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); remaining:
   per-company negative-stock setting, back-dating recompute.

@@ -51,6 +51,12 @@ public sealed record TrialBalanceRow(
 /// <summary>Period debit/credit movement on a single account, derived from posted journal lines.</summary>
 public sealed record AccountMovementRow(Guid AccountId, decimal Debit, decimal Credit);
 
+/// <summary>A single posted journal line with its account and source entry, for the GL detail report.</summary>
+public sealed record GeneralLedgerLineRow(
+    Guid AccountId, string AccountCode, string AccountName, string AccountType,
+    DateOnly Date, string EntryNo, string Source, Guid? SourceDocumentId, string? Description,
+    decimal Debit, decimal Credit);
+
 public interface IAccountingReadStore
 {
     Task<IReadOnlyList<TrialBalanceRow>> GetTrialBalanceAsync(DateOnly? fromDate, DateOnly? toDate, CancellationToken ct);
@@ -58,6 +64,10 @@ public interface IAccountingReadStore
     /// <summary>Summed debit/credit per account over the period for the given accounts (posted lines only).</summary>
     Task<IReadOnlyList<AccountMovementRow>> GetAccountMovementsAsync(
         IReadOnlyCollection<Guid> accountIds, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct);
+
+    /// <summary>Posted journal lines (optionally for one account) over a period, ordered by account then date.</summary>
+    Task<IReadOnlyList<GeneralLedgerLineRow>> GetGeneralLedgerAsync(
+        Guid? accountId, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct);
 }
 
 public interface IPostingRuleRepository

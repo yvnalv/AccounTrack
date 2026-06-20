@@ -74,3 +74,33 @@ export interface BalanceSheet {
   totalLiabilitiesAndEquity: number
   isBalanced: boolean
 }
+
+export interface GeneralLedgerEntry {
+  date: string
+  entryNo: string
+  source: string
+  sourceDocumentId: string | null
+  description: string | null
+  debit: number
+  credit: number
+  runningBalance: number
+}
+
+export interface GeneralLedgerAccount {
+  accountId: string
+  accountCode: string
+  accountName: string
+  accountType: string
+  openingBalance: number
+  entries: GeneralLedgerEntry[]
+  totalDebit: number
+  totalCredit: number
+  closingBalance: number
+}
+
+export interface GeneralLedger {
+  fromDate: string | null
+  toDate: string | null
+  accountId: string | null
+  accounts: GeneralLedgerAccount[]
+}
