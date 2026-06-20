@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-06-20 10:10:47 UTC]
+
+CHG-0052 — PDF documents — Invoice + Quotation (ADR-0031)
+
+- Added **PDF generation** via **QuestPDF** (Community License, set at startup). A format-neutral
+  `PdfDocument` model (SharedKernel) is assembled by handlers and rendered by a modern, reusable
+  `PdfRenderer` (Web.Common): brand-teal title + table header, generous whitespace, From / Bill-To
+  blocks, right-aligned tabular money, zebra line rows, an emphasised grand total, notes, and a
+  page-numbered footer.
+- **Documents:** **Sales Invoice** PDF (`GET /api/v1/sales-invoices/{id}/pdf`) and **Quotation** PDF
+  rendered from a sales order (`GET /api/v1/sales-orders/{id}/quotation-pdf`), both `Sales.View`.
+  Product/customer names resolved via `IMasterDataLookup`; seller block (name + NPWP) comes from the
+  company — `ICompanyDirectory.CompanyInfo` extended with `Name`/`LegalName`/`TaxId`.
+- **Frontend:** a **Quotation PDF** button on the Sales Order detail header and a **PDF** action per
+  invoice in its invoices list; a shared `downloadFile` helper. EN/ID strings.
+- **Tests:** +1 (`PdfRenderer` produces a valid `%PDF`). Full suite **251** green.
+- **Verified (e2e):** invoice + quotation download as `application/pdf` (`%PDF-1.7`, ~72 KB) with the
+  company header (name + tax id), line items, and totals.
+- **Next:** financial-report PDFs (TB/P&L/BS/VAT) and purchase-document PDFs reuse the same renderer.
+
+---
+
 ## [2026-06-20 09:51:08 UTC]
 
 CHG-0051 — Excel (.xlsx) export + export across every list menu (ADR-0031)

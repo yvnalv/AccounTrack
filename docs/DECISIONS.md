@@ -560,7 +560,10 @@ master-data entities (customers/suppliers/warehouses/products); products resolve
 **Export** is format-aware (`?format=csv|xlsx`) via a shared `TabularData` payload + `TableExport`
 renderer, rolled out to **every list menu**: master data, sales orders, purchase orders, inventory
 on-hand, and expense vouchers. Document **import** stays master-data-only — posted documents are
-immutable (ADR-0029). **PDF** for financial reports/documents is the next layer (planned via
-**QuestPDF**, whose Community License is free under USD 1M revenue — revisit if that threshold is
-crossed). Permission-gated by `MasterData.Import`/`MasterData.Export` (master data) and module `View`
-(list exports); async large-file handling is still future.
+immutable (ADR-0029). **PDF** uses **QuestPDF** (Community License — free under USD 1M revenue; the
+license is set at startup; revisit if that threshold is crossed): a format-neutral `PdfDocument`
+model (SharedKernel) is assembled by handlers and rendered by a styled `PdfRenderer` (Web.Common) —
+first documents are the **sales Invoice** and the **Quotation** (from a sales order); financial-report
+and other document PDFs reuse the same renderer next. Permission-gated by `MasterData.Import`/
+`MasterData.Export` (master data) and module `View` (list exports + document PDFs); async large-file
+handling is still future.

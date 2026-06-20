@@ -1,6 +1,7 @@
 using Accountrack.Sales.Application.Features;
 using Accountrack.SharedKernel.Results;
 using Accountrack.Web.Common.Export;
+using Accountrack.Web.Common.Pdf;
 using Accountrack.Web.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -24,6 +25,10 @@ public static class SalesEndpoints
 
         so.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) => Send(s.Send(new GetSalesOrderQuery(id), ct)))
             .RequireAuthorization("Sales.View").WithName("GetSalesOrder");
+
+        so.MapGet("/{id:guid}/quotation-pdf", (Guid id, ISender s, CancellationToken ct) =>
+                PdfRenderer.File(s.Send(new GetQuotationPdfQuery(id), ct), "quotation"))
+            .RequireAuthorization("Sales.View").WithName("GetQuotationPdf");
 
         so.MapPost("/", (CreateSalesOrderCommand c, ISender s, CancellationToken ct) =>
                 Created(s.Send(c, ct), "/api/v1/sales-orders"))
@@ -64,6 +69,10 @@ public static class SalesEndpoints
         si.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetSalesInvoiceQuery(id), ct)))
             .RequireAuthorization("Sales.View").WithName("GetSalesInvoice");
+
+        si.MapGet("/{id:guid}/pdf", (Guid id, ISender s, CancellationToken ct) =>
+                PdfRenderer.File(s.Send(new GetSalesInvoicePdfQuery(id), ct), "invoice"))
+            .RequireAuthorization("Sales.View").WithName("GetSalesInvoicePdf");
 
         si.MapPost("/{id:guid}/returns", (Guid id, ReturnGoodsRequest body, ISender s, CancellationToken ct) =>
                 Created(s.Send(new PostSalesReturnCommand(id, body.ReturnDate, body.Notes, body.Lines), ct),

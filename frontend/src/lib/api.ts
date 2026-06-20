@@ -21,6 +21,20 @@ export function getAuthToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
 
+/** Streams any authenticated GET endpoint to a browser download (PDF, etc.). */
+export async function downloadFile(path: string, fileName: string): Promise<void> {
+  const res = await fetch(`/api/v1${path}`, {
+    headers: { Authorization: `Bearer ${getAuthToken() ?? ''}` },
+  })
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export type ExportFormat = 'csv' | 'xlsx'
 
 /** Streams an export endpoint to a browser download in the chosen format (ADR-0031). */

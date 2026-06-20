@@ -104,6 +104,8 @@ export default {
       returns: 'Retur (nota kredit)',
       noDeliveries: 'Belum ada pengiriman.',
       noInvoices: 'Belum ada faktur.',
+      quotationPdf: 'PDF Penawaran',
+      pdf: 'PDF',
       return: 'Retur',
       returnTitle: 'Retur barang',
       returnable: 'Dapat diretur',

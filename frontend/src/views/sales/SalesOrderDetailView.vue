@@ -2,8 +2,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, Undo2 } from 'lucide-vue-next'
+import { ArrowLeft, Undo2, FileText } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
+import { downloadFile } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import type {
@@ -178,6 +179,12 @@ onMounted(load)
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
+          <button
+            class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+            @click="downloadFile(`/sales-orders/${order.id}/quotation-pdf`, `quotation-${order.number}.pdf`)"
+          >
+            <FileText :size="16" /> {{ t('sales.detail.quotationPdf') }}
+          </button>
           <AppButton v-if="order.status === 'Draft'" :disabled="busy !== ''" @click="submit">
             {{ busy === 'submit' ? t('sales.detail.submitting') : t('sales.detail.submit') }}
           </AppButton>
@@ -272,13 +279,21 @@ onMounted(load)
                   <StatusBadge v-if="inv.journalEntryId" tone="positive" :label="t('sales.detail.posted')" />
                 </td>
                 <td class="px-3 py-2.5 text-right">
-                  <button
-                    v-if="inv.journalEntryId"
-                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
-                    @click="openReturn(inv)"
-                  >
-                    <Undo2 :size="14" /> {{ t('sales.detail.return') }}
-                  </button>
+                  <div class="flex items-center justify-end gap-1">
+                    <button
+                      class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                      @click="downloadFile(`/sales-invoices/${inv.id}/pdf`, `invoice-${inv.number}.pdf`)"
+                    >
+                      <FileText :size="14" /> {{ t('sales.detail.pdf') }}
+                    </button>
+                    <button
+                      v-if="inv.journalEntryId"
+                      class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                      @click="openReturn(inv)"
+                    >
+                      <Undo2 :size="14" /> {{ t('sales.detail.return') }}
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>

@@ -37,6 +37,9 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// QuestPDF Community License (ADR-0031) — free for companies/individuals under USD 1M revenue.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 // --- Ambient context ports (now backed by the authenticated principal) ---
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IClock, SystemClock>();

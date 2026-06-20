@@ -103,6 +103,8 @@ export default {
       returns: 'Returns (credit notes)',
       noDeliveries: 'No deliveries yet.',
       noInvoices: 'No invoices yet.',
+      quotationPdf: 'Quotation PDF',
+      pdf: 'PDF',
       return: 'Return',
       returnTitle: 'Return goods',
       returnable: 'Returnable',
