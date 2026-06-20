@@ -93,3 +93,99 @@ public sealed class GetBalanceSheetHandler : IQueryHandler<GetBalanceSheetQuery,
             totalEquity, totalLiabilitiesAndEquity, totalAssets == totalLiabilitiesAndEquity);
     }
 }
+
+// ---- Cash Flow Statement ----
+public sealed record CashFlowLineDto(string AccountCode, string AccountName, decimal Amount);
+
+public sealed record CashFlowSectionDto(IReadOnlyList<CashFlowLineDto> Lines, decimal Total);
+
+public sealed record CashFlowStatementDto(
+    DateOnly? FromDate, DateOnly? ToDate,
+    decimal NetIncome,
+    CashFlowSectionDto Operating,
+    CashFlowSectionDto Investing,
+    CashFlowSectionDto Financing,
+    decimal NetChangeInCash,
+    decimal OpeningCash, decimal ClosingCash, bool IsReconciled);
+
+/// <summary>
+/// Cash Flow Statement for a period, derived from the GL by the <b>indirect method</b> (ADR-0008).
+/// Starts from net income and adjusts for the period movement of every non-cash balance-sheet
+/// account: non-cash assets and operating liabilities are classified as Operating working capital,
+/// equity movements (e.g. owner capital) as Financing. Cash &amp; bank accounts (the 10xx code band,
+/// per the dashboard convention) are the reconciling target, never an activity line. By the
+/// double-entry identity the three sections always sum to the actual change in cash, so the
+/// statement reconciles opening + net change == closing cash. Investing (non-current assets) and
+/// financing-debt are refined in a later phase when those accounts exist.
+/// </summary>
+public sealed record GetCashFlowStatementQuery(DateOnly? FromDate, DateOnly? ToDate) : IQuery<CashFlowStatementDto>;
+
+public sealed class GetCashFlowStatementHandler : IQueryHandler<GetCashFlowStatementQuery, CashFlowStatementDto>
+{
+    private readonly IAccountingReadStore _store;
+
+    public GetCashFlowStatementHandler(IAccountingReadStore store) => _store = store;
+
+    private static bool IsCash(TrialBalanceRow r) =>
+        r.AccountType == "Asset" && r.AccountCode.StartsWith("10", StringComparison.Ordinal);
+
+    private static decimal CashBalance(IEnumerable<TrialBalanceRow> rows) =>
+        rows.Where(IsCash).Sum(r => r.Debit - r.Credit);
+
+    public async Task<Result<CashFlowStatementDto>> Handle(GetCashFlowStatementQuery request, CancellationToken ct)
+    {
+        var period = await _store.GetTrialBalanceAsync(request.FromDate, request.ToDate, ct);
+
+        var netIncome =
+            period.Where(r => r.AccountType == "Revenue").Sum(r => r.Credit - r.Debit)
+            - period.Where(r => r.AccountType == "Expense").Sum(r => r.Debit - r.Credit);
+
+        var operating = new List<CashFlowLineDto>();
+        var investing = new List<CashFlowLineDto>();
+        var financing = new List<CashFlowLineDto>();
+
+        foreach (var r in period)
+        {
+            if (IsCash(r))
+            {
+                continue; // reconciling target, not an activity
+            }
+
+            switch (r.AccountType)
+            {
+                case "Asset":
+                    // an increase in a non-cash asset consumes cash
+                    var assetAdj = -(r.Debit - r.Credit);
+                    if (assetAdj != 0) operating.Add(new CashFlowLineDto(r.AccountCode, r.AccountName, assetAdj));
+                    break;
+                case "Liability":
+                    var liabAdj = r.Credit - r.Debit;
+                    if (liabAdj != 0) operating.Add(new CashFlowLineDto(r.AccountCode, r.AccountName, liabAdj));
+                    break;
+                case "Equity":
+                    var eqAdj = r.Credit - r.Debit;
+                    if (eqAdj != 0) financing.Add(new CashFlowLineDto(r.AccountCode, r.AccountName, eqAdj));
+                    break;
+            }
+        }
+
+        var operatingTotal = netIncome + operating.Sum(l => l.Amount);
+        var investingTotal = investing.Sum(l => l.Amount);
+        var financingTotal = financing.Sum(l => l.Amount);
+        var netChange = operatingTotal + investingTotal + financingTotal;
+
+        // Opening cash = cash balance up to the day before the period; closing = cash to period end.
+        var opening = request.FromDate is { } from
+            ? CashBalance(await _store.GetTrialBalanceAsync(null, from.AddDays(-1), ct))
+            : 0m;
+        var actualClosing = CashBalance(await _store.GetTrialBalanceAsync(null, request.ToDate, ct));
+        var closing = opening + netChange;
+
+        return new CashFlowStatementDto(
+            request.FromDate, request.ToDate, netIncome,
+            new CashFlowSectionDto(operating, operatingTotal),
+            new CashFlowSectionDto(investing, investingTotal),
+            new CashFlowSectionDto(financing, financingTotal),
+            netChange, opening, closing, Math.Abs(closing - actualClosing) < 0.005m);
+    }
+}

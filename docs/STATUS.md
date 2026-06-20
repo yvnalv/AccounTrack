@@ -8,9 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-20 (last change **CHG-0054**)
-- **Build:** green — backend `net8.0` (251 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **purchase-document PDFs** (PO + bill) + **brand-logo polish** across all PDFs (CHG-0054).
+- **As of:** 2026-06-20 (last change **CHG-0056**)
+- **Build:** green — backend `net8.0` (253 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Cash Flow Statement** (indirect method) — report + PDF + screen (CHG-0056),
+  completing the core financial-report set. Dev **dummy-data seed script** added (CHG-0055).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -62,8 +63,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   **Delivery Order** → atomic stock issue + Dr COGS/Cr Inventory (CHG-0023); **Sales Invoice** →
   atomic Dr AR/Cr Revenue+VAT + AR open item (CHG-0024); **Customer Payment** → atomic Dr Cash-Bank/
   Cr AR + AR allocation (CHG-0025). (Returns are a later enhancement.)
-- 🟡 **Reporting** — P&L, Balance Sheet, Cash Flow, AR/AP aging, **VAT (CHG-0043)** done; inventory
-  valuation + GL/account detail open
+- 🟡 **Reporting** — P&L, Balance Sheet, **VAT (CHG-0043)**, **Cash Flow — indirect method
+  (CHG-0056)**, AR/AP aging done; inventory valuation + GL/account detail open
 
 ### Phase 3 / 4
 - ◻️ Manufacturing, CRM, Assets, Payroll, multi-currency, FIFO, AI/BI (see ROADMAP.md)
@@ -88,8 +89,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   Remaining: optional Plus Jakarta Sans font embedding, list-export-with-active-filters, Excel
   *import*, async large files. (BR-IMP-*.)
 - **Accounting slice 2 (remaining):** period-close balance snapshots, year-end close to retained
-  earnings, Cash Flow report. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017;
-  AR/AP subledgers — CHG-0018.)
+  earnings. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017; AR/AP subledgers —
+  CHG-0018; **Cash Flow — CHG-0056**.)
 - **Inventory slice 2:** GL posting on stock moves (Dr/Cr Inventory/COGS/Variance), stock opname,
   per-company negative-stock setting, back-dating recompute.
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
@@ -129,7 +130,7 @@ frontend**, which requires the **UI/UX design discussion** before any build (use
 template/AI-ish). Pause and raise it then.
 
 Other open threads (not blocking): a dev **customer seed** (none seeded today); **Inventory slice 2**
-GL posting on adjustments/transfers; **Accounting** period-close snapshots / Cash Flow; purchase/sales
+GL posting on adjustments/transfers; **Accounting** period-close snapshots / year-end close; purchase/sales
 **returns**; idempotency **exactly-once** hardening (same-transaction key + RowVersion).
 
 ## How to resume

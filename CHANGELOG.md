@@ -1,5 +1,34 @@
 # Accountrack Changelog
 
+## [2026-06-20 12:34:05 UTC]
+
+CHG-0056 — Cash Flow Statement (indirect method) — report + PDF + screen
+
+- New **Cash Flow Statement** completing the core financial-report set (TB / P&L /
+  Balance Sheet / VAT / **Cash Flow**). Derived from the GL by the **indirect
+  method**: starts from net income and adjusts for the period movement of every
+  non-cash balance-sheet account — non-cash assets and operating liabilities as
+  Operating working capital, equity movements (e.g. owner capital) as Financing.
+  Cash & bank (the 10xx code band) is the reconciling target. By the double-entry
+  identity the three sections always sum to the actual change in cash, so the
+  statement reconciles opening + net change == closing.
+- `GET /api/v1/reports/cash-flow` and `/reports/cash-flow/pdf` (`Accounting.View`);
+  the PDF reuses the report renderer (brand logo, section/subtotal/grand-total rows).
+- **Frontend:** a **Cash flow** tab in Accounting (+ command-palette entry + route)
+  with Operating / Investing / Financing sections, a net-change → opening → closing
+  reconciliation block with a Reconciled badge, period filters, and PDF download.
+  EN/ID strings.
+- **Tests:** +2 (indirect-method reconciliation; equity-as-financing classification).
+  Full suite **253** green; frontend builds.
+- **Verified (e2e):** against the seeded company the statement reconciles exactly —
+  net change in cash == closing cash == dashboard cash & bank (Rp 5,895,334,250),
+  `isReconciled: true`; PDF downloads as valid `application/pdf`.
+- **Remaining (Accounting slice 2):** period-close balance snapshots, year-end close
+  to retained earnings. Investing (non-current assets) and financing-debt detail
+  refine when those accounts exist.
+
+---
+
 ## [2026-06-20 11:52:10 UTC]
 
 CHG-0055 — Dev seed script — realistic demo data (`scripts/seed_dummy_data.py`)

@@ -57,4 +57,49 @@ public class FinancialReportsTests
         bs.TotalLiabilitiesAndEquity.Should().Be(400_000m);
         bs.IsBalanced.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task CashFlow_indirect_method_reconciles_to_change_in_cash()
+    {
+        // Sale of goods: net income 400,000; inventory fell 600,000 (a source of cash).
+        _store.GetTrialBalanceAsync(Arg.Any<DateOnly?>(), Arg.Any<DateOnly?>(), Arg.Any<CancellationToken>())
+            .Returns(SampleRows());
+
+        var result = await new GetCashFlowStatementHandler(_store)
+            .Handle(new GetCashFlowStatementQuery(null, null), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var cf = result.Value;
+        cf.NetIncome.Should().Be(400_000m);
+        // releasing 600,000 of inventory is a positive operating adjustment
+        cf.Operating.Lines.Should().ContainSingle(l => l.AccountCode == "1200" && l.Amount == 600_000m);
+        cf.Operating.Total.Should().Be(1_000_000m);
+        cf.NetChangeInCash.Should().Be(1_000_000m);   // equals the Dr to Cash 1000
+        cf.OpeningCash.Should().Be(0m);
+        cf.ClosingCash.Should().Be(1_000_000m);
+        cf.IsReconciled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CashFlow_classifies_equity_movement_as_financing()
+    {
+        // Owner injects 500,000 capital: Dr Bank / Cr Retained Earnings.
+        var rows = new List<TrialBalanceRow>
+        {
+            new("1010", "Bank", "Asset", 500_000m, 0m, 500_000m),
+            new("3900", "Retained Earnings", "Equity", 0m, 500_000m, -500_000m),
+        };
+        _store.GetTrialBalanceAsync(Arg.Any<DateOnly?>(), Arg.Any<DateOnly?>(), Arg.Any<CancellationToken>())
+            .Returns(rows);
+
+        var cf = (await new GetCashFlowStatementHandler(_store)
+            .Handle(new GetCashFlowStatementQuery(null, null), CancellationToken.None)).Value;
+
+        cf.NetIncome.Should().Be(0m);
+        cf.Operating.Total.Should().Be(0m);
+        cf.Financing.Lines.Should().ContainSingle(l => l.AccountCode == "3900" && l.Amount == 500_000m);
+        cf.Financing.Total.Should().Be(500_000m);
+        cf.NetChangeInCash.Should().Be(500_000m);
+        cf.IsReconciled.Should().BeTrue();
+    }
 }

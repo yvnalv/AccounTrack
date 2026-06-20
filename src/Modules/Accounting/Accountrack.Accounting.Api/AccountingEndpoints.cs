@@ -86,6 +86,10 @@ public static class AccountingEndpoints
             (await sender.Send(new GetVatReportQuery(fromDate, toDate), ct)).ToHttpResult())
             .WithName("GetVatReport");
 
+        reports.MapGet("/cash-flow", async (DateOnly? fromDate, DateOnly? toDate, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetCashFlowStatementQuery(fromDate, toDate), ct)).ToHttpResult())
+            .WithName("GetCashFlowStatement");
+
         // --- Report PDFs (ADR-0031) ---
         reports.MapGet("/trial-balance/pdf", (DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
                 PdfRenderer.ReportFile(s.Send(new GetTrialBalancePdfQuery(fromDate, toDate), ct), "trial-balance"))
@@ -102,6 +106,10 @@ public static class AccountingEndpoints
         reports.MapGet("/vat/pdf", (DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
                 PdfRenderer.ReportFile(s.Send(new GetVatReportPdfQuery(fromDate, toDate), ct), "vat-report"))
             .WithName("GetVatReportPdf");
+
+        reports.MapGet("/cash-flow/pdf", (DateOnly? fromDate, DateOnly? toDate, ISender s, CancellationToken ct) =>
+                PdfRenderer.ReportFile(s.Send(new GetCashFlowPdfQuery(fromDate, toDate), ct), "cash-flow"))
+            .WithName("GetCashFlowStatementPdf");
 
         // --- Dashboard ---
         app.MapGet("/api/v1/dashboard/summary", async (ISender sender, CancellationToken ct) =>

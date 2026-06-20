@@ -160,3 +160,49 @@ public sealed class GetVatReportPdfHandler : IQueryHandler<GetVatReportPdfQuery,
             new[] { "Description", "Amount" }, rows, footer);
     }
 }
+
+// ---- Cash Flow Statement ----
+public sealed record GetCashFlowPdfQuery(DateOnly? FromDate, DateOnly? ToDate) : IQuery<PdfReport>;
+
+public sealed class GetCashFlowPdfHandler : IQueryHandler<GetCashFlowPdfQuery, PdfReport>
+{
+    private readonly ISender _sender;
+    private readonly ICompanyDirectory _companies;
+    private readonly ITenantContext _tenant;
+    public GetCashFlowPdfHandler(ISender sender, ICompanyDirectory companies, ITenantContext tenant)
+    { _sender = sender; _companies = companies; _tenant = tenant; }
+
+    public async Task<Result<PdfReport>> Handle(GetCashFlowPdfQuery request, CancellationToken ct)
+    {
+        var report = await _sender.Send(new GetCashFlowStatementQuery(request.FromDate, request.ToDate), ct);
+        if (report.IsFailure) return report.Error;
+        var cf = report.Value;
+        var (company, footer) = await ReportPdf.CompanyAsync(_companies, _tenant, ct);
+
+        var rows = new List<PdfReportRow>
+        {
+            new(new[] { "Operating activities" }, PdfRowStyle.SectionHeader),
+            new(new[] { "    Net income", ReportPdf.Amt(cf.NetIncome) }),
+        };
+        rows.AddRange(cf.Operating.Lines.Select(l => new PdfReportRow(
+            new[] { $"    {l.AccountName}", ReportPdf.Amt(l.Amount) })));
+        rows.Add(new PdfReportRow(new[] { "Net cash from operating", ReportPdf.Amt(cf.Operating.Total) }, PdfRowStyle.Subtotal));
+
+        rows.Add(new PdfReportRow(new[] { "Investing activities" }, PdfRowStyle.SectionHeader));
+        rows.AddRange(cf.Investing.Lines.Select(l => new PdfReportRow(
+            new[] { $"    {l.AccountName}", ReportPdf.Amt(l.Amount) })));
+        rows.Add(new PdfReportRow(new[] { "Net cash from investing", ReportPdf.Amt(cf.Investing.Total) }, PdfRowStyle.Subtotal));
+
+        rows.Add(new PdfReportRow(new[] { "Financing activities" }, PdfRowStyle.SectionHeader));
+        rows.AddRange(cf.Financing.Lines.Select(l => new PdfReportRow(
+            new[] { $"    {l.AccountName}", ReportPdf.Amt(l.Amount) })));
+        rows.Add(new PdfReportRow(new[] { "Net cash from financing", ReportPdf.Amt(cf.Financing.Total) }, PdfRowStyle.Subtotal));
+
+        rows.Add(new PdfReportRow(new[] { "Net change in cash", ReportPdf.Amt(cf.NetChangeInCash) }, PdfRowStyle.GrandTotal));
+        rows.Add(new PdfReportRow(new[] { "    Cash at beginning of period", ReportPdf.Amt(cf.OpeningCash) }));
+        rows.Add(new PdfReportRow(new[] { "Cash at end of period", ReportPdf.Amt(cf.ClosingCash) }, PdfRowStyle.Subtotal));
+
+        return new PdfReport("Cash Flow Statement", ReportPdf.Period(cf.FromDate, cf.ToDate), company,
+            new[] { "", "Amount" }, rows, footer);
+    }
+}

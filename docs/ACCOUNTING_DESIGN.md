@@ -133,7 +133,10 @@ Derived from GL + snapshots (ADR-0022), never transactional tables:
 - **Trial Balance** — all accounts' debit/credit; must balance.
 - **Profit & Loss** — Revenue − Expense for a period range.
 - **Balance Sheet** — Assets = Liabilities + Equity as of a date.
-- **Cash Flow** — initially indirect method from P&L + balance-sheet movements.
+- **Cash Flow** — indirect method (CHG-0056): net income + period movement of every non-cash
+  balance-sheet account (non-cash assets & operating liabilities → Operating; equity → Financing);
+  cash/bank (10xx) is the reconciling target, so the three sections always sum to the actual change
+  in cash. Investing (non-current assets) & financing-debt detail refine when those accounts exist.
 - **AR/AP Aging** — from open items.
 - **General Ledger / Account Detail** — line-level with drill-down to source documents.
 - **VAT report** — Output vs Input.

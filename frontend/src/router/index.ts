@@ -34,6 +34,7 @@ const router = createRouter({
             { path: 'trial-balance', name: 'accountingTrialBalance', component: () => import('@/views/accounting/TrialBalanceView.vue') },
             { path: 'profit-loss', name: 'accountingProfitLoss', component: () => import('@/views/accounting/ProfitLossView.vue') },
             { path: 'balance-sheet', name: 'accountingBalanceSheet', component: () => import('@/views/accounting/BalanceSheetView.vue') },
+            { path: 'cash-flow', name: 'accountingCashFlow', component: () => import('@/views/accounting/CashFlowView.vue') },
             { path: 'vat', name: 'accountingVat', component: () => import('@/views/accounting/VatReportView.vue') },
           ],
         },

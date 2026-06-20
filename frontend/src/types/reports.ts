@@ -44,6 +44,24 @@ export interface VatReport {
   netVatPayable: number
 }
 
+export interface CashFlowSection {
+  lines: ReportLine[]
+  total: number
+}
+
+export interface CashFlowStatement {
+  fromDate: string | null
+  toDate: string | null
+  netIncome: number
+  operating: CashFlowSection
+  investing: CashFlowSection
+  financing: CashFlowSection
+  netChangeInCash: number
+  openingCash: number
+  closingCash: number
+  isReconciled: boolean
+}
+
 export interface BalanceSheet {
   asOfDate: string
   assets: ReportLine[]
