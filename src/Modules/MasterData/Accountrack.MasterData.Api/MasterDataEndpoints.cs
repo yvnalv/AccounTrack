@@ -11,6 +11,8 @@ public static class MasterDataEndpoints
 {
     private const string View = "MasterData.View";
     private const string Manage = "MasterData.Manage";
+    private const string Import = "MasterData.Import";
+    private const string Export = "MasterData.Export";
 
     public static IEndpointRouteBuilder MapMasterDataEndpoints(this IEndpointRouteBuilder app)
     {
@@ -37,6 +39,23 @@ public static class MasterDataEndpoints
             Send(s.Send(new UpdateCustomerCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.CreditLimit), ct))).RequireAuthorization(Manage);
         customers.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetCustomerActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
+
+        // --- Import / export (ADR-0031) ---
+        customers.MapGet("/import/template", () =>
+                Results.File(System.Text.Encoding.UTF8.GetBytes(CustomerImportColumns.Template()), "text/csv", "customers-template.csv"))
+            .RequireAuthorization(Import).WithName("CustomerImportTemplate");
+
+        customers.MapPost("/import/preview", async (IFormFile file, ISender s, CancellationToken ct) =>
+                await Send(s.Send(new PreviewCustomerImportQuery(await ReadAsync(file, ct)), ct)))
+            .RequireAuthorization(Import).DisableAntiforgery().WithName("CustomerImportPreview");
+
+        customers.MapPost("/import/commit", async (IFormFile file, ISender s, CancellationToken ct) =>
+                await Send(s.Send(new CommitCustomerImportCommand(await ReadAsync(file, ct)), ct)))
+            .RequireAuthorization(Import).DisableAntiforgery().WithName("CustomerImportCommit");
+
+        customers.MapGet("/export", async (ISender s, CancellationToken ct) =>
+                await Csv(s.Send(new ExportCustomersQuery(), ct), "customers.csv"))
+            .RequireAuthorization(Export).WithName("CustomerExport");
 
         var suppliers = app.MapGroup("/api/v1/suppliers").WithTags("Suppliers").RequireAuthorization();
         suppliers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetSuppliersQuery(), ct))).RequireAuthorization(View);
@@ -67,6 +86,21 @@ public static class MasterDataEndpoints
     public sealed record UpdateSupplierBody(string Name, string? TaxId, int PaymentTermDays);
     public sealed record UpdateWarehouseBody(string Name, string? Address);
     public sealed record UpdateProductBody(string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased);
+
+    private static async Task<string> ReadAsync(IFormFile file, CancellationToken ct)
+    {
+        using var reader = new StreamReader(file.OpenReadStream());
+        return await reader.ReadToEndAsync(ct);
+    }
+
+    /// <summary>Returns a successful CSV <see cref="SharedKernel.Results.Result{T}"/> as a file download.</summary>
+    private static async Task<IResult> Csv(Task<SharedKernel.Results.Result<string>> task, string fileName)
+    {
+        var result = await task;
+        return result.IsSuccess
+            ? Results.File(System.Text.Encoding.UTF8.GetBytes(result.Value), "text/csv", fileName)
+            : result.ToHttpResult();
+    }
 
     private static async Task<IResult> Send<T>(Task<SharedKernel.Results.Result<T>> task) =>
         (await task).ToHttpResult();

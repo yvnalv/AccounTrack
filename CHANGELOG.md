@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-06-20 05:30:22 UTC]
+
+CHG-0049 — Data import/export foundation — CSV, Customers (ADR-0031)
+
+- New cross-cutting **import/export** capability, CSV first. A dependency-free RFC-4180 reader/writer
+  in SharedKernel (`Csv`); shared per-row result contracts in `Application.Abstractions.Import`.
+- **Customers** (the reference entity, BR-IMP-*):
+  - **Template** — `GET /api/v1/customers/import/template` (downloadable CSV with headers + sample).
+  - **Dry-run preview** — `POST .../import/preview` (multipart) returns per-row Create/Update/Error
+    + counts; nothing is written.
+  - **Commit** — `POST .../import/commit` is **all-or-nothing** (any invalid row blocks the whole
+    import); matches existing rows by **Code** (update) else creates. The same parse+validate pass
+    backs preview and commit, so the preview is exact.
+  - **Export** — `GET /api/v1/customers/export` streams the list as CSV.
+- Permission-gated by new **MasterData.Import / MasterData.Export** (seeded + granted to admin),
+  tenant-scoped.
+- **Frontend:** Customers screen toolbar — Template / Export / Import; Import opens a preview modal
+  (per-row table + counts) and commits only when there are no errors. EN/ID strings.
+- **Tests:** +6 (CSV parse/write incl. quoted fields; import preview classification; commit
+  all-or-nothing + create/update by code). Full suite **244** green.
+- **Verified (e2e):** template downloads; preview classified 2 create + 1 error; an invalid file was
+  blocked; a valid file created 2 then re-committed as 2 updates; export round-trips.
+- **Scope:** CSV + Customers first. Excel (.xlsx) + PDF, the other entities, and async large-file
+  imports are the next layers.
+
+---
+
 ## [2026-06-20 05:15:52 UTC]
 
 CHG-0048 — Expenses module — operating-expense vouchers (ADR-0030)

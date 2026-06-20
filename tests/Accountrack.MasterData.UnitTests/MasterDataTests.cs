@@ -179,3 +179,68 @@ public class UpdateCustomerHandlerTests
         await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }
+
+public class CustomerImportTests
+{
+    private readonly ICodedRepository<Customer> _repo = Substitute.For<ICodedRepository<Customer>>();
+    private readonly IMasterDataUnitOfWork _uow = Substitute.For<IMasterDataUnitOfWork>();
+
+    private void Existing(params Customer[] customers) =>
+        _repo.ListAsync(Arg.Any<CancellationToken>()).Returns(customers);
+
+    private const string Header = "Code,Name,TaxId,PaymentTermDays,CreditLimit\n";
+
+    [Fact]
+    public async Task Preview_classifies_create_update_and_error_rows()
+    {
+        Existing(Customer.Create("CUST-001", "Acme", null, 30, 0));
+        var csv = Header +
+            "CUST-001,Acme Updated,,30,0\n" +   // update
+            "CUST-002,New Co,,15,500\n" +        // create
+            ",Missing Code,,30,0\n";             // error
+
+        var result = await new PreviewCustomerImportHandler(_repo)
+            .Handle(new PreviewCustomerImportQuery(csv), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var p = result.Value;
+        p.TotalRows.Should().Be(3);
+        p.ToCreate.Should().Be(1);
+        p.ToUpdate.Should().Be(1);
+        p.ErrorRows.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Commit_creates_and_updates_when_all_rows_are_valid()
+    {
+        var existing = Customer.Create("CUST-001", "Acme", null, 30, 0);
+        Existing(existing);
+        var csv = Header + "CUST-001,Acme Renamed,,45,1000\nCUST-002,New Co,,15,500\n";
+
+        var result = await new CommitCustomerImportHandler(_repo, _uow)
+            .Handle(new CommitCustomerImportCommand(csv), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Committed.Should().BeTrue();
+        result.Value.Created.Should().Be(1);
+        result.Value.Updated.Should().Be(1);
+        existing.Name.Should().Be("Acme Renamed");
+        _repo.Received(1).Add(Arg.Is<Customer>(c => c.Code == "CUST-002"));
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Commit_is_all_or_nothing_when_a_row_is_invalid()
+    {
+        Existing();
+        var csv = Header + "CUST-002,New Co,,15,500\n,No Code,,30,0\n";
+
+        var result = await new CommitCustomerImportHandler(_repo, _uow)
+            .Handle(new CommitCustomerImportCommand(csv), CancellationToken.None);
+
+        result.Value.Committed.Should().BeFalse();
+        result.Value.ErrorRows.Should().Be(1);
+        _repo.DidNotReceive().Add(Arg.Any<Customer>());
+        await _uow.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+}

@@ -1,10 +1,13 @@
 import { http, unwrap } from './api'
+import { getAuthToken } from './api'
 import type {
   CreateCustomer,
   CreateProduct,
   CreateSupplier,
   CreateWarehouse,
   Customer,
+  ImportCommit,
+  ImportPreview,
   NamedRef,
   Product,
   Supplier,
@@ -42,6 +45,32 @@ export const masterData = {
     unwrap<string>(http.put(`/warehouses/${id}/active`, { isActive })),
   setProductActive: (id: string, isActive: boolean) =>
     unwrap<string>(http.put(`/products/${id}/active`, { isActive })),
+
+  // CSV import/export (ADR-0031).
+  previewCustomerImport: (file: File) => unwrap<ImportPreview>(http.post('/customers/import/preview', toForm(file))),
+  commitCustomerImport: (file: File) => unwrap<ImportCommit>(http.post('/customers/import/commit', toForm(file))),
+  exportCustomers: () => downloadCsv('/customers/export', 'customers.csv'),
+  customerImportTemplate: () => downloadCsv('/customers/import/template', 'customers-template.csv'),
+}
+
+function toForm(file: File): FormData {
+  const fd = new FormData()
+  fd.append('file', file)
+  return fd
+}
+
+/** Streams a CSV endpoint to a browser download (carries the bearer token). */
+async function downloadCsv(path: string, fileName: string): Promise<void> {
+  const res = await fetch(`/api/v1${path}`, {
+    headers: { Authorization: `Bearer ${getAuthToken() ?? ''}` },
+  })
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 /** Builds an id → name map for resolving foreign keys in tables. */

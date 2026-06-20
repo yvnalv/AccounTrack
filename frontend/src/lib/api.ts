@@ -34,6 +34,10 @@ http.interceptors.request.use((config) => {
   if (MUTATING_METHODS.has(method) && !config.headers['Idempotency-Key']) {
     config.headers['Idempotency-Key'] = crypto.randomUUID()
   }
+  // Let the browser set the multipart boundary for file uploads (don't force JSON).
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
   return config
 })
 

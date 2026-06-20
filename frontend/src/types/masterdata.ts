@@ -61,3 +61,29 @@ export interface CreateWarehouse {
   name: string
   address: string | null
 }
+
+export type ImportRowAction = 'Create' | 'Update' | 'Error'
+
+export interface ImportRowResult {
+  rowNumber: number
+  action: ImportRowAction
+  key: string | null
+  name: string | null
+  errors: string[]
+}
+
+export interface ImportPreview {
+  totalRows: number
+  toCreate: number
+  toUpdate: number
+  errorRows: number
+  rows: ImportRowResult[]
+}
+
+export interface ImportCommit {
+  committed: boolean
+  created: number
+  updated: number
+  errorRows: number
+  rows: ImportRowResult[]
+}

@@ -552,3 +552,10 @@ entity:
 (dry-run + validation + audit). (−) Per-entity column maps/templates to maintain; a library
 dependency and its licensing to vet; async pipeline needed for very large files. New rules:
 BR-IMP-*.
+
+**Implementation (CHG-0049).** Delivered **CSV first** (no dependency — a small RFC-4180 reader/writer
+in SharedKernel); **Excel (.xlsx)** and **PDF** are the next layer (library TBD). First entity:
+**Customers** — downloadable template, two-step `import/preview` (dry-run: per-row Create/Update/Error)
+→ `import/commit` (**all-or-nothing**, matches on Code), and a list `export`. Permission-gated by new
+`MasterData.Import` / `MasterData.Export`. The same parse+validate pass backs preview and commit, so
+the preview is exact. Other entities follow the same shape; async large-file handling is still future.
