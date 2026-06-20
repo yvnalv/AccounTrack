@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-20 11:52:10 UTC]
+
+CHG-0055 — Dev seed script — realistic demo data (`scripts/seed_dummy_data.py`)
+
+- New developer utility that populates the dev company with a coherent dummy
+  dataset by driving the real HTTP API, so the result stays internally consistent
+  (GL balances, AR/AP subledgers reconcile to control accounts, inventory ledger
+  matches movements, dashboard reflects real figures).
+- Creates 12 products / 8 customers / 6 suppliers; an owner's-capital opening
+  journal + one fully-paid opening-stock PO per product; purchase orders and sales
+  orders in mixed lifecycle states with ~⅓ of bills/invoices left open (so AP and
+  AR are populated); and a dozen expense vouchers. Recent sales are dated in the
+  current month for live dashboard revenue.
+- Stdlib-only (no pip); master data keyed by stable codes and re-looked-up on
+  conflict, so re-runs are safe. Documented in [scripts/README.md](scripts/README.md).
+- Verified after a clean DB reset + base seed: trial balance **balanced**; dashboard
+  shows positive cash, open AR/AP, and this-month revenue; all 12 products carry
+  on-hand stock. Tooling only — no application code or test changes.
+
+---
+
 ## [2026-06-20 11:18:33 UTC]
 
 CHG-0054 — Purchase-document PDFs + brand-logo polish (ADR-0031)
