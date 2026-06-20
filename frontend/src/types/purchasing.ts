@@ -79,6 +79,51 @@ export interface PoLineQuantityInput {
   quantity: number
 }
 
+export interface PurchaseInvoiceLine {
+  id: string
+  purchaseOrderLineId: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  taxRate: number
+  lineNet: number
+  lineTax: number
+  lineTotal: number
+  returnableQuantity: number
+}
+
+export interface PurchaseInvoice {
+  id: string
+  number: string
+  supplierInvoiceNo: string | null
+  purchaseOrderId: string
+  supplierId: string
+  currency: string
+  invoiceDate: string
+  dueDate: string
+  subTotal: number
+  taxTotal: number
+  grandTotal: number
+  journalEntryId: string | null
+  apOpenItemId: string | null
+  notes: string | null
+  lines: PurchaseInvoiceLine[]
+}
+
+export interface PurchaseReturnSummary {
+  id: string
+  number: string
+  purchaseInvoiceId: string
+  returnDate: string
+  grandTotal: number
+  journalEntryId: string | null
+}
+
+export interface ReturnLineInput {
+  purchaseInvoiceLineId: string
+  quantity: number
+}
+
 export interface SupplierPaymentAllocationInput {
   apOpenItemId: string
   amount: number

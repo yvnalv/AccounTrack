@@ -8,9 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-20 (last change **CHG-0046**)
-- **Build:** green — backend `net8.0` (229 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **sales returns** (credit notes) — restock at cost + reverse Revenue/VAT/AR (CHG-0046).
+- **As of:** 2026-06-20 (last change **CHG-0047**)
+- **Build:** green — backend `net8.0` (234 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **purchase returns** (debit notes) — de-stock at cost + reverse AP/VAT Input (CHG-0047).
+  Returns now complete on both sides (sales CHG-0046 + purchasing CHG-0047).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -70,10 +71,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## Deferred backlog (planned slices / debts)
 
-- **Returns:** 🟡 sales returns done (CHG-0046, BR-SAL-8) — credit note: restock at original cost,
-  reverse Revenue/VAT/AR, reduce the invoice receivable. Remaining: crediting a fully-paid invoice
-  (refund/customer credit); **purchase returns** (debit note: stock out, adjust AP/GR-IR/VAT Input —
-  BR-PUR-7).
+- **Returns:** ✅ sales returns (CHG-0046, BR-SAL-8) + purchase returns (CHG-0047, BR-PUR-7) — credit/
+  debit notes that restock/de-stock at cost, reverse Revenue/VAT/AR resp. AP/VAT-Input, and move the
+  subledger. Remaining: crediting/debiting a **fully-settled** invoice (refund/credit), and a returns
+  list/landing screen (today returns are driven from the order detail).
 - **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
   suppliers/warehouses/products (CHG-0045). Remaining: UoM/categories/tax-codes/CoA edit; distinct
   `*.Edit`/`*.Delete` permissions; status-gated edit/cancel for draft documents. (BR-X-7/8.)

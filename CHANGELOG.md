@@ -1,5 +1,33 @@
 # Accountrack Changelog
 
+## [2026-06-20 04:38:20 UTC]
+
+CHG-0047 — Purchase returns (debit notes) — procure-to-pay (BR-PUR-7)
+
+- New **Purchase Return / debit note** against a **posted purchase invoice**, mirroring sales returns.
+  Atomically (one cross-module transaction): issues each line out of stock at moving-average cost
+  (Cr Inventory), reverses billing (Dr AP control / Cr VAT Input), books any **cost-vs-price
+  variance** to the inventory-variance account, reduces the invoice's AP open item, and records the
+  debit note. Bounded per line by invoiced-not-yet-returned qty.
+- **Domain:** `PurchaseReturn` aggregate + `PurchaseReturnNumberSequence` (DRN/ prefix);
+  `ReturnedQuantity` / `ReturnableQuantity` + `Return()` on `PurchaseInvoiceLine`.
+- **API:** `POST /api/v1/purchase-invoices/{id}/returns`, `GET /api/v1/purchase-orders/{id}/returns`,
+  `GET /api/v1/purchase-returns/{id}` (Purchasing.Post / Purchasing.View). EF migration
+  `AddPurchaseReturns` (3 tables + `ReturnedQuantity` column).
+- **Frontend:** the Purchase Order detail page gets a **Return** action per posted bill (modal with
+  per-line returnable quantities) and a **Returns** card; EN/ID strings.
+- **Tests:** +5 Purchasing (domain return bounds; handler reverses billing + de-stocks, balanced
+  journal incl. price-variance case, AP allocation; rejects unposted invoice / over-return). Full
+  suite **234** green.
+- **Verified (e2e):** PO → receive → bill (22,200) → return 4 — stock 10→6, VAT Input reversed by
+  exactly the credited tax (−880), debit note DRN totals (net 8,000 / tax 880 / gross 8,880 /
+  cost 8,000), bill returnable 10→6, over-return rejected, return listed on the order.
+- **Known limitation** (same as sales returns): the debit reduces the invoice's outstanding payable,
+  so a return cannot exceed what is still owed on that bill; debiting a fully-paid bill (supplier
+  refund / credit) is a later enhancement. **Returns are now complete on both sides** (sales + purchasing).
+
+---
+
 ## [2026-06-20 04:13:17 UTC]
 
 CHG-0046 — Sales returns (credit notes) — order-to-cash (BR-SAL-8)

@@ -73,6 +73,15 @@ public sealed class PurchaseInvoice : TenantOwnedEntity, IAggregateRoot
         ApOpenItemId = apOpenItemId;
     }
 
+    /// <summary>Records a returned quantity against one invoice line (debit note — BR-PUR-7).</summary>
+    public void ReturnLine(Guid invoiceLineId, decimal quantity)
+    {
+        var line = _lines.FirstOrDefault(l => l.Id == invoiceLineId)
+            ?? throw new InvalidOperationException("Purchase-invoice line not found.");
+
+        line.Return(quantity);
+    }
+
     private void Recalculate()
     {
         SubTotal = Math.Round(_lines.Sum(l => l.LineNet), 4, MidpointRounding.ToEven);
@@ -107,6 +116,27 @@ public sealed class PurchaseInvoiceLine : Entity
     public decimal LineNet { get; private set; }
     public decimal LineTax { get; private set; }
     public decimal LineTotal { get; private set; }
+
+    /// <summary>Cumulative quantity returned to the supplier via debit notes (BR-PUR-7).</summary>
+    public decimal ReturnedQuantity { get; private set; }
+
+    /// <summary>Quantity still eligible to be returned on this line.</summary>
+    public decimal ReturnableQuantity => Quantity - ReturnedQuantity;
+
+    internal void Return(decimal quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Returned quantity must be positive.");
+        }
+
+        if (quantity > ReturnableQuantity)
+        {
+            throw new InvalidOperationException("Returned quantity exceeds the invoiced, not-yet-returned quantity.");
+        }
+
+        ReturnedQuantity += quantity;
+    }
 
     internal static PurchaseInvoiceLine Create(Guid purchaseOrderLineId, Guid productId, decimal quantity, decimal unitPrice, decimal taxRate) =>
         new(purchaseOrderLineId, productId, quantity, unitPrice, taxRate);

@@ -4,9 +4,12 @@ import type {
   CreateSupplierPayment,
   GoodsReceiptSummary,
   PoLineQuantityInput,
+  PurchaseInvoice,
   PurchaseInvoiceSummary,
   PurchaseOrder,
   PurchaseOrderSummary,
+  PurchaseReturnSummary,
+  ReturnLineInput,
 } from '@/types/purchasing'
 
 export const purchasingApi = {
@@ -29,4 +32,11 @@ export const purchasingApi = {
 
   createSupplierPayment: (body: CreateSupplierPayment) =>
     unwrap<string>(http.post('/supplier-payments', body)),
+
+  getInvoice: (invoiceId: string) => unwrap<PurchaseInvoice>(http.get(`/purchase-invoices/${invoiceId}`)),
+  returns: (id: string) => unwrap<PurchaseReturnSummary[]>(http.get(`/purchase-orders/${id}/returns`)),
+  createReturn: (
+    invoiceId: string,
+    body: { returnDate: string; notes: string | null; lines: ReturnLineInput[] },
+  ) => unwrap<string>(http.post(`/purchase-invoices/${invoiceId}/returns`, body)),
 }

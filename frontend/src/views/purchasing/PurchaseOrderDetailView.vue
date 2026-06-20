@@ -2,13 +2,19 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Undo2 } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
-import type { GoodsReceiptSummary, PurchaseInvoiceSummary, PurchaseOrder } from '@/types/purchasing'
+import type {
+  GoodsReceiptSummary,
+  PurchaseInvoiceSummary,
+  PurchaseOrder,
+  PurchaseReturnSummary,
+} from '@/types/purchasing'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppCard from '@/components/ui/AppCard.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 const { t } = useI18n()
@@ -18,11 +24,25 @@ const router = useRouter()
 const order = ref<PurchaseOrder | null>(null)
 const receipts = ref<GoodsReceiptSummary[]>([])
 const invoices = ref<PurchaseInvoiceSummary[]>([])
+const returns = ref<PurchaseReturnSummary[]>([])
 const products = ref(new Map<string, string>())
 const suppliers = ref(new Map<string, string>())
 const loading = ref(true)
 const busy = ref<'' | 'submit' | 'receive' | 'invoice'>('')
 const error = ref('')
+
+interface ReturnRow {
+  purchaseInvoiceLineId: string
+  productId: string
+  returnable: number
+  qty: number
+}
+const returnModal = ref(false)
+const returnInvoiceNo = ref('')
+const returnInvoiceId = ref('')
+const returnRows = ref<ReturnRow[]>([])
+const returnSaving = ref(false)
+const returnError = ref('')
 
 const id = computed(() => String(route.params.id))
 const currency = computed(() => order.value?.currency ?? 'IDR')
@@ -32,20 +52,54 @@ const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString(
 async function load() {
   loading.value = true
   try {
-    const [o, prods, sups, recs, invs] = await Promise.all([
+    const [o, prods, sups, recs, invs, rets] = await Promise.all([
       purchasingApi.get(id.value),
       masterData.products(),
       masterData.suppliers(),
       purchasingApi.receipts(id.value),
       purchasingApi.invoices(id.value),
+      purchasingApi.returns(id.value),
     ])
     order.value = o
     products.value = nameMap(prods)
     suppliers.value = nameMap(sups)
     receipts.value = recs
     invoices.value = invs
+    returns.value = rets
   } finally {
     loading.value = false
+  }
+}
+
+async function openReturn(inv: PurchaseInvoiceSummary) {
+  returnError.value = ''
+  returnInvoiceId.value = inv.id
+  returnInvoiceNo.value = inv.number
+  const detail = await purchasingApi.getInvoice(inv.id)
+  returnRows.value = detail.lines
+    .filter((l) => l.returnableQuantity > 0)
+    .map((l) => ({ purchaseInvoiceLineId: l.id, productId: l.productId, returnable: l.returnableQuantity, qty: 0 }))
+  returnModal.value = true
+}
+
+async function submitReturn() {
+  const lines = returnRows.value
+    .filter((r) => r.qty > 0)
+    .map((r) => ({ purchaseInvoiceLineId: r.purchaseInvoiceLineId, quantity: r.qty }))
+  if (lines.length === 0) {
+    returnError.value = t('purchasing.detail.returnNeedLine')
+    return
+  }
+  returnSaving.value = true
+  returnError.value = ''
+  try {
+    await purchasingApi.createReturn(returnInvoiceId.value, { returnDate: today(), notes: null, lines })
+    returnModal.value = false
+    await load()
+  } catch {
+    returnError.value = t('purchasing.detail.returnFailed')
+  } finally {
+    returnSaving.value = false
   }
 }
 
@@ -195,7 +249,16 @@ onMounted(load)
                 <td class="px-4 py-2.5 text-text">{{ inv.number }}</td>
                 <td class="px-4 py-2.5 text-text-muted">{{ t('purchasing.detail.due') }} {{ inv.dueDate }}</td>
                 <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(inv.grandTotal, currency) }}</td>
-                <td class="px-4 py-2.5 text-right"><StatusBadge v-if="inv.journalEntryId" tone="positive" :label="t('purchasing.detail.posted')" /></td>
+                <td class="px-3 py-2.5 text-right"><StatusBadge v-if="inv.journalEntryId" tone="positive" :label="t('purchasing.detail.posted')" /></td>
+                <td class="px-3 py-2.5 text-right">
+                  <button
+                    v-if="inv.journalEntryId"
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                    @click="openReturn(inv)"
+                  >
+                    <Undo2 :size="14" /> {{ t('purchasing.detail.return') }}
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -203,9 +266,60 @@ onMounted(load)
         </AppCard>
       </div>
 
+      <!-- Returns (debit notes) -->
+      <AppCard v-if="returns.length" :title="t('purchasing.detail.returns')" :padded="false">
+        <table class="w-full text-sm">
+          <tbody>
+            <tr v-for="r in returns" :key="r.id" class="border-b border-border last:border-0">
+              <td class="px-4 py-2.5 text-text">{{ r.number }}</td>
+              <td class="px-4 py-2.5 text-text-muted">{{ r.returnDate }}</td>
+              <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(r.grandTotal, currency) }}</td>
+              <td class="px-4 py-2.5 text-right"><StatusBadge v-if="r.journalEntryId" tone="positive" :label="t('purchasing.detail.posted')" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </AppCard>
+
       <AppCard v-if="order.notes" :title="t('purchasing.detail.notes')">
         <p class="text-sm text-text">{{ order.notes }}</p>
       </AppCard>
     </template>
+
+    <AppModal v-model="returnModal" :title="`${t('purchasing.detail.returnTitle')} · ${returnInvoiceNo}`">
+      <div class="space-y-3">
+        <p v-if="returnRows.length === 0" class="text-sm text-text-muted">
+          {{ t('purchasing.detail.returnNothing') }}
+        </p>
+        <table v-else class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border text-xs uppercase tracking-wide text-text-muted">
+              <th class="py-2 text-left font-semibold">{{ t('purchasing.detail.product') }}</th>
+              <th class="py-2 text-right font-semibold">{{ t('purchasing.detail.returnable') }}</th>
+              <th class="py-2 text-right font-semibold">{{ t('purchasing.detail.returnQty') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in returnRows" :key="row.purchaseInvoiceLineId" class="border-b border-border last:border-0">
+              <td class="py-2 text-text">{{ products.get(row.productId) ?? '—' }}</td>
+              <td class="py-2 text-right text-text-muted tnum">{{ formatNumber(row.returnable) }}</td>
+              <td class="py-2 text-right">
+                <input
+                  v-model.number="row.qty"
+                  type="number" min="0" :max="row.returnable" step="any"
+                  class="field-input w-28 text-right tnum"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="returnError" class="text-sm text-negative">{{ returnError }}</p>
+      </div>
+      <template #footer>
+        <AppButton variant="ghost" @click="returnModal = false">{{ t('masterData.cancel') }}</AppButton>
+        <AppButton :disabled="returnSaving || returnRows.length === 0" @click="submitReturn">
+          {{ returnSaving ? t('purchasing.detail.returning') : t('purchasing.detail.return') }}
+        </AppButton>
+      </template>
+    </AppModal>
   </div>
 </template>

@@ -71,10 +71,45 @@ public sealed class SupplierPaymentNumberSequence : TenantOwnedEntity
     }
 }
 
+/// <summary>Per-company gapless counter for purchase-return (debit-note) numbers.</summary>
+public sealed class PurchaseReturnNumberSequence : TenantOwnedEntity
+{
+    private PurchaseReturnNumberSequence() { }
+
+    public PurchaseReturnNumberSequence(int next = 1) => Next = next;
+
+    public int Next { get; private set; }
+
+    public string Take(DateOnly date)
+    {
+        var value = Next;
+        Next++;
+        return $"DRN/{date.Year:D4}{date.Month:D2}/{value:D5}";
+    }
+}
+
 public static class PurchasingErrors
 {
     public static readonly Error NotFound =
         Error.NotFound("PURCHASING.PO_NOT_FOUND", "Purchase order not found.");
+
+    public static readonly Error ReturnInvoiceNotFound =
+        Error.NotFound("PURCHASING.RETURN_INVOICE_NOT_FOUND", "The purchase invoice being returned was not found.");
+
+    public static readonly Error InvoiceNotPosted =
+        Error.Conflict("PURCHASING.INVOICE_NOT_POSTED", "Only a posted purchase invoice can be returned.");
+
+    public static readonly Error NoReturnLines =
+        Error.BusinessRule("BR-PUR-7", "A purchase return requires at least one line.", "PURCHASING.NO_RETURN_LINES");
+
+    public static Error PurchaseInvoiceLineNotFound(Guid lineId) =>
+        Error.Validation("PURCHASING.PI_LINE_NOT_FOUND", $"Purchase-invoice line {lineId} does not exist on this invoice.");
+
+    public static Error OverReturn(decimal returnable, decimal requested) =>
+        Error.BusinessRule(
+            "BR-PUR-7",
+            $"Cannot return {requested}; only {returnable} is invoiced and not yet returned on this line.",
+            "PURCHASING.OVER_RETURN");
 
     public static readonly Error NoAllocations =
         Error.BusinessRule("BR-PUR-4", "A supplier payment requires at least one allocation.", "PURCHASING.NO_ALLOCATIONS");

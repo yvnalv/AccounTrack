@@ -61,6 +61,22 @@ public static class PurchasingEndpoints
                 Send(s.Send(new GetPurchaseInvoiceQuery(id), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoice");
 
+        pi.MapPost("/{id:guid}/returns", (Guid id, ReturnGoodsRequest body, ISender s, CancellationToken ct) =>
+                Created(s.Send(new PostPurchaseReturnCommand(id, body.ReturnDate, body.Notes, body.Lines), ct),
+                    "/api/v1/purchase-returns"))
+            .RequireAuthorization("Purchasing.Post").WithName("PostPurchaseReturn");
+
+        // --- Purchase returns (debit notes) ---
+        po.MapGet("/{id:guid}/returns", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetReturnsForPurchaseOrderQuery(id), ct)))
+            .RequireAuthorization("Purchasing.View").WithName("GetReturnsForPurchaseOrder");
+
+        var ret = app.MapGroup("/api/v1/purchase-returns").WithTags("Purchasing").RequireAuthorization();
+
+        ret.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetPurchaseReturnQuery(id), ct)))
+            .RequireAuthorization("Purchasing.View").WithName("GetPurchaseReturn");
+
         // --- Supplier payments ---
         var pay = app.MapGroup("/api/v1/supplier-payments").WithTags("Purchasing").RequireAuthorization();
 
@@ -85,6 +101,9 @@ public static class PurchasingEndpoints
     public sealed record BillPurchaseRequest(
         string? SupplierInvoiceNo, DateOnly InvoiceDate, DateOnly DueDate, string? Notes,
         IReadOnlyList<PurchaseInvoiceLineInput> Lines);
+
+    public sealed record ReturnGoodsRequest(
+        DateOnly ReturnDate, string? Notes, IReadOnlyList<PurchaseReturnLineInput> Lines);
 
     private static async Task<IResult> Send<T>(Task<Result<T>> task) => (await task).ToHttpResult();
 

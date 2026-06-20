@@ -27,6 +27,9 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
     public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
     public DbSet<SupplierPaymentAllocation> SupplierPaymentAllocations => Set<SupplierPaymentAllocation>();
     public DbSet<SupplierPaymentNumberSequence> SupplierPaymentNumberSequences => Set<SupplierPaymentNumberSequence>();
+    public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
+    public DbSet<PurchaseReturnLine> PurchaseReturnLines => Set<PurchaseReturnLine>();
+    public DbSet<PurchaseReturnNumberSequence> PurchaseReturnNumberSequences => Set<PurchaseReturnNumberSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -125,6 +128,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
             b.Property(l => l.LineNet).HasColumnType("decimal(19,4)");
             b.Property(l => l.LineTax).HasColumnType("decimal(19,4)");
             b.Property(l => l.LineTotal).HasColumnType("decimal(19,4)");
+            b.Property(l => l.ReturnedQuantity).HasColumnType("decimal(19,6)");
             b.HasIndex(l => l.ProductId);
         });
 
@@ -158,6 +162,43 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
         modelBuilder.Entity<SupplierPaymentNumberSequence>(b =>
         {
             b.ToTable("SupplierPaymentNumberSequences");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        modelBuilder.Entity<PurchaseReturn>(b =>
+        {
+            b.ToTable("PurchaseReturns");
+            b.Property(r => r.Number).IsRequired().HasMaxLength(32);
+            b.Property(r => r.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(r => r.Notes).HasMaxLength(1024);
+            b.Property(r => r.SubTotal).HasColumnType("decimal(19,4)");
+            b.Property(r => r.TaxTotal).HasColumnType("decimal(19,4)");
+            b.Property(r => r.GrandTotal).HasColumnType("decimal(19,4)");
+            b.HasMany(r => r.Lines).WithOne().HasForeignKey(l => l.PurchaseReturnId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(r => r.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.Ignore(r => r.TotalCost);
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.PurchaseOrderId });
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.PurchaseInvoiceId });
+        });
+
+        modelBuilder.Entity<PurchaseReturnLine>(b =>
+        {
+            b.ToTable("PurchaseReturnLines");
+            b.Property(l => l.Quantity).HasColumnType("decimal(19,6)");
+            b.Property(l => l.UnitPrice).HasColumnType("decimal(19,4)");
+            b.Property(l => l.TaxRate).HasColumnType("decimal(9,6)");
+            b.Property(l => l.UnitCost).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineNet).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineTax).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineTotal).HasColumnType("decimal(19,4)");
+            b.Property(l => l.LineCost).HasColumnType("decimal(19,4)");
+            b.HasIndex(l => l.ProductId);
+        });
+
+        modelBuilder.Entity<PurchaseReturnNumberSequence>(b =>
+        {
+            b.ToTable("PurchaseReturnNumberSequences");
             b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
@@ -243,4 +284,24 @@ public sealed class SupplierPaymentRepository : ISupplierPaymentRepository
         _db.SupplierPaymentNumberSequences.FirstOrDefaultAsync(ct);
 
     public void AddSequence(SupplierPaymentNumberSequence sequence) => _db.SupplierPaymentNumberSequences.Add(sequence);
+}
+
+public sealed class PurchaseReturnRepository : IPurchaseReturnRepository
+{
+    private readonly PurchasingDbContext _db;
+    public PurchaseReturnRepository(PurchasingDbContext db) => _db = db;
+
+    public void Add(PurchaseReturn purchaseReturn) => _db.PurchaseReturns.Add(purchaseReturn);
+
+    public Task<PurchaseReturn?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        _db.PurchaseReturns.Include(r => r.Lines).FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public async Task<IReadOnlyList<PurchaseReturn>> ListByPurchaseOrderAsync(Guid purchaseOrderId, CancellationToken ct) =>
+        await _db.PurchaseReturns.Where(r => r.PurchaseOrderId == purchaseOrderId)
+            .OrderByDescending(r => r.Number).ToListAsync(ct);
+
+    public Task<PurchaseReturnNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
+        _db.PurchaseReturnNumberSequences.FirstOrDefaultAsync(ct);
+
+    public void AddSequence(PurchaseReturnNumberSequence sequence) => _db.PurchaseReturnNumberSequences.Add(sequence);
 }
