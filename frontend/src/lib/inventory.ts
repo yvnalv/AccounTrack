@@ -1,5 +1,24 @@
 import { http, unwrap } from './api'
-import type { StockCardEntry, StockOnHand } from '@/types/inventory'
+import type { StockCardEntry, StockOnHand, StockOpnameResult } from '@/types/inventory'
+
+export interface AdjustStockPayload {
+  productId: string
+  warehouseId: string
+  quantity: number
+  increase: boolean
+  unitCost: number | null
+  date: string
+  reason: string
+}
+
+export interface StockOpnamePayload {
+  productId: string
+  warehouseId: string
+  countedQuantity: number
+  unitCost: number | null
+  date: string
+  notes: string | null
+}
 
 export const inventoryApi = {
   onHand: () => unwrap<StockOnHand[]>(http.get('/stock/on-hand')),
@@ -7,6 +26,9 @@ export const inventoryApi = {
     unwrap<StockCardEntry[]>(
       http.get('/stock/card', { params: warehouseId ? { productId, warehouseId } : { productId } }),
     ),
+  adjust: (payload: AdjustStockPayload) => unwrap(http.post('/stock/adjustments', payload)),
+  opname: (payload: StockOpnamePayload) =>
+    unwrap<StockOpnameResult>(http.post('/stock/opname', payload)),
 }
 
 /** Movement types that increase stock (the rest decrease it). */

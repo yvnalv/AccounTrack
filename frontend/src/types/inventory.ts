@@ -7,6 +7,14 @@ export interface StockOnHand {
   currency: string
 }
 
+export interface StockOpnameResult {
+  systemQty: number
+  countedQty: number
+  variance: number
+  transactionId: string | null
+  costApplied: number
+}
+
 export interface StockCardEntry {
   transactionId: string
   date: string

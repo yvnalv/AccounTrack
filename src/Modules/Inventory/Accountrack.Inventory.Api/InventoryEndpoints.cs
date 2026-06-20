@@ -24,6 +24,9 @@ public static class InventoryEndpoints
         stock.MapPost("/transfers", (TransferStockCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct)))
             .RequireAuthorization("Inventory.Transfer").WithName("TransferStock");
 
+        stock.MapPost("/opname", (StockOpnameCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct)))
+            .RequireAuthorization("Inventory.Adjust").WithName("StockOpname");
+
         stock.MapGet("/on-hand", (ISender s, CancellationToken ct) => Send(s.Send(new GetStockOnHandQuery(), ct)))
             .RequireAuthorization("Inventory.View").WithName("GetStockOnHand");
 

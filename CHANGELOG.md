@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-06-20 13:12:40 UTC]
+
+CHG-0057 — Inventory slice 2 — GL posting on stock moves + stock opname
+
+- **Stock adjustments now post to the GL atomically.** An increase posts Dr Inventory /
+  Cr Inventory Variance, a decrease the reverse — accounts resolved from the posting-rule
+  engine (never hardcoded), valued at the moving-average cost applied by the ledger. The
+  inventory ledger entry and its journal commit together via `ICrossModuleUnitOfWork`
+  (`LedgerSource.StockAdjustment`), or roll back together. A zero-value change posts nothing.
+- **Stock opname (physical count)** — new `POST /api/v1/stock/opname`: records a counted
+  quantity, computes the variance against system on-hand, and posts a reconciling adjustment
+  (in/out) with its GL journal. An exact match records nothing; an increase is valued at the
+  supplied unit cost or, by default, the current moving-average cost. (`Inventory.Adjust`.)
+- **Warehouse transfers** remain GL-neutral under a single Inventory control account (cost
+  travels with the goods) — documented, not changed.
+- **Frontend:** per-row **Adjust** and **Count** actions on the Stock-on-hand screen open a
+  modal (direction/qty/cost/reason for adjust; counted-qty + variance feedback for opname),
+  refreshing on-hand after posting. EN/ID strings.
+- **Tests:** +4 (adjustment debit/credit direction & accounts; opname shortfall posts a
+  decrease; exact-match posts nothing). Full suite **257** green; frontend builds.
+- **Verified (e2e):** an adjustment-out and an opname shortfall both moved Inventory (1200)
+  and Inventory Variance (5100) by the moving-average cost, the trial balance stayed
+  **balanced**, and the stock card shows both movements. Variance account = exact sum.
+- **Remaining (Inventory slice 2):** per-company negative-stock setting, back-dating recompute.
+
+---
+
 ## [2026-06-20 12:34:05 UTC]
 
 CHG-0056 — Cash Flow Statement (indirect method) — report + PDF + screen

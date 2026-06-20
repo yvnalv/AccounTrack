@@ -104,6 +104,11 @@ All costed movements that hit Accounting are **atomic** with the GL posting
 - Create an opname document → freeze/snapshot book quantities → enter counted quantities →
   system computes variance per line → posting an opname generates the necessary AdjustIn/Out
   ledger entries and variance journals. Large variances can require approval (WORKFLOW_APPROVAL.md).
+- **Implemented (slice 2, CHG-0057):** a per-product opname (`POST /api/v1/stock/opname`) — enter the
+  counted quantity for a product/warehouse, the system computes the variance against on-hand and
+  posts the reconciling AdjustIn/Out ledger entry plus its Inventory↔Variance journal atomically (an
+  exact match posts nothing). A multi-line opname document (snapshot/freeze) and large-variance
+  approval are a later refinement.
 
 ## 8. Units of Measure
 - Products have a base UoM; transactions may be entered in alternate UoMs and converted via

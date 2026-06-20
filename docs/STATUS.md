@@ -8,10 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-20 (last change **CHG-0056**)
-- **Build:** green — backend `net8.0` (253 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Cash Flow Statement** (indirect method) — report + PDF + screen (CHG-0056),
-  completing the core financial-report set. Dev **dummy-data seed script** added (CHG-0055).
+- **As of:** 2026-06-20 (last change **CHG-0057**)
+- **Build:** green — backend `net8.0` (257 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Inventory slice 2** — stock adjustments post Dr/Cr Inventory↔Variance to the GL
+  atomically + **stock opname** (count→reconcile), with Adjust/Count screen actions (CHG-0057).
+  **Cash Flow Statement** (CHG-0056) completed the core financial-report set.
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -53,8 +54,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   Sheet** (CHG-0016); **posting-rule / account-determination engine** + health check (CHG-0017);
   **AR/AP subledgers** — open items, allocation, aging (CHG-0018)
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
-- 🟡 **Inventory** (slice 1) — transaction ledger, moving-average buckets, receive/adjust/transfer,
-  on-hand + stock card, `IInventoryLedger` (CHG-0010)
+- 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
+  on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
+  opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI). Remaining: per-company
+  negative-stock setting, back-dating recompute
 - ✅ **Purchasing** (procure-to-pay complete) — Purchase Orders + Approval/Process-Tracker/Notification
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**
@@ -91,8 +94,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Accounting slice 2 (remaining):** period-close balance snapshots, year-end close to retained
   earnings. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017; AR/AP subledgers —
   CHG-0018; **Cash Flow — CHG-0056**.)
-- **Inventory slice 2:** GL posting on stock moves (Dr/Cr Inventory/COGS/Variance), stock opname,
-  per-company negative-stock setting, back-dating recompute.
+- **Inventory slice 2:** ✅ GL posting on stock adjustments (Dr/Cr Inventory↔Variance) + stock opname
+  done (CHG-0057). Remaining: per-company negative-stock setting, back-dating recompute. (Transfers
+  are GL-neutral under a single Inventory control account.)
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
   `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
   flows will reuse it.
@@ -121,7 +125,8 @@ Backend threads that can be picked up independently if desired (none block the f
 - **Reporting:** Cash Flow, AR/AP aging already exist; **VAT report (Output − Input) — done
   (CHG-0043)**; GL/account detail still open.
 - **Accounting:** period-close balance snapshots, year-end close to retained earnings.
-- **Inventory slice 2:** GL posting on adjustments/transfers; stock opname.
+- **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); remaining:
+  per-company negative-stock setting, back-dating recompute.
 - **Returns:** purchase & sales returns/credit notes.
 - A dev **customer seed** (none seeded today; created via API in e2e).
 
@@ -130,7 +135,7 @@ frontend**, which requires the **UI/UX design discussion** before any build (use
 template/AI-ish). Pause and raise it then.
 
 Other open threads (not blocking): a dev **customer seed** (none seeded today); **Inventory slice 2**
-GL posting on adjustments/transfers; **Accounting** period-close snapshots / year-end close; purchase/sales
+remaining (negative-stock setting, back-dating); **Accounting** period-close snapshots / year-end close; purchase/sales
 **returns**; idempotency **exactly-once** hardening (same-transaction key + RowVersion).
 
 ## How to resume
