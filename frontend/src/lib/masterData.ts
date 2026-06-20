@@ -46,11 +46,21 @@ export const masterData = {
   setProductActive: (id: string, isActive: boolean) =>
     unwrap<string>(http.put(`/products/${id}/active`, { isActive })),
 
-  // CSV import/export (ADR-0031).
-  previewCustomerImport: (file: File) => unwrap<ImportPreview>(http.post('/customers/import/preview', toForm(file))),
-  commitCustomerImport: (file: File) => unwrap<ImportCommit>(http.post('/customers/import/commit', toForm(file))),
-  exportCustomers: () => downloadCsv('/customers/export', 'customers.csv'),
-  customerImportTemplate: () => downloadCsv('/customers/import/template', 'customers-template.csv'),
+  // CSV import/export (ADR-0031). One helper set per entity, same shape.
+  customerImport: csvIo('customers'),
+  supplierImport: csvIo('suppliers'),
+  warehouseImport: csvIo('warehouses'),
+  productImport: csvIo('products'),
+}
+
+/** Builds the preview/commit/export/template calls for a master-data entity's CSV endpoints. */
+function csvIo(entity: string) {
+  return {
+    preview: (file: File) => unwrap<ImportPreview>(http.post(`/${entity}/import/preview`, toForm(file))),
+    commit: (file: File) => unwrap<ImportCommit>(http.post(`/${entity}/import/commit`, toForm(file))),
+    export: () => downloadCsv(`/${entity}/export`, `${entity}.csv`),
+    template: () => downloadCsv(`/${entity}/import/template`, `${entity}-template.csv`),
+  }
 }
 
 function toForm(file: File): FormData {

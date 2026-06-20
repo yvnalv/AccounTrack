@@ -31,6 +31,18 @@ public static class MasterDataEndpoints
             Send(s.Send(new UpdateProductCommand(id, b.Name, b.CategoryId, b.IsStockTracked, b.IsSold, b.IsPurchased), ct))).RequireAuthorization(Manage);
         products.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetProductActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
+        products.MapGet("/import/template", () =>
+                Results.File(System.Text.Encoding.UTF8.GetBytes(ProductImportColumns.Template()), "text/csv", "products-template.csv"))
+            .RequireAuthorization(Import).WithName("ProductImportTemplate");
+        products.MapPost("/import/preview", async (IFormFile file, ISender s, CancellationToken ct) =>
+                await Send(s.Send(new PreviewProductImportQuery(await ReadAsync(file, ct)), ct)))
+            .RequireAuthorization(Import).DisableAntiforgery().WithName("ProductImportPreview");
+        products.MapPost("/import/commit", async (IFormFile file, ISender s, CancellationToken ct) =>
+                await Send(s.Send(new CommitProductImportCommand(await ReadAsync(file, ct)), ct)))
+            .RequireAuthorization(Import).DisableAntiforgery().WithName("ProductImportCommit");
+        products.MapGet("/export", async (ISender s, CancellationToken ct) =>
+                await Csv(s.Send(new ExportProductsQuery(), ct), "products.csv"))
+            .RequireAuthorization(Export).WithName("ProductExport");
 
         var customers = app.MapGroup("/api/v1/customers").WithTags("Customers").RequireAuthorization();
         customers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetCustomersQuery(), ct))).RequireAuthorization(View);
@@ -64,6 +76,18 @@ public static class MasterDataEndpoints
             Send(s.Send(new UpdateSupplierCommand(id, b.Name, b.TaxId, b.PaymentTermDays), ct))).RequireAuthorization(Manage);
         suppliers.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetSupplierActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
+        suppliers.MapGet("/import/template", () =>
+                Results.File(System.Text.Encoding.UTF8.GetBytes(SupplierImportColumns.Template()), "text/csv", "suppliers-template.csv"))
+            .RequireAuthorization(Import).WithName("SupplierImportTemplate");
+        suppliers.MapPost("/import/preview", async (IFormFile file, ISender s, CancellationToken ct) =>
+                await Send(s.Send(new PreviewSupplierImportQuery(await ReadAsync(file, ct)), ct)))
+            .RequireAuthorization(Import).DisableAntiforgery().WithName("SupplierImportPreview");
+        suppliers.MapPost("/import/commit", async (IFormFile file, ISender s, CancellationToken ct) =>
+                await Send(s.Send(new CommitSupplierImportCommand(await ReadAsync(file, ct)), ct)))
+            .RequireAuthorization(Import).DisableAntiforgery().WithName("SupplierImportCommit");
+        suppliers.MapGet("/export", async (ISender s, CancellationToken ct) =>
+                await Csv(s.Send(new ExportSuppliersQuery(), ct), "suppliers.csv"))
+            .RequireAuthorization(Export).WithName("SupplierExport");
 
         var warehouses = app.MapGroup("/api/v1/warehouses").WithTags("Warehouses").RequireAuthorization();
         warehouses.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetWarehousesQuery(), ct))).RequireAuthorization(View);
@@ -72,6 +96,18 @@ public static class MasterDataEndpoints
             Send(s.Send(new UpdateWarehouseCommand(id, b.Name, b.Address), ct))).RequireAuthorization(Manage);
         warehouses.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetWarehouseActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
+        warehouses.MapGet("/import/template", () =>
+                Results.File(System.Text.Encoding.UTF8.GetBytes(WarehouseImportColumns.Template()), "text/csv", "warehouses-template.csv"))
+            .RequireAuthorization(Import).WithName("WarehouseImportTemplate");
+        warehouses.MapPost("/import/preview", async (IFormFile file, ISender s, CancellationToken ct) =>
+                await Send(s.Send(new PreviewWarehouseImportQuery(await ReadAsync(file, ct)), ct)))
+            .RequireAuthorization(Import).DisableAntiforgery().WithName("WarehouseImportPreview");
+        warehouses.MapPost("/import/commit", async (IFormFile file, ISender s, CancellationToken ct) =>
+                await Send(s.Send(new CommitWarehouseImportCommand(await ReadAsync(file, ct)), ct)))
+            .RequireAuthorization(Import).DisableAntiforgery().WithName("WarehouseImportCommit");
+        warehouses.MapGet("/export", async (ISender s, CancellationToken ct) =>
+                await Csv(s.Send(new ExportWarehousesQuery(), ct), "warehouses.csv"))
+            .RequireAuthorization(Export).WithName("WarehouseExport");
 
         var taxCodes = app.MapGroup("/api/v1/tax-codes").WithTags("Tax Codes").RequireAuthorization();
         taxCodes.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetTaxCodesQuery(), ct))).RequireAuthorization(View);

@@ -4,10 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Upload, Download, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
 import { formatMoney } from '@/lib/format'
-import type { Customer, ImportPreview } from '@/types/masterdata'
+import { useCsvImport } from '@/composables/useCsvImport'
+import type { Customer } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import CsvImportModal from '@/components/ui/CsvImportModal.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -23,53 +25,10 @@ const error = ref('')
 const editingId = ref<string | null>(null)
 const form = reactive({ code: '', name: '', taxId: '', paymentTermDays: 30, creditLimit: 0 })
 
-// --- Import ---
-const fileInput = ref<HTMLInputElement | null>(null)
-const importModal = ref(false)
-const importPreview = ref<ImportPreview | null>(null)
-const importFile = ref<File | null>(null)
-const importBusy = ref(false)
-const importError = ref('')
-
-function pickFile() {
-  fileInput.value?.click()
-}
-
-async function onFileChosen(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = '' // allow re-selecting the same file
-  if (!file) return
-  importFile.value = file
-  importError.value = ''
-  importPreview.value = null
-  importBusy.value = true
-  importModal.value = true
-  try {
-    importPreview.value = await masterData.previewCustomerImport(file)
-  } catch {
-    importError.value = t('masterData.import.failed')
-  } finally {
-    importBusy.value = false
-  }
-}
-
-const canCommit = computed(() => !!importPreview.value && importPreview.value.errorRows === 0 && importPreview.value.totalRows > 0)
-
-async function commitImport() {
-  if (!importFile.value) return
-  importBusy.value = true
-  importError.value = ''
-  try {
-    await masterData.commitCustomerImport(importFile.value)
-    importModal.value = false
-    await load()
-  } catch {
-    importError.value = t('masterData.import.failed')
-  } finally {
-    importBusy.value = false
-  }
-}
+// CSV import/export (ADR-0031) via the shared composable + modal.
+const io = masterData.customerImport
+const { fileInput, open: importOpen, preview: importPreview, busy: importBusy, error: importError, canCommit, pick, onFileChosen, commit: commitImport } =
+  useCsvImport(io, () => load())
 
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('masterData.fields.code') },
@@ -150,13 +109,13 @@ async function toggleActive(row: Customer) {
   <div class="space-y-4">
     <div class="flex flex-wrap items-center justify-end gap-2">
       <input ref="fileInput" type="file" accept=".csv,text/csv" class="hidden" @change="onFileChosen" />
-      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="masterData.customerImportTemplate()">
+      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.template()">
         <FileDown :size="16" /> {{ t('masterData.import.template') }}
       </button>
-      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="masterData.exportCustomers()">
+      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.export()">
         <Download :size="16" /> {{ t('masterData.import.export') }}
       </button>
-      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="pickFile">
+      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="pick">
         <Upload :size="16" /> {{ t('masterData.import.import') }}
       </button>
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.customers.new') }}</AppButton>
@@ -202,51 +161,14 @@ async function toggleActive(row: Customer) {
       </template>
     </AppModal>
 
-    <AppModal v-model="importModal" :title="t('masterData.import.title')">
-      <div class="space-y-3">
-        <p v-if="importBusy && !importPreview" class="text-sm text-text-muted">{{ t('common.loading') }}</p>
-        <template v-else-if="importPreview">
-          <div class="flex flex-wrap gap-4 text-sm">
-            <span class="text-text-muted">{{ t('masterData.import.rows') }}: <b class="text-text tnum">{{ importPreview.totalRows }}</b></span>
-            <span class="text-positive">{{ t('masterData.import.create') }}: <b class="tnum">{{ importPreview.toCreate }}</b></span>
-            <span class="text-info">{{ t('masterData.import.update') }}: <b class="tnum">{{ importPreview.toUpdate }}</b></span>
-            <span :class="importPreview.errorRows ? 'text-negative' : 'text-text-muted'">{{ t('masterData.import.errors') }}: <b class="tnum">{{ importPreview.errorRows }}</b></span>
-          </div>
-          <div class="max-h-72 overflow-y-auto rounded-card border border-border">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-border bg-surface-2 text-xs uppercase tracking-wide text-text-muted">
-                  <th class="px-3 py-2 text-left font-semibold">#</th>
-                  <th class="px-3 py-2 text-left font-semibold">{{ t('masterData.fields.code') }}</th>
-                  <th class="px-3 py-2 text-left font-semibold">{{ t('masterData.import.action') }}</th>
-                  <th class="px-3 py-2 text-left font-semibold">{{ t('masterData.import.issues') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="r in importPreview.rows" :key="r.rowNumber" class="border-b border-border last:border-0">
-                  <td class="px-3 py-1.5 text-text-muted tnum">{{ r.rowNumber }}</td>
-                  <td class="px-3 py-1.5 text-text">{{ r.key || '—' }}</td>
-                  <td class="px-3 py-1.5">
-                    <StatusBadge
-                      :label="t(`masterData.import.actions.${r.action}`)"
-                      :tone="r.action === 'Error' ? 'negative' : r.action === 'Update' ? 'info' : 'positive'"
-                    />
-                  </td>
-                  <td class="px-3 py-1.5 text-negative">{{ r.errors.join(' ') }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p v-if="importPreview.errorRows" class="text-xs text-text-muted">{{ t('masterData.import.allOrNothing') }}</p>
-        </template>
-        <p v-if="importError" class="text-sm text-negative">{{ importError }}</p>
-      </div>
-      <template #footer>
-        <AppButton variant="ghost" @click="importModal = false">{{ t('masterData.cancel') }}</AppButton>
-        <AppButton :disabled="importBusy || !canCommit" @click="commitImport">
-          {{ importBusy ? t('masterData.saving') : t('masterData.import.confirm') }}
-        </AppButton>
-      </template>
-    </AppModal>
+    <CsvImportModal
+      v-model="importOpen"
+      :title="`${t('masterData.import.import')} — ${t('masterData.tabs.customers')}`"
+      :preview="importPreview"
+      :busy="importBusy"
+      :error="importError"
+      :can-commit="canCommit"
+      @confirm="commitImport"
+    />
   </div>
 </template>

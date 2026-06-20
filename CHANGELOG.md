@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-06-20 09:23:24 UTC]
+
+CHG-0050 — CSV import/export for suppliers, products, warehouses (ADR-0031)
+
+- Extended the CSV import/export pattern (CHG-0049) to the remaining master data: **suppliers**,
+  **warehouses**, and **products** — each with template / dry-run preview / all-or-nothing commit
+  (match on Code) / export, gated by `MasterData.Import` / `MasterData.Export`.
+- **Products** resolve **UoM and category by code** (not id): base UoM is required to create and
+  **immutable on update**; an unknown UoM/category is an error row. Booleans accept
+  true/false/yes/no/1/0. Export emits the UoM/category **codes** so it round-trips back through import.
+- **Frontend:** factored the import flow into a shared `useCsvImport` composable + `CsvImportModal`
+  component; all four master-data screens (customers/suppliers/warehouses/products) now share the
+  Template / Export / Import toolbar + preview modal. Customers refactored onto the shared pieces.
+- **Tests:** +4 (supplier create/update by code; warehouse missing-name; product UoM/category
+  resolution + create; unknown-UoM error). Full suite **248** green.
+- **Verified (e2e):** product preview flagged an unknown UoM (1 error) and blocked the commit; a
+  valid file created 2; export round-trips UoM/category codes + flags; supplier/warehouse exports OK.
+- Master-data CSV import/export is now complete for all four entities. Excel (.xlsx) + PDF and async
+  large files remain the next layers.
+
+---
+
 ## [2026-06-20 05:30:22 UTC]
 
 CHG-0049 — Data import/export foundation — CSV, Customers (ADR-0031)

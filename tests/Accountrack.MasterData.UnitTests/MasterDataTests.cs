@@ -244,3 +244,86 @@ public class CustomerImportTests
         await _uow.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }
+
+public class SupplierWarehouseImportTests
+{
+    private readonly ICodedRepository<Supplier> _suppliers = Substitute.For<ICodedRepository<Supplier>>();
+    private readonly ICodedRepository<Warehouse> _warehouses = Substitute.For<ICodedRepository<Warehouse>>();
+    private readonly IMasterDataUnitOfWork _uow = Substitute.For<IMasterDataUnitOfWork>();
+
+    [Fact]
+    public async Task Supplier_commit_creates_and_updates_by_code()
+    {
+        var existing = Supplier.Create("SUP-001", "Globex", null, 30);
+        _suppliers.ListAsync(Arg.Any<CancellationToken>()).Returns(new[] { existing });
+        var csv = "Code,Name,TaxId,PaymentTermDays\nSUP-001,Globex Renamed,,45\nSUP-002,New Supplier,,20\n";
+
+        var result = await new CommitSupplierImportHandler(_suppliers, _uow)
+            .Handle(new CommitSupplierImportCommand(csv), CancellationToken.None);
+
+        result.Value.Committed.Should().BeTrue();
+        result.Value.Created.Should().Be(1);
+        result.Value.Updated.Should().Be(1);
+        existing.Name.Should().Be("Globex Renamed");
+        existing.PaymentTermDays.Should().Be(45);
+    }
+
+    [Fact]
+    public async Task Warehouse_preview_flags_missing_name()
+    {
+        _warehouses.ListAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<Warehouse>());
+        var csv = "Code,Name,Address\nWH-001,,Jakarta\n";
+
+        var result = await new PreviewWarehouseImportHandler(_warehouses)
+            .Handle(new PreviewWarehouseImportQuery(csv), CancellationToken.None);
+
+        result.Value.ErrorRows.Should().Be(1);
+        result.Value.Rows[0].Errors.Should().Contain("Name is required.");
+    }
+}
+
+public class ProductImportTests
+{
+    private readonly ICodedRepository<Product> _products = Substitute.For<ICodedRepository<Product>>();
+    private readonly ICodedRepository<UnitOfMeasure> _uoms = Substitute.For<ICodedRepository<UnitOfMeasure>>();
+    private readonly ICodedRepository<ProductCategory> _categories = Substitute.For<ICodedRepository<ProductCategory>>();
+    private readonly IMasterDataUnitOfWork _uow = Substitute.For<IMasterDataUnitOfWork>();
+
+    [Fact]
+    public async Task Resolves_uom_and_category_by_code_and_creates()
+    {
+        var pcs = UnitOfMeasure.Create("PCS", "Piece");
+        var cat = ProductCategory.Create("GENERAL", "General");
+        _products.ListAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<Product>());
+        _uoms.ListAsync(Arg.Any<CancellationToken>()).Returns(new[] { pcs });
+        _categories.ListAsync(Arg.Any<CancellationToken>()).Returns(new[] { cat });
+        var csv = "Code,Name,BaseUom,Category,StockTracked,Sold,Purchased\nSKU-1,Widget,PCS,GENERAL,true,true,false\n";
+
+        Product? added = null;
+        _products.When(r => r.Add(Arg.Any<Product>())).Do(ci => added = ci.Arg<Product>());
+
+        var result = await new CommitProductImportHandler(_products, _uoms, _categories, _uow)
+            .Handle(new CommitProductImportCommand(csv), CancellationToken.None);
+
+        result.Value.Committed.Should().BeTrue();
+        result.Value.Created.Should().Be(1);
+        added!.BaseUomId.Should().Be(pcs.Id);
+        added.CategoryId.Should().Be(cat.Id);
+        added.IsPurchased.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Unknown_uom_is_an_error_row()
+    {
+        _products.ListAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<Product>());
+        _uoms.ListAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<UnitOfMeasure>());
+        _categories.ListAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<ProductCategory>());
+        var csv = "Code,Name,BaseUom,Category,StockTracked,Sold,Purchased\nSKU-1,Widget,NOPE,,true,true,true\n";
+
+        var result = await new PreviewProductImportHandler(_products, _uoms, _categories)
+            .Handle(new PreviewProductImportQuery(csv), CancellationToken.None);
+
+        result.Value.ErrorRows.Should().Be(1);
+        result.Value.Rows[0].Errors.Should().Contain(e => e.Contains("BaseUom"));
+    }
+}

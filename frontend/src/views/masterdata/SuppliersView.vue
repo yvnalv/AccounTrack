@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus } from 'lucide-vue-next'
+import { Plus, Upload, Download, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
+import { useCsvImport } from '@/composables/useCsvImport'
 import type { Supplier } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import CsvImportModal from '@/components/ui/CsvImportModal.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -15,6 +17,10 @@ import type { Column } from '@/components/ui/types'
 
 const { t } = useI18n()
 const rows = ref<Supplier[]>([])
+
+const io = masterData.supplierImport
+const { fileInput, open: importOpen, preview: importPreview, busy: importBusy, error: importError, canCommit, pick, onFileChosen, commit: commitImport } =
+  useCsvImport(io, () => load())
 const loading = ref(true)
 const modalOpen = ref(false)
 const saving = ref(false)
@@ -90,7 +96,17 @@ async function toggleActive(row: Supplier) {
 
 <template>
   <div class="space-y-4">
-    <div class="flex justify-end">
+    <div class="flex flex-wrap items-center justify-end gap-2">
+      <input ref="fileInput" type="file" accept=".csv,text/csv" class="hidden" @change="onFileChosen" />
+      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.template()">
+        <FileDown :size="16" /> {{ t('masterData.import.template') }}
+      </button>
+      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.export()">
+        <Download :size="16" /> {{ t('masterData.import.export') }}
+      </button>
+      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="pick">
+        <Upload :size="16" /> {{ t('masterData.import.import') }}
+      </button>
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.suppliers.new') }}</AppButton>
     </div>
 
@@ -123,5 +139,15 @@ async function toggleActive(row: Supplier) {
         </AppButton>
       </template>
     </AppModal>
+
+    <CsvImportModal
+      v-model="importOpen"
+      :title="`${t('masterData.import.import')} — ${t('masterData.tabs.suppliers')}`"
+      :preview="importPreview"
+      :busy="importBusy"
+      :error="importError"
+      :can-commit="canCommit"
+      @confirm="commitImport"
+    />
   </div>
 </template>
