@@ -553,9 +553,14 @@ entity:
 dependency and its licensing to vet; async pipeline needed for very large files. New rules:
 BR-IMP-*.
 
-**Implementation (CHG-0049).** Delivered **CSV first** (no dependency — a small RFC-4180 reader/writer
-in SharedKernel); **Excel (.xlsx)** and **PDF** are the next layer (library TBD). First entity:
-**Customers** — downloadable template, two-step `import/preview` (dry-run: per-row Create/Update/Error)
-→ `import/commit` (**all-or-nothing**, matches on Code), and a list `export`. Permission-gated by new
-`MasterData.Import` / `MasterData.Export`. The same parse+validate pass backs preview and commit, so
-the preview is exact. Other entities follow the same shape; async large-file handling is still future.
+**Implementation (CHG-0049/0050/0051).** Delivered **CSV first** (no dependency — a small RFC-4180
+reader/writer in SharedKernel), then **Excel (.xlsx)** via **ClosedXML** (MIT-licensed — safe for
+commercial use). **Import** (dry-run preview → all-or-nothing commit, match on Code) covers all four
+master-data entities (customers/suppliers/warehouses/products); products resolve UoM/category by code.
+**Export** is format-aware (`?format=csv|xlsx`) via a shared `TabularData` payload + `TableExport`
+renderer, rolled out to **every list menu**: master data, sales orders, purchase orders, inventory
+on-hand, and expense vouchers. Document **import** stays master-data-only — posted documents are
+immutable (ADR-0029). **PDF** for financial reports/documents is the next layer (planned via
+**QuestPDF**, whose Community License is free under USD 1M revenue — revisit if that threshold is
+crossed). Permission-gated by `MasterData.Import`/`MasterData.Export` (master data) and module `View`
+(list exports); async large-file handling is still future.

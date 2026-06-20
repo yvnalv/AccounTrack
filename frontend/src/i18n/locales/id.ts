@@ -21,6 +21,9 @@ export default {
     comingSoon: 'Segera hadir',
     comingSoonBody: 'Bagian ini ada dalam peta jalan dan belum dibuat.',
     language: 'Bahasa',
+    export: 'Ekspor',
+    excel: 'Excel (.xlsx)',
+    csv: 'CSV',
   },
   theme: { toggle: 'Ganti tema', light: 'Terang', dark: 'Gelap' },
   command: {

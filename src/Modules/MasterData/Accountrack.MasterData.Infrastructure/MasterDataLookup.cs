@@ -23,4 +23,27 @@ public sealed class MasterDataLookup : IMasterDataLookup
 
     public Task<bool> WarehouseExistsAsync(Guid warehouseId, CancellationToken ct) =>
         _db.Set<Warehouse>().AnyAsync(w => w.Id == warehouseId, ct);
+
+    public async Task<IReadOnlyDictionary<Guid, string>> ResolveNamesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct)
+    {
+        var map = new Dictionary<Guid, string>();
+        if (ids.Count == 0)
+        {
+            return map;
+        }
+
+        async Task Add(IQueryable<KeyValuePair<Guid, string>> q)
+        {
+            foreach (var kv in await q.ToListAsync(ct))
+            {
+                map[kv.Key] = kv.Value;
+            }
+        }
+
+        await Add(_db.Set<Customer>().Where(e => ids.Contains(e.Id)).Select(e => new KeyValuePair<Guid, string>(e.Id, e.Name)));
+        await Add(_db.Set<Supplier>().Where(e => ids.Contains(e.Id)).Select(e => new KeyValuePair<Guid, string>(e.Id, e.Name)));
+        await Add(_db.Set<Product>().Where(e => ids.Contains(e.Id)).Select(e => new KeyValuePair<Guid, string>(e.Id, e.Name)));
+        await Add(_db.Set<Warehouse>().Where(e => ids.Contains(e.Id)).Select(e => new KeyValuePair<Guid, string>(e.Id, e.Name)));
+        return map;
+    }
 }

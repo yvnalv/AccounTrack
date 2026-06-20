@@ -1,5 +1,5 @@
 import { http, unwrap } from './api'
-import { getAuthToken } from './api'
+import { getAuthToken, downloadExport, type ExportFormat } from './api'
 import type {
   CreateCustomer,
   CreateProduct,
@@ -58,7 +58,7 @@ function csvIo(entity: string) {
   return {
     preview: (file: File) => unwrap<ImportPreview>(http.post(`/${entity}/import/preview`, toForm(file))),
     commit: (file: File) => unwrap<ImportCommit>(http.post(`/${entity}/import/commit`, toForm(file))),
-    export: () => downloadCsv(`/${entity}/export`, `${entity}.csv`),
+    export: (format: ExportFormat = 'xlsx') => downloadExport(`/${entity}/export`, entity, format),
     template: () => downloadCsv(`/${entity}/import/template`, `${entity}-template.csv`),
   }
 }

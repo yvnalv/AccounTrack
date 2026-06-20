@@ -4,6 +4,7 @@ using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.MasterData.Application.Abstractions;
 using Accountrack.MasterData.Domain;
 using Accountrack.SharedKernel.Csv;
+using Accountrack.SharedKernel.Export;
 using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.MasterData.Application.Features;
@@ -136,21 +137,21 @@ public sealed class CommitSupplierImportHandler : ICommandHandler<CommitSupplier
     }
 }
 
-public sealed record ExportSuppliersQuery : IQuery<string>;
+public sealed record ExportSuppliersQuery : IQuery<TabularData>;
 
-public sealed class ExportSuppliersHandler : IQueryHandler<ExportSuppliersQuery, string>
+public sealed class ExportSuppliersHandler : IQueryHandler<ExportSuppliersQuery, TabularData>
 {
     private readonly ICodedRepository<Supplier> _repo;
     public ExportSuppliersHandler(ICodedRepository<Supplier> repo) => _repo = repo;
 
-    public async Task<Result<string>> Handle(ExportSuppliersQuery request, CancellationToken ct)
+    public async Task<Result<TabularData>> Handle(ExportSuppliersQuery request, CancellationToken ct)
     {
         var suppliers = await _repo.ListAsync(ct);
-        var rows = suppliers.Select(s => new string?[]
+        var rows = suppliers.Select(s => (IReadOnlyList<string?>)new string?[]
         {
             s.Code, s.Name, s.TaxId, s.PaymentTermDays.ToString(CultureInfo.InvariantCulture),
         });
 
-        return Csv.Write(SupplierImportColumns.Header, rows);
+        return TabularData.From(SupplierImportColumns.Header, rows);
     }
 }

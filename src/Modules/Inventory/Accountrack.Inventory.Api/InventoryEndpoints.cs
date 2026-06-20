@@ -1,5 +1,6 @@
 using Accountrack.Inventory.Application.Features;
 using Accountrack.SharedKernel.Results;
+using Accountrack.Web.Common.Export;
 using Accountrack.Web.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -25,6 +26,10 @@ public static class InventoryEndpoints
 
         stock.MapGet("/on-hand", (ISender s, CancellationToken ct) => Send(s.Send(new GetStockOnHandQuery(), ct)))
             .RequireAuthorization("Inventory.View").WithName("GetStockOnHand");
+
+        stock.MapGet("/on-hand/export", (string? format, ISender s, CancellationToken ct) =>
+                TableExport.File(s.Send(new ExportStockOnHandQuery(), ct), "stock-on-hand", format))
+            .RequireAuthorization("Inventory.View").WithName("ExportStockOnHand");
 
         stock.MapGet("/card", (Guid productId, Guid? warehouseId, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetStockCardQuery(productId, warehouseId), ct)))

@@ -1,5 +1,6 @@
 using Accountrack.Expenses.Application.Features;
 using Accountrack.SharedKernel.Results;
+using Accountrack.Web.Common.Export;
 using Accountrack.Web.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -25,6 +26,10 @@ public static class ExpensesEndpoints
 
         vouchers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetExpenseVouchersQuery(), ct)))
             .RequireAuthorization("Expenses.View").WithName("GetExpenseVouchers");
+
+        vouchers.MapGet("/export", (string? format, ISender s, CancellationToken ct) =>
+                TableExport.File(s.Send(new ExportExpenseVouchersQuery(), ct), "expense-vouchers", format))
+            .RequireAuthorization("Expenses.View").WithName("ExportExpenseVouchers");
 
         vouchers.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetExpenseVoucherQuery(id), ct)))

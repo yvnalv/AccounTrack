@@ -10,4 +10,8 @@ public interface IMasterDataLookup
     Task<bool> CustomerExistsAsync(Guid customerId, CancellationToken ct);
     Task<bool> ProductExistsAsync(Guid productId, CancellationToken ct);
     Task<bool> WarehouseExistsAsync(Guid warehouseId, CancellationToken ct);
+
+    /// <summary>Resolves master-data ids (customer/supplier/product/warehouse) to display names,
+    /// e.g. for exports. Unknown ids are simply absent from the map.</summary>
+    Task<IReadOnlyDictionary<Guid, string>> ResolveNamesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
 }

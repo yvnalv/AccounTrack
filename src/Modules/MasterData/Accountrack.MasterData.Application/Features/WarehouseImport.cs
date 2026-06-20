@@ -3,6 +3,7 @@ using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.MasterData.Application.Abstractions;
 using Accountrack.MasterData.Domain;
 using Accountrack.SharedKernel.Csv;
+using Accountrack.SharedKernel.Export;
 using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.MasterData.Application.Features;
@@ -127,17 +128,17 @@ public sealed class CommitWarehouseImportHandler : ICommandHandler<CommitWarehou
     }
 }
 
-public sealed record ExportWarehousesQuery : IQuery<string>;
+public sealed record ExportWarehousesQuery : IQuery<TabularData>;
 
-public sealed class ExportWarehousesHandler : IQueryHandler<ExportWarehousesQuery, string>
+public sealed class ExportWarehousesHandler : IQueryHandler<ExportWarehousesQuery, TabularData>
 {
     private readonly ICodedRepository<Warehouse> _repo;
     public ExportWarehousesHandler(ICodedRepository<Warehouse> repo) => _repo = repo;
 
-    public async Task<Result<string>> Handle(ExportWarehousesQuery request, CancellationToken ct)
+    public async Task<Result<TabularData>> Handle(ExportWarehousesQuery request, CancellationToken ct)
     {
         var warehouses = await _repo.ListAsync(ct);
-        var rows = warehouses.Select(w => new string?[] { w.Code, w.Name, w.Address });
-        return Csv.Write(WarehouseImportColumns.Header, rows);
+        var rows = warehouses.Select(w => (IReadOnlyList<string?>)new string?[] { w.Code, w.Name, w.Address });
+        return TabularData.From(WarehouseImportColumns.Header, rows);
     }
 }

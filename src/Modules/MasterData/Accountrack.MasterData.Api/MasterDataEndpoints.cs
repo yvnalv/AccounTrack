@@ -1,4 +1,5 @@
 using Accountrack.MasterData.Application.Features;
+using Accountrack.Web.Common.Export;
 using Accountrack.Web.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -40,8 +41,8 @@ public static class MasterDataEndpoints
         products.MapPost("/import/commit", async (IFormFile file, ISender s, CancellationToken ct) =>
                 await Send(s.Send(new CommitProductImportCommand(await ReadAsync(file, ct)), ct)))
             .RequireAuthorization(Import).DisableAntiforgery().WithName("ProductImportCommit");
-        products.MapGet("/export", async (ISender s, CancellationToken ct) =>
-                await Csv(s.Send(new ExportProductsQuery(), ct), "products.csv"))
+        products.MapGet("/export", async (string? format, ISender s, CancellationToken ct) =>
+                await TableExport.File(s.Send(new ExportProductsQuery(), ct), "products", format))
             .RequireAuthorization(Export).WithName("ProductExport");
 
         var customers = app.MapGroup("/api/v1/customers").WithTags("Customers").RequireAuthorization();
@@ -65,8 +66,8 @@ public static class MasterDataEndpoints
                 await Send(s.Send(new CommitCustomerImportCommand(await ReadAsync(file, ct)), ct)))
             .RequireAuthorization(Import).DisableAntiforgery().WithName("CustomerImportCommit");
 
-        customers.MapGet("/export", async (ISender s, CancellationToken ct) =>
-                await Csv(s.Send(new ExportCustomersQuery(), ct), "customers.csv"))
+        customers.MapGet("/export", async (string? format, ISender s, CancellationToken ct) =>
+                await TableExport.File(s.Send(new ExportCustomersQuery(), ct), "customers", format))
             .RequireAuthorization(Export).WithName("CustomerExport");
 
         var suppliers = app.MapGroup("/api/v1/suppliers").WithTags("Suppliers").RequireAuthorization();
@@ -85,8 +86,8 @@ public static class MasterDataEndpoints
         suppliers.MapPost("/import/commit", async (IFormFile file, ISender s, CancellationToken ct) =>
                 await Send(s.Send(new CommitSupplierImportCommand(await ReadAsync(file, ct)), ct)))
             .RequireAuthorization(Import).DisableAntiforgery().WithName("SupplierImportCommit");
-        suppliers.MapGet("/export", async (ISender s, CancellationToken ct) =>
-                await Csv(s.Send(new ExportSuppliersQuery(), ct), "suppliers.csv"))
+        suppliers.MapGet("/export", async (string? format, ISender s, CancellationToken ct) =>
+                await TableExport.File(s.Send(new ExportSuppliersQuery(), ct), "suppliers", format))
             .RequireAuthorization(Export).WithName("SupplierExport");
 
         var warehouses = app.MapGroup("/api/v1/warehouses").WithTags("Warehouses").RequireAuthorization();
@@ -105,8 +106,8 @@ public static class MasterDataEndpoints
         warehouses.MapPost("/import/commit", async (IFormFile file, ISender s, CancellationToken ct) =>
                 await Send(s.Send(new CommitWarehouseImportCommand(await ReadAsync(file, ct)), ct)))
             .RequireAuthorization(Import).DisableAntiforgery().WithName("WarehouseImportCommit");
-        warehouses.MapGet("/export", async (ISender s, CancellationToken ct) =>
-                await Csv(s.Send(new ExportWarehousesQuery(), ct), "warehouses.csv"))
+        warehouses.MapGet("/export", async (string? format, ISender s, CancellationToken ct) =>
+                await TableExport.File(s.Send(new ExportWarehousesQuery(), ct), "warehouses", format))
             .RequireAuthorization(Export).WithName("WarehouseExport");
 
         var taxCodes = app.MapGroup("/api/v1/tax-codes").WithTags("Tax Codes").RequireAuthorization();
@@ -127,15 +128,6 @@ public static class MasterDataEndpoints
     {
         using var reader = new StreamReader(file.OpenReadStream());
         return await reader.ReadToEndAsync(ct);
-    }
-
-    /// <summary>Returns a successful CSV <see cref="SharedKernel.Results.Result{T}"/> as a file download.</summary>
-    private static async Task<IResult> Csv(Task<SharedKernel.Results.Result<string>> task, string fileName)
-    {
-        var result = await task;
-        return result.IsSuccess
-            ? Results.File(System.Text.Encoding.UTF8.GetBytes(result.Value), "text/csv", fileName)
-            : result.ToHttpResult();
     }
 
     private static async Task<IResult> Send<T>(Task<SharedKernel.Results.Result<T>> task) =>

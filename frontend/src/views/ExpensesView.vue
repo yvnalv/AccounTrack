@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Trash2 } from 'lucide-vue-next'
 import { expensesApi } from '@/lib/expenses'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
+import { downloadExport } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import type { ExpenseCategory, ExpenseVoucherSummary } from '@/types/expenses'
 import type { AccountRef } from '@/types/accounting'
@@ -12,6 +13,7 @@ import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DataTable from '@/components/ui/DataTable.vue'
+import ExportMenu from '@/components/ui/ExportMenu.vue'
 import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { Column } from '@/components/ui/types'
@@ -131,7 +133,8 @@ async function save() {
 
 <template>
   <div class="space-y-4">
-    <div class="flex justify-end">
+    <div class="flex justify-end gap-2">
+      <ExportMenu :download="(f) => downloadExport('/expense-vouchers/export', 'expense-vouchers', f)" />
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('expenses.new') }}</AppButton>
     </div>
 

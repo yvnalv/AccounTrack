@@ -8,10 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-20 (last change **CHG-0050**)
-- **Build:** green — backend `net8.0` (248 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **CSV import/export** complete for all master data — customers/suppliers/warehouses/
-  products (CHG-0049/0050).
+- **As of:** 2026-06-20 (last change **CHG-0051**)
+- **Build:** green — backend `net8.0` (250 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Excel (.xlsx) export** (ClosedXML) + CSV/Excel export across **all list menus** — master
+  data, sales, purchasing, inventory, expenses (CHG-0051).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -81,10 +81,11 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Expenses module (ADR-0030):** 🟡 done (CHG-0048) — vouchers paid from cash/bank, category→GL via
   posting rules, atomic Dr Expense [+ VAT Input] / Cr Cash-Bank. Remaining: on-account (Cr AP),
   approvals, category edit/deactivate. (BR-EXP-*.)
-- **Data Import/Export (ADR-0031):** 🟡 CSV done for **all four master-data entities** (customers
-  CHG-0049; suppliers/warehouses/products CHG-0050) — template + dry-run preview + all-or-nothing
-  commit + export. Remaining: Excel (.xlsx) + PDF, transactional/list-with-filters export, async
-  large files. (BR-IMP-*.)
+- **Data Import/Export (ADR-0031):** 🟡 CSV **import** for all four master-data entities
+  (CHG-0049/0050); **CSV + Excel export** across all list menus — master data, sales orders, purchase
+  orders, inventory on-hand, expenses (CHG-0051, ClosedXML/MIT). Remaining: **PDF** for reports +
+  documents (QuestPDF, license-gated), list-export-with-active-filters, Excel *import*, async large
+  files. (BR-IMP-*.)
 - **Accounting slice 2 (remaining):** period-close balance snapshots, year-end close to retained
   earnings, Cash Flow report. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017;
   AR/AP subledgers — CHG-0018.)

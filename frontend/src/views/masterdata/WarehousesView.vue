@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Upload, Download, FileDown } from 'lucide-vue-next'
+import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
 import { useCsvImport } from '@/composables/useCsvImport'
 import type { Warehouse } from '@/types/masterdata'
@@ -9,6 +9,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import CsvImportModal from '@/components/ui/CsvImportModal.vue'
+import ExportMenu from '@/components/ui/ExportMenu.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -91,9 +92,7 @@ async function toggleActive(row: Warehouse) {
       <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.template()">
         <FileDown :size="16" /> {{ t('masterData.import.template') }}
       </button>
-      <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.export()">
-        <Download :size="16" /> {{ t('masterData.import.export') }}
-      </button>
+      <ExportMenu :download="(f) => io.export(f)" />
       <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="pick">
         <Upload :size="16" /> {{ t('masterData.import.import') }}
       </button>

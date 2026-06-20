@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { inventoryApi } from '@/lib/inventory'
 import { masterData, nameMap } from '@/lib/masterData'
+import { downloadExport } from '@/lib/api'
 import { formatMoney, formatNumber } from '@/lib/format'
 import type { StockOnHand } from '@/types/inventory'
 import DataTable from '@/components/ui/DataTable.vue'
+import ExportMenu from '@/components/ui/ExportMenu.vue'
 import type { Column } from '@/components/ui/types'
 
 const { t } = useI18n()
@@ -54,16 +56,21 @@ function openCard(row: Record<string, unknown>) {
 </script>
 
 <template>
-  <DataTable
-    :columns="columns"
-    :rows="rows"
-    :loading="loading"
-    :empty-text="t('inventory.empty')"
-    clickable
-    @row-click="openCard"
-  >
-    <template #cell-onHandQty="{ value }">{{ formatNumber(Number(value), 2) }}</template>
-    <template #cell-avgUnitCost="{ value }">{{ formatMoney(Number(value)) }}</template>
-    <template #cell-value="{ value }">{{ formatMoney(Number(value)) }}</template>
-  </DataTable>
+  <div class="space-y-4">
+    <div class="flex justify-end">
+      <ExportMenu :download="(f) => downloadExport('/stock/on-hand/export', 'stock-on-hand', f)" />
+    </div>
+    <DataTable
+      :columns="columns"
+      :rows="rows"
+      :loading="loading"
+      :empty-text="t('inventory.empty')"
+      clickable
+      @row-click="openCard"
+    >
+      <template #cell-onHandQty="{ value }">{{ formatNumber(Number(value), 2) }}</template>
+      <template #cell-avgUnitCost="{ value }">{{ formatMoney(Number(value)) }}</template>
+      <template #cell-value="{ value }">{{ formatMoney(Number(value)) }}</template>
+    </DataTable>
+  </div>
 </template>

@@ -4,6 +4,7 @@ using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.MasterData.Application.Abstractions;
 using Accountrack.MasterData.Domain;
 using Accountrack.SharedKernel.Csv;
+using Accountrack.SharedKernel.Export;
 using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.MasterData.Application.Features;
@@ -155,23 +156,23 @@ public sealed class CommitCustomerImportHandler : ICommandHandler<CommitCustomer
 
 // --- Export ---
 
-public sealed record ExportCustomersQuery : IQuery<string>;
+public sealed record ExportCustomersQuery : IQuery<TabularData>;
 
-public sealed class ExportCustomersHandler : IQueryHandler<ExportCustomersQuery, string>
+public sealed class ExportCustomersHandler : IQueryHandler<ExportCustomersQuery, TabularData>
 {
     private readonly ICodedRepository<Customer> _repo;
     public ExportCustomersHandler(ICodedRepository<Customer> repo) => _repo = repo;
 
-    public async Task<Result<string>> Handle(ExportCustomersQuery request, CancellationToken ct)
+    public async Task<Result<TabularData>> Handle(ExportCustomersQuery request, CancellationToken ct)
     {
         var customers = await _repo.ListAsync(ct);
-        var rows = customers.Select(c => new string?[]
+        var rows = customers.Select(c => (IReadOnlyList<string?>)new string?[]
         {
             c.Code, c.Name, c.TaxId,
             c.PaymentTermDays.ToString(CultureInfo.InvariantCulture),
             c.CreditLimit.ToString(CultureInfo.InvariantCulture),
         });
 
-        return Csv.Write(CustomerImportColumns.Header, rows);
+        return TabularData.From(CustomerImportColumns.Header, rows);
     }
 }

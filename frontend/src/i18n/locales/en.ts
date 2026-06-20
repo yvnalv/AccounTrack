@@ -20,6 +20,9 @@ export default {
     comingSoon: 'Coming soon',
     comingSoonBody: 'This area is part of the roadmap and not built yet.',
     language: 'Language',
+    export: 'Export',
+    excel: 'Excel (.xlsx)',
+    csv: 'CSV',
   },
   theme: { toggle: 'Toggle theme', light: 'Light', dark: 'Dark' },
   command: {

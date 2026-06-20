@@ -21,6 +21,23 @@ export function getAuthToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
 
+export type ExportFormat = 'csv' | 'xlsx'
+
+/** Streams an export endpoint to a browser download in the chosen format (ADR-0031). */
+export async function downloadExport(path: string, baseName: string, format: ExportFormat = 'xlsx'): Promise<void> {
+  const sep = path.includes('?') ? '&' : '?'
+  const res = await fetch(`/api/v1${path}${sep}format=${format}`, {
+    headers: { Authorization: `Bearer ${getAuthToken() ?? ''}` },
+  })
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${baseName}.${format}`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 const MUTATING_METHODS = new Set(['post', 'put', 'patch'])
 
 http.interceptors.request.use((config) => {

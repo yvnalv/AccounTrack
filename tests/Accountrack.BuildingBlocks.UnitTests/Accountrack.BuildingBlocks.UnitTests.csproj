@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BuildingBlocks\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Accountrack.Web.Common\Accountrack.Web.Common.csproj" />
   </ItemGroup>
 
 </Project>

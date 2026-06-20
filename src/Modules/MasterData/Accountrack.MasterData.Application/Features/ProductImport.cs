@@ -3,6 +3,7 @@ using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.MasterData.Application.Abstractions;
 using Accountrack.MasterData.Domain;
 using Accountrack.SharedKernel.Csv;
+using Accountrack.SharedKernel.Export;
 using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.MasterData.Application.Features;
@@ -197,9 +198,9 @@ public sealed class CommitProductImportHandler : ICommandHandler<CommitProductIm
     }
 }
 
-public sealed record ExportProductsQuery : IQuery<string>;
+public sealed record ExportProductsQuery : IQuery<TabularData>;
 
-public sealed class ExportProductsHandler : IQueryHandler<ExportProductsQuery, string>
+public sealed class ExportProductsHandler : IQueryHandler<ExportProductsQuery, TabularData>
 {
     private readonly ICodedRepository<Product> _products;
     private readonly ICodedRepository<UnitOfMeasure> _uoms;
@@ -213,13 +214,13 @@ public sealed class ExportProductsHandler : IQueryHandler<ExportProductsQuery, s
         _categories = categories;
     }
 
-    public async Task<Result<string>> Handle(ExportProductsQuery request, CancellationToken ct)
+    public async Task<Result<TabularData>> Handle(ExportProductsQuery request, CancellationToken ct)
     {
         var products = await _products.ListAsync(ct);
         var uomCodeById = (await _uoms.ListAsync(ct)).ToDictionary(u => u.Id, u => u.Code);
         var catCodeById = (await _categories.ListAsync(ct)).ToDictionary(c => c.Id, c => c.Code);
 
-        var rows = products.Select(p => new string?[]
+        var rows = products.Select(p => (IReadOnlyList<string?>)new string?[]
         {
             p.Code, p.Name,
             uomCodeById.GetValueOrDefault(p.BaseUomId, ""),
@@ -229,6 +230,6 @@ public sealed class ExportProductsHandler : IQueryHandler<ExportProductsQuery, s
             p.IsPurchased ? "true" : "false",
         });
 
-        return Csv.Write(ProductImportColumns.Header, rows);
+        return TabularData.From(ProductImportColumns.Header, rows);
     }
 }

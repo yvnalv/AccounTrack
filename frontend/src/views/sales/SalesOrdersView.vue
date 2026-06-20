@@ -5,10 +5,12 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Wallet } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData, nameMap } from '@/lib/masterData'
+import { downloadExport } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import type { SalesOrderSummary } from '@/types/sales'
 import AppButton from '@/components/ui/AppButton.vue'
 import DataTable from '@/components/ui/DataTable.vue'
+import ExportMenu from '@/components/ui/ExportMenu.vue'
 import type { Column } from '@/components/ui/types'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
@@ -49,6 +51,7 @@ function openOrder(row: Record<string, unknown>) {
 <template>
   <div class="space-y-4">
     <div class="flex justify-end gap-2">
+      <ExportMenu :download="(f) => downloadExport('/sales-orders/export', 'sales-orders', f)" />
       <AppButton variant="secondary" @click="router.push({ name: 'salesReceivePayment' })">
         <Wallet :size="16" /> {{ t('sales.receivePayment') }}
       </AppButton>

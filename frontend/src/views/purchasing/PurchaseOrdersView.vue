@@ -5,10 +5,12 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Wallet } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
 import { masterData, nameMap } from '@/lib/masterData'
+import { downloadExport } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import type { PurchaseOrderSummary } from '@/types/purchasing'
 import AppButton from '@/components/ui/AppButton.vue'
 import DataTable from '@/components/ui/DataTable.vue'
+import ExportMenu from '@/components/ui/ExportMenu.vue'
 import type { Column } from '@/components/ui/types'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
@@ -49,6 +51,7 @@ function open(row: Record<string, unknown>) {
 <template>
   <div class="space-y-4">
     <div class="flex justify-end gap-2">
+      <ExportMenu :download="(f) => downloadExport('/purchase-orders/export', 'purchase-orders', f)" />
       <AppButton variant="secondary" @click="router.push({ name: 'purchasingPaySupplier' })">
         <Wallet :size="16" /> {{ t('purchasing.paySupplier') }}
       </AppButton>

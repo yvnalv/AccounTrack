@@ -1,5 +1,6 @@
 using Accountrack.Sales.Application.Features;
 using Accountrack.SharedKernel.Results;
+using Accountrack.Web.Common.Export;
 using Accountrack.Web.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -16,6 +17,10 @@ public static class SalesEndpoints
 
         so.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetSalesOrdersQuery(), ct)))
             .RequireAuthorization("Sales.View").WithName("GetSalesOrders");
+
+        so.MapGet("/export", (string? format, ISender s, CancellationToken ct) =>
+                TableExport.File(s.Send(new ExportSalesOrdersQuery(), ct), "sales-orders", format))
+            .RequireAuthorization("Sales.View").WithName("ExportSalesOrders");
 
         so.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) => Send(s.Send(new GetSalesOrderQuery(id), ct)))
             .RequireAuthorization("Sales.View").WithName("GetSalesOrder");

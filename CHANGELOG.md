@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-06-20 09:51:08 UTC]
+
+CHG-0051 — Excel (.xlsx) export + export across every list menu (ADR-0031)
+
+- Added **Excel (.xlsx)** as an export format via **ClosedXML** (MIT) and rolled **CSV/Excel export**
+  out to **all list menus**, not just master data.
+- **Building block:** a format-neutral `TabularData` payload (SharedKernel) + a `TableExport`
+  renderer (Web.Common) that streams CSV or XLSX based on `?format=csv|xlsx`. Master-data exports
+  were refactored onto it (so they gain Excel for free); the import paths are unchanged.
+- **New list exports** (`GET …/export?format=`): sales orders, purchase orders, inventory on-hand,
+  and expense vouchers. Sales/purchasing/inventory resolve party/product/warehouse **names** via a
+  new `IMasterDataLookup.ResolveNamesAsync` cross-module helper. Gated by each module's `View`
+  permission; document **import** stays master-data-only (posted docs are immutable, ADR-0029).
+- **Frontend:** a shared **ExportMenu** (Export ▾ → Excel / CSV) replaces the single export button on
+  the four master-data screens and is added to sales/purchasing/inventory/expenses lists; a shared
+  `downloadExport(path, name, format)` helper. EN/ID strings.
+- **Tests:** +2 (`TableExport` — CSV matches the shared writer; XLSX is a valid workbook with header +
+  rows, reopened with ClosedXML). Full suite **250** green.
+- **Verified (e2e):** customers/sales-orders XLSX download with the correct content-type + PK/zip
+  signature; CSV default works; inventory/purchasing/expenses export headers correct with names
+  resolved.
+- **Next:** PDF for financial reports + documents (planned via QuestPDF — Community License free
+  under USD 1M revenue).
+
+---
+
 ## [2026-06-20 09:23:24 UTC]
 
 CHG-0050 — CSV import/export for suppliers, products, warehouses (ADR-0031)

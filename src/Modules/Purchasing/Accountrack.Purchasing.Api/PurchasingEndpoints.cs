@@ -14,6 +14,10 @@ public static class PurchasingEndpoints
     {
         var po = app.MapGroup("/api/v1/purchase-orders").WithTags("Purchasing").RequireAuthorization();
 
+        po.MapGet("/export", (string? format, ISender s, CancellationToken ct) =>
+                Accountrack.Web.Common.Export.TableExport.File(s.Send(new ExportPurchaseOrdersQuery(), ct), "purchase-orders", format))
+            .RequireAuthorization("Purchasing.View").WithName("ExportPurchaseOrders");
+
         po.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetPurchaseOrdersQuery(), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseOrders");
 
