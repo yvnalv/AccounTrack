@@ -156,3 +156,37 @@ public sealed class SubmitSalesOrderHandler : ICommandHandler<SubmitSalesOrderCo
         return order.Status.ToString();
     }
 }
+
+/// <summary>Cancels a draft (or pending-approval) sales order (ADR-0029). Approved/decided or
+/// delivered orders are immutable and must be reversed via returns, not cancelled.</summary>
+public sealed record CancelSalesOrderCommand(Guid Id) : ICommand<Guid>;
+
+public sealed class CancelSalesOrderHandler : ICommandHandler<CancelSalesOrderCommand, Guid>
+{
+    private readonly ISalesOrderRepository _orders;
+    private readonly ISalesUnitOfWork _uow;
+
+    public CancelSalesOrderHandler(ISalesOrderRepository orders, ISalesUnitOfWork uow)
+    {
+        _orders = orders;
+        _uow = uow;
+    }
+
+    public async Task<Result<Guid>> Handle(CancelSalesOrderCommand request, CancellationToken ct)
+    {
+        var order = await _orders.GetByIdAsync(request.Id, ct);
+        if (order is null)
+        {
+            return SalesErrors.NotFound;
+        }
+
+        if (!order.CanCancel)
+        {
+            return SalesErrors.NotCancellable;
+        }
+
+        order.Cancel();
+        await _uow.SaveChangesAsync(ct);
+        return order.Id;
+    }
+}

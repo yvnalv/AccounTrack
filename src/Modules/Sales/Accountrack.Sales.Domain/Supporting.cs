@@ -93,6 +93,9 @@ public static class SalesErrors
     public static readonly Error NotFound =
         Error.NotFound("SALES.SO_NOT_FOUND", "Sales order not found.");
 
+    public static readonly Error NotCancellable =
+        Error.Conflict("SALES.NOT_CANCELLABLE", "Only a draft or pending sales order can be cancelled.");
+
     public static readonly Error ReturnInvoiceNotFound =
         Error.NotFound("SALES.RETURN_INVOICE_NOT_FOUND", "The sales invoice being returned was not found.");
 

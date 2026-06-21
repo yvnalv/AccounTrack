@@ -36,6 +36,10 @@ public static class PurchasingEndpoints
                 Send(s.Send(new SubmitPurchaseOrderCommand(id), ct)))
             .RequireAuthorization("Purchasing.Create").WithName("SubmitPurchaseOrder");
 
+        po.MapPost("/{id:guid}/cancel", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new CancelPurchaseOrderCommand(id), ct)))
+            .RequireAuthorization("Purchasing.Create").WithName("CancelPurchaseOrder");
+
         // --- Goods receipts (against a purchase order) ---
         po.MapGet("/{id:guid}/goods-receipts", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetGoodsReceiptsForPurchaseOrderQuery(id), ct)))

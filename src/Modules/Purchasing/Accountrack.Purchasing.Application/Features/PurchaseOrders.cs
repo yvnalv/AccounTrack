@@ -157,3 +157,37 @@ public sealed class SubmitPurchaseOrderHandler : ICommandHandler<SubmitPurchaseO
         return order.Status.ToString();
     }
 }
+
+/// <summary>Cancels a draft (or pending-approval) purchase order (ADR-0029). Approved/decided or
+/// received orders are immutable and must be reversed via returns, not cancelled.</summary>
+public sealed record CancelPurchaseOrderCommand(Guid Id) : ICommand<Guid>;
+
+public sealed class CancelPurchaseOrderHandler : ICommandHandler<CancelPurchaseOrderCommand, Guid>
+{
+    private readonly IPurchaseOrderRepository _orders;
+    private readonly IPurchasingUnitOfWork _uow;
+
+    public CancelPurchaseOrderHandler(IPurchaseOrderRepository orders, IPurchasingUnitOfWork uow)
+    {
+        _orders = orders;
+        _uow = uow;
+    }
+
+    public async Task<Result<Guid>> Handle(CancelPurchaseOrderCommand request, CancellationToken ct)
+    {
+        var order = await _orders.GetByIdAsync(request.Id, ct);
+        if (order is null)
+        {
+            return PurchasingErrors.NotFound;
+        }
+
+        if (!order.CanCancel)
+        {
+            return PurchasingErrors.NotCancellable;
+        }
+
+        order.Cancel();
+        await _uow.SaveChangesAsync(ct);
+        return order.Id;
+    }
+}

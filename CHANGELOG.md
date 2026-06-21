@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-06-21 05:01:30 UTC]
+
+CHG-0061 — Cancel draft Sales / Purchase Orders (ADR-0029)
+
+- **Cancel** a draft (or pending-approval) Sales Order or Purchase Order:
+  `POST /api/v1/sales-orders/{id}/cancel` (`Sales.Create`) and
+  `POST /api/v1/purchase-orders/{id}/cancel` (`Purchasing.Create`). New `Cancel*OrderCommand` +
+  handlers return a clean `NOT_CANCELLABLE` conflict once the order is approved/decided — those are
+  immutable and must be reversed via returns, never cancelled.
+- **Domain:** added `CanCancel` (Draft or PendingApproval) and tightened `Cancel()` on both order
+  aggregates to honor it — fixing a latent gap where a delivered/received order could be cancelled.
+- **Frontend:** a **Cancel order** (danger) button on the Sales-Order and Purchase-Order detail
+  headers, shown only while the order is cancellable, with a confirm prompt. EN/ID strings.
+- **Tests:** +6 (domain cancel-from-draft / cancel-from-pending / decided-throws; handler cancel +
+  not-cancellable, for both modules). Full suite **273** green; frontend builds.
+- **Verified (e2e):** cancelled a draft PO and a draft SO (→ Cancelled); cancelling an approved PO is
+  rejected with `PURCHASING.NOT_CANCELLABLE`.
+- **Remaining (CRUD completion):** draft document line-edit before submit; Chart-of-Accounts edit;
+  distinct `*.Edit`/`*.Delete`/`*.Cancel` permissions.
+
+---
+
 ## [2026-06-21 04:06:52 UTC]
 
 CHG-0060 — Master-data CRUD completion — Units, Categories, Tax codes

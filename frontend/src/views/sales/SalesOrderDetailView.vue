@@ -29,7 +29,7 @@ const returns = ref<SalesReturnSummary[]>([])
 const products = ref(new Map<string, string>())
 const customers = ref(new Map<string, string>())
 const loading = ref(true)
-const busy = ref<'' | 'submit' | 'deliver' | 'invoice'>('')
+const busy = ref<'' | 'submit' | 'deliver' | 'invoice' | 'cancel'>('')
 const error = ref('')
 
 interface ReturnRow {
@@ -113,7 +113,11 @@ const hasUninvoiced = computed(
   () => order.value?.lines.some((l) => l.deliveredQuantity - l.invoicedQuantity > 0) ?? false,
 )
 
-async function run(kind: 'submit' | 'deliver' | 'invoice', fn: () => Promise<unknown>) {
+const canCancel = computed(
+  () => order.value?.status === 'Draft' || order.value?.status === 'PendingApproval',
+)
+
+async function run(kind: 'submit' | 'deliver' | 'invoice' | 'cancel', fn: () => Promise<unknown>) {
   if (!order.value) return
   busy.value = kind
   error.value = ''
@@ -128,6 +132,11 @@ async function run(kind: 'submit' | 'deliver' | 'invoice', fn: () => Promise<unk
 }
 
 const submit = () => run('submit', () => salesApi.submit(order.value!.id))
+
+function cancel() {
+  if (!order.value || !window.confirm(t('sales.detail.confirmCancel'))) return
+  run('cancel', () => salesApi.cancel(order.value!.id))
+}
 
 const deliver = () =>
   run('deliver', () =>
@@ -198,6 +207,9 @@ onMounted(load)
           </AppButton>
           <AppButton v-if="hasUninvoiced" :disabled="busy !== ''" @click="invoice">
             {{ busy === 'invoice' ? t('sales.detail.invoicing') : t('sales.detail.createInvoice') }}
+          </AppButton>
+          <AppButton v-if="canCancel" variant="danger" :disabled="busy !== ''" @click="cancel">
+            {{ busy === 'cancel' ? t('sales.detail.cancelling') : t('sales.detail.cancel') }}
           </AppButton>
         </div>
       </div>

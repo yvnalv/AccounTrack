@@ -93,6 +93,9 @@ public static class PurchasingErrors
     public static readonly Error NotFound =
         Error.NotFound("PURCHASING.PO_NOT_FOUND", "Purchase order not found.");
 
+    public static readonly Error NotCancellable =
+        Error.Conflict("PURCHASING.NOT_CANCELLABLE", "Only a draft or pending purchase order can be cancelled.");
+
     public static readonly Error ReturnInvoiceNotFound =
         Error.NotFound("PURCHASING.RETURN_INVOICE_NOT_FOUND", "The purchase invoice being returned was not found.");
 

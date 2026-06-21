@@ -113,4 +113,31 @@ public class SalesHandlerTests
 
         await _orders.DidNotReceive().GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task Cancel_marks_a_draft_order_cancelled()
+    {
+        var so = DraftWithLine();
+        _orders.GetByIdAsync(so.Id, Arg.Any<CancellationToken>()).Returns(so);
+
+        var result = await new CancelSalesOrderHandler(_orders, _uow).Handle(new CancelSalesOrderCommand(so.Id), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        so.Status.Should().Be(SalesOrderStatus.Cancelled);
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cancel_an_approved_order_returns_not_cancellable()
+    {
+        var so = DraftWithLine();
+        so.MarkAutoApproved(Guid.NewGuid());
+        _orders.GetByIdAsync(so.Id, Arg.Any<CancellationToken>()).Returns(so);
+
+        var result = await new CancelSalesOrderHandler(_orders, _uow).Handle(new CancelSalesOrderCommand(so.Id), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("SALES.NOT_CANCELLABLE");
+        so.Status.Should().Be(SalesOrderStatus.Approved);
+    }
 }

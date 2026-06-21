@@ -97,11 +97,14 @@ public sealed class PurchaseOrder : TenantOwnedEntity, IAggregateRoot
         }
     }
 
+    /// <summary>Whether the order can still be cancelled — only before it is approved/decided (ADR-0029).</summary>
+    public bool CanCancel => Status is PurchaseOrderStatus.Draft or PurchaseOrderStatus.PendingApproval;
+
     public void Cancel()
     {
-        if (Status is PurchaseOrderStatus.Approved or PurchaseOrderStatus.Rejected)
+        if (!CanCancel)
         {
-            throw new InvalidOperationException("A decided purchase order cannot be cancelled.");
+            throw new InvalidOperationException("Only a draft or pending purchase order can be cancelled.");
         }
 
         Status = PurchaseOrderStatus.Cancelled;

@@ -38,6 +38,10 @@ public static class SalesEndpoints
                 Send(s.Send(new SubmitSalesOrderCommand(id), ct)))
             .RequireAuthorization("Sales.Create").WithName("SubmitSalesOrder");
 
+        so.MapPost("/{id:guid}/cancel", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new CancelSalesOrderCommand(id), ct)))
+            .RequireAuthorization("Sales.Create").WithName("CancelSalesOrder");
+
         // --- Delivery orders (against a sales order) ---
         so.MapGet("/{id:guid}/deliveries", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetDeliveriesForSalesOrderQuery(id), ct)))

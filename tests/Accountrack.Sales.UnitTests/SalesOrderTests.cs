@@ -63,7 +63,31 @@ public class SalesOrderTests
         var so = Draft();
         so.MarkAutoApproved(Guid.NewGuid());
 
+        so.CanCancel.Should().BeFalse();
         var act = () => so.Cancel();
         act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void A_draft_can_be_cancelled()
+    {
+        var so = Draft();
+        so.AddLine(Guid.NewGuid(), 1m, 10m, 0m, null);
+
+        so.CanCancel.Should().BeTrue();
+        so.Cancel();
+        so.Status.Should().Be(SalesOrderStatus.Cancelled);
+    }
+
+    [Fact]
+    public void A_pending_approval_order_can_be_cancelled()
+    {
+        var so = Draft();
+        so.AddLine(Guid.NewGuid(), 1m, 10m, 0m, null);
+        so.MarkPendingApproval(Guid.NewGuid());
+
+        so.CanCancel.Should().BeTrue();
+        so.Cancel();
+        so.Status.Should().Be(SalesOrderStatus.Cancelled);
     }
 }

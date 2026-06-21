@@ -17,6 +17,7 @@ export const salesApi = {
   get: (id: string) => unwrap<SalesOrder>(http.get(`/sales-orders/${id}`)),
   create: (body: CreateSalesOrder) => unwrap<string>(http.post('/sales-orders', body)),
   submit: (id: string) => unwrap<string>(http.post(`/sales-orders/${id}/submit`, {})),
+  cancel: (id: string) => unwrap<string>(http.post(`/sales-orders/${id}/cancel`, {})),
 
   deliveries: (id: string) =>
     unwrap<DeliverySummary[]>(http.get(`/sales-orders/${id}/deliveries`)),

@@ -8,11 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0060**)
-- **Build:** green — backend `net8.0` (267 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Master-data CRUD completion** — edit + activate/deactivate for Units / Categories / Tax
-  codes, with new Master-data tabs (CHG-0060). Year-end close + Fiscal-periods screen (CHG-0059);
-  General Ledger report (CHG-0058); Inventory slice 2 (CHG-0057); Cash Flow (CHG-0056).
+- **As of:** 2026-06-21 (last change **CHG-0061**)
+- **Build:** green — backend `net8.0` (273 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Cancel draft Sales / Purchase Orders** (status-gated, with a Cancel button on the order
+  detail) (CHG-0061). Master-data CRUD completion (CHG-0060); year-end close + Fiscal-periods
+  (CHG-0059); General Ledger report (CHG-0058); Inventory slice 2 (CHG-0057).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -79,9 +79,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   subledger. Remaining: crediting/debiting a **fully-settled** invoice (refund/credit), and a returns
   list/landing screen (today returns are driven from the order detail).
 - **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
-  suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**. Remaining:
-  CoA edit; distinct `*.Edit`/`*.Delete` permissions; status-gated edit/cancel for draft documents.
-  (BR-X-7/8.)
+  suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**; **draft
+  SO/PO cancel (CHG-0061)**. Remaining: draft document line-edit before submit; CoA edit; distinct
+  `*.Edit`/`*.Delete`/`*.Cancel` permissions. (BR-X-7/8.)
 - **Expenses module (ADR-0030):** 🟡 done (CHG-0048) — vouchers paid from cash/bank, category→GL via
   posting rules, atomic Dr Expense [+ VAT Input] / Cr Cash-Bank. Remaining: on-account (Cr AP),
   approvals, category edit/deactivate. (BR-EXP-*.)

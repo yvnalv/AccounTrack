@@ -98,11 +98,14 @@ public sealed class SalesOrder : TenantOwnedEntity, IAggregateRoot
         }
     }
 
+    /// <summary>Whether the order can still be cancelled — only before it is approved/decided (ADR-0029).</summary>
+    public bool CanCancel => Status is SalesOrderStatus.Draft or SalesOrderStatus.PendingApproval;
+
     public void Cancel()
     {
-        if (Status is SalesOrderStatus.Approved or SalesOrderStatus.Rejected)
+        if (!CanCancel)
         {
-            throw new InvalidOperationException("A decided sales order cannot be cancelled.");
+            throw new InvalidOperationException("Only a draft or pending sales order can be cancelled.");
         }
 
         Status = SalesOrderStatus.Cancelled;

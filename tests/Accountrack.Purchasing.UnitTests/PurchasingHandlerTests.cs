@@ -96,4 +96,30 @@ public class PurchasingHandlerTests
 
         await _orders.DidNotReceive().GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task Cancel_marks_a_draft_order_cancelled()
+    {
+        var po = DraftWithLine();
+        _orders.GetByIdAsync(po.Id, Arg.Any<CancellationToken>()).Returns(po);
+
+        var result = await new CancelPurchaseOrderHandler(_orders, _uow).Handle(new CancelPurchaseOrderCommand(po.Id), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        po.Status.Should().Be(PurchaseOrderStatus.Cancelled);
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cancel_an_approved_order_returns_not_cancellable()
+    {
+        var po = DraftWithLine();
+        po.MarkAutoApproved(Guid.NewGuid());
+        _orders.GetByIdAsync(po.Id, Arg.Any<CancellationToken>()).Returns(po);
+
+        var result = await new CancelPurchaseOrderHandler(_orders, _uow).Handle(new CancelPurchaseOrderCommand(po.Id), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("PURCHASING.NOT_CANCELLABLE");
+    }
 }

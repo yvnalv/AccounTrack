@@ -17,6 +17,7 @@ export const purchasingApi = {
   get: (id: string) => unwrap<PurchaseOrder>(http.get(`/purchase-orders/${id}`)),
   create: (body: CreatePurchaseOrder) => unwrap<string>(http.post('/purchase-orders', body)),
   submit: (id: string) => unwrap<string>(http.post(`/purchase-orders/${id}/submit`, {})),
+  cancel: (id: string) => unwrap<string>(http.post(`/purchase-orders/${id}/cancel`, {})),
 
   receipts: (id: string) =>
     unwrap<GoodsReceiptSummary[]>(http.get(`/purchase-orders/${id}/goods-receipts`)),
