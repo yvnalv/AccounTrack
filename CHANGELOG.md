@@ -1,5 +1,34 @@
 # Accountrack Changelog
 
+## [2026-06-21 14:30:03 UTC]
+
+CHG-0074 — Returns: credit/refund a settled invoice + returns list screens
+
+- **Settled-invoice returns (refund path).** A sales/purchase return can now be posted against an
+  invoice that is **already paid** (in full or part). The return amount is split: it is applied to
+  the invoice's still-**outstanding** AR/AP up to its balance, and any **excess is refunded** —
+  Cr Cash-Bank (customer refund) for sales, Dr Cash-Bank (supplier refund) for purchases — via a
+  chosen `refundCashAccountId`. If a refund is needed but no account is given, the post is rejected
+  (`SALES.REFUND_ACCOUNT_REQUIRED` / `PURCHASING.REFUND_ACCOUNT_REQUIRED`, 422). Previously this
+  threw because the AR/AP open item was settled. The journal stays balanced and the subledger only
+  moves by the applied portion. (BR-SAL-8, BR-PUR-7.)
+- **Contract:** `ISubledgerPosting.GetOutstandingAsync(openItemId)` exposes an open item's remaining
+  balance to the Sales/Purchasing return handlers (implemented in the subledger service + adapter).
+- **Returns list screens.** New `GET /api/v1/sales-returns` and `/purchase-returns` (all credit/
+  debit notes, with customer/supplier name resolved) back two new searchable list views, reached via
+  a **Returns** button on the Sales and Purchase order lists (routes `salesReturns` / `purchaseReturns`).
+  EN/ID strings. The return dialogs gain an optional **Refund account** picker and now surface the
+  server's message on failure.
+- **Tests:** +4 (settled sales/purchase invoice refunds cash & skips AR/AP allocation; refund without
+  an account is rejected). Existing return tests stub the new outstanding read. Full suite **291**
+  green; frontend builds.
+- **Verified (e2e):** full SO→deliver→invoice→pay→return and PO→receive→bill→pay→return chains —
+  returning a fully-paid invoice without a refund account returns 422; with one it posts a cash
+  refund; both list endpoints show the new notes with resolved party names.
+- **Remaining (returns):** standalone return-detail page; partial-refund UX hint in the dialog.
+
+---
+
 ## [2026-06-21 13:54:05 UTC]
 
 CHG-0073 — Inventory: per-company negative-stock policy (BR-INV-3)

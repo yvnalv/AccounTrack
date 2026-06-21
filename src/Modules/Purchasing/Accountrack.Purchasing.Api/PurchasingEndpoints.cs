@@ -83,7 +83,7 @@ public static class PurchasingEndpoints
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoicePdf");
 
         pi.MapPost("/{id:guid}/returns", (Guid id, ReturnGoodsRequest body, ISender s, CancellationToken ct) =>
-                Created(s.Send(new PostPurchaseReturnCommand(id, body.ReturnDate, body.Notes, body.Lines), ct),
+                Created(s.Send(new PostPurchaseReturnCommand(id, body.ReturnDate, body.Notes, body.Lines, body.RefundCashAccountId), ct),
                     "/api/v1/purchase-returns"))
             .RequireAuthorization("Purchasing.Post").WithName("PostPurchaseReturn");
 
@@ -93,6 +93,10 @@ public static class PurchasingEndpoints
             .RequireAuthorization("Purchasing.View").WithName("GetReturnsForPurchaseOrder");
 
         var ret = app.MapGroup("/api/v1/purchase-returns").WithTags("Purchasing").RequireAuthorization();
+
+        ret.MapGet("/", (ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetPurchaseReturnsQuery(), ct)))
+            .RequireAuthorization("Purchasing.View").WithName("GetPurchaseReturns");
 
         ret.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetPurchaseReturnQuery(id), ct)))
@@ -127,7 +131,7 @@ public static class PurchasingEndpoints
         IReadOnlyList<PurchaseInvoiceLineInput> Lines);
 
     public sealed record ReturnGoodsRequest(
-        DateOnly ReturnDate, string? Notes, IReadOnlyList<PurchaseReturnLineInput> Lines);
+        DateOnly ReturnDate, string? Notes, IReadOnlyList<PurchaseReturnLineInput> Lines, Guid? RefundCashAccountId = null);
 
     private static async Task<IResult> Send<T>(Task<Result<T>> task) => (await task).ToHttpResult();
 

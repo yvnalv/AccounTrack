@@ -67,4 +67,15 @@ public sealed class SubledgerService : ISubledgerService
             return Error.Validation("ACCOUNTING.ALLOCATION_INVALID", ex.Message);
         }
     }
+
+    public async Task<Result<decimal>> GetOutstandingAsync(Guid openItemId, CancellationToken ct)
+    {
+        var item = await _items.GetByIdAsync(openItemId, ct);
+        if (item is null)
+        {
+            return AccountingErrors.OpenItemNotFound;
+        }
+
+        return item.OutstandingAmount.Round().Amount;
+    }
 }

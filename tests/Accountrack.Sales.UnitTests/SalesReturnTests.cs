@@ -76,6 +76,9 @@ public class SalesReturnTests
                 Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<DateOnly>(), Arg.Any<decimal>(), Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>())
             .Returns(Result.Success(Guid.NewGuid()));
+        // Default: invoice still fully outstanding, so the whole credit applies to AR.
+        _subledger.GetOutstandingAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(10_000m));
         _inventory.ReceiveAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<decimal>(),
                 Arg.Any<DateOnly>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -130,6 +133,47 @@ public class SalesReturnTests
             _product, _warehouse, "IDR", 4m, 50m, Date, Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
         await _subledger.Received(1).AllocateAsync(
             invoice.ArOpenItemId!.Value, Arg.Any<string>(), Date, 444m, Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Returning_a_settled_invoice_refunds_cash_instead_of_reducing_AR()
+    {
+        var invoice = PostedInvoice(out var lineId);
+        StubAccountsPostingInventory();
+        // Invoice already paid in full → no outstanding receivable left.
+        _subledger.GetOutstandingAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(0m));
+        var refundAccount = Guid.NewGuid();
+
+        var result = await Handler().Handle(
+            new PostSalesReturnCommand(invoice.Id, Date, null, new[] { new SalesReturnLineInput(lineId, 4m) }, refundAccount),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        // Still balanced; the 444 gross is now a cash refund, not an AR credit.
+        _posted!.Lines.Sum(l => l.Debit).Should().Be(644m);
+        _posted.Lines.Sum(l => l.Credit).Should().Be(644m);
+        _posted.Lines.Should().Contain(l => l.AccountId == refundAccount && l.Credit == 444m);
+        _posted.Lines.Should().NotContain(l => l.SubledgerPartyId == _customer); // no AR line
+        await _subledger.DidNotReceive().AllocateAsync(
+            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<DateOnly>(), Arg.Any<decimal>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Returning_a_settled_invoice_without_a_refund_account_is_rejected()
+    {
+        var invoice = PostedInvoice(out var lineId);
+        StubAccountsPostingInventory();
+        _subledger.GetOutstandingAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(0m));
+
+        var result = await Handler().Handle(
+            new PostSalesReturnCommand(invoice.Id, Date, null, new[] { new SalesReturnLineInput(lineId, 4m) }),
+            CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("SALES.REFUND_ACCOUNT_REQUIRED");
+        await _ledger.DidNotReceive().PostAsync(Arg.Any<LedgerPostingRequest>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

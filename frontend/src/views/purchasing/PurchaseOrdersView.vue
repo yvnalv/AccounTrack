@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Plus, Wallet } from 'lucide-vue-next'
+import { Plus, Undo2, Wallet } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
 import { masterData, nameMap } from '@/lib/masterData'
 import { downloadExport } from '@/lib/api'
@@ -67,6 +67,9 @@ function open(row: Record<string, unknown>) {
     <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
       <ExportMenu :download="(f) => downloadExport('/purchase-orders/export', 'purchase-orders', f)" />
+      <AppButton variant="ghost" @click="router.push({ name: 'purchaseReturns' })">
+        <Undo2 :size="16" /> {{ t('returns.purchaseTitle') }}
+      </AppButton>
       <AppButton variant="secondary" @click="router.push({ name: 'purchasingPaySupplier' })">
         <Wallet :size="16" /> {{ t('purchasing.paySupplier') }}
       </AppButton>

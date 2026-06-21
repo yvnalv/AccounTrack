@@ -68,6 +68,9 @@ public class PurchaseReturnTests
                 Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<DateOnly>(), Arg.Any<decimal>(), Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>())
             .Returns(Result.Success(Guid.NewGuid()));
+        // Default: invoice still fully outstanding, so the whole debit applies to AP.
+        _subledger.GetOutstandingAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(10_000m));
         _inventory.IssueAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<decimal>(), Arg.Any<DateOnly>(), Arg.Any<Guid>(),
                 Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -140,6 +143,47 @@ public class PurchaseReturnTests
         _posted.Lines.Sum(l => l.Credit).Should().Be(444m);
         _posted.Lines.Should().Contain(l => l.Credit == 360m); // inventory at MA cost
         _posted.Lines.Should().Contain(l => l.Credit == 40m);  // price variance
+    }
+
+    [Fact]
+    public async Task Returning_a_settled_invoice_recovers_cash_instead_of_reducing_AP()
+    {
+        var invoice = PostedInvoice(out var lineId);
+        StubAccountsPostingInventory(issueUnitCost: 100m);
+        // Bill already paid in full → no outstanding payable left; the supplier refunds us.
+        _subledger.GetOutstandingAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(0m));
+        var refundAccount = Guid.NewGuid();
+
+        var result = await Handler().Handle(
+            new PostPurchaseReturnCommand(invoice.Id, Date, null, new[] { new PurchaseReturnLineInput(lineId, 4m) }, refundAccount),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        // Still balanced; the 444 gross is now a cash refund (Dr Cash), not an AP debit.
+        _posted!.Lines.Sum(l => l.Debit).Should().Be(444m);
+        _posted.Lines.Sum(l => l.Credit).Should().Be(444m);
+        _posted.Lines.Should().Contain(l => l.AccountId == refundAccount && l.Debit == 444m);
+        _posted.Lines.Should().NotContain(l => l.SubledgerPartyId == _supplier); // no AP line
+        await _subledger.DidNotReceive().AllocateAsync(
+            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<DateOnly>(), Arg.Any<decimal>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Returning_a_settled_invoice_without_a_refund_account_is_rejected()
+    {
+        var invoice = PostedInvoice(out var lineId);
+        StubAccountsPostingInventory();
+        _subledger.GetOutstandingAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(0m));
+
+        var result = await Handler().Handle(
+            new PostPurchaseReturnCommand(invoice.Id, Date, null, new[] { new PurchaseReturnLineInput(lineId, 4m) }),
+            CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("PURCHASING.REFUND_ACCOUNT_REQUIRED");
+        await _ledger.DidNotReceive().PostAsync(Arg.Any<LedgerPostingRequest>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

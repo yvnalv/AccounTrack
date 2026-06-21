@@ -84,7 +84,7 @@ public static class SalesEndpoints
             .RequireAuthorization("Sales.View").WithName("GetSalesInvoicePdf");
 
         si.MapPost("/{id:guid}/returns", (Guid id, ReturnGoodsRequest body, ISender s, CancellationToken ct) =>
-                Created(s.Send(new PostSalesReturnCommand(id, body.ReturnDate, body.Notes, body.Lines), ct),
+                Created(s.Send(new PostSalesReturnCommand(id, body.ReturnDate, body.Notes, body.Lines, body.RefundCashAccountId), ct),
                     "/api/v1/sales-returns"))
             .RequireAuthorization("Sales.Post").WithName("PostSalesReturn");
 
@@ -94,6 +94,10 @@ public static class SalesEndpoints
             .RequireAuthorization("Sales.View").WithName("GetReturnsForSalesOrder");
 
         var ret = app.MapGroup("/api/v1/sales-returns").WithTags("Sales").RequireAuthorization();
+
+        ret.MapGet("/", (ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetSalesReturnsQuery(), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetSalesReturns");
 
         ret.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetSalesReturnQuery(id), ct)))
@@ -127,7 +131,7 @@ public static class SalesEndpoints
         DateOnly InvoiceDate, DateOnly DueDate, string? Notes, IReadOnlyList<SalesInvoiceLineInput> Lines);
 
     public sealed record ReturnGoodsRequest(
-        DateOnly ReturnDate, string? Notes, IReadOnlyList<SalesReturnLineInput> Lines);
+        DateOnly ReturnDate, string? Notes, IReadOnlyList<SalesReturnLineInput> Lines, Guid? RefundCashAccountId = null);
 
     private static async Task<IResult> Send<T>(Task<Result<T>> task) => (await task).ToHttpResult();
 

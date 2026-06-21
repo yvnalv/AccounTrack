@@ -94,6 +94,16 @@ export interface SalesReturnSummary {
   journalEntryId: string | null
 }
 
+export interface SalesReturnListItem {
+  id: string
+  number: string
+  returnDate: string
+  customerId: string
+  customerName: string
+  grandTotal: number
+  journalEntryId: string | null
+}
+
 export interface ReturnLineInput {
   salesInvoiceLineId: string
   quantity: number

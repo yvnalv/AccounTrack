@@ -97,7 +97,9 @@ configurable per company with the stated default.
 - **BR-SAL-6 (config)** A Sales Order exceeding the customer's credit limit requires approval.
 - **BR-SAL-7** Partial delivery, partial invoicing, and partial payment are supported.
 - **BR-SAL-8** A Sales Return reverses revenue/tax (credit note) and returns goods to stock at
-  the original COGS cost.
+  the original COGS cost. The credit is applied to the invoice's outstanding receivable; if the
+  invoice is already paid (in full or part), the excess is **refunded to the customer** from a
+  chosen cash/bank account (Cr Cash-Bank) rather than to AR (CHG-0074).
 
 ## Purchasing
 
@@ -109,7 +111,10 @@ configurable per company with the stated default.
 - **BR-PUR-5** A Goods Receipt cannot exceed ordered quantity beyond a configurable tolerance.
 - **BR-PUR-6** A Purchase Invoice is matched against PO and receipt (three-way match policy);
   price variance posts to a variance account.
-- **BR-PUR-7** A Purchase Return removes goods from stock and adjusts AP/GR-IR accordingly.
+- **BR-PUR-7** A Purchase Return removes goods from stock and adjusts AP/GR-IR accordingly. The
+  debit reduces the invoice's outstanding payable; if the invoice is already paid (in full or part),
+  the excess is **recovered as a supplier refund** into a chosen cash/bank account (Dr Cash-Bank)
+  rather than to AP (CHG-0074).
 
 ## Expenses (ADR-0030)
 

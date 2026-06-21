@@ -102,6 +102,12 @@ public static class SalesErrors
     public static readonly Error InvoiceNotPosted =
         Error.Conflict("SALES.INVOICE_NOT_POSTED", "Only a posted sales invoice can be returned.");
 
+    public static readonly Error RefundAccountRequired =
+        Error.Validation(
+            "SALES.REFUND_ACCOUNT_REQUIRED",
+            "This invoice is already paid (in full or part), so the credit exceeds the outstanding receivable. " +
+            "Choose a cash/bank account to refund the difference to the customer.");
+
     public static readonly Error NoReturnLines =
         Error.BusinessRule("BR-SAL-8", "A sales return requires at least one line.", "SALES.NO_RETURN_LINES");
 

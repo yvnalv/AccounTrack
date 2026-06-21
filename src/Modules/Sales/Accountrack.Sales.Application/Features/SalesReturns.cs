@@ -16,10 +16,13 @@ public sealed record SalesReturnLineInput(Guid SalesInvoiceLineId, decimal Quant
 /// Returns goods against a posted sales invoice and credits the customer (BR-SAL-8). Atomically
 /// (INTEGRATION_EVENTS.md §2): restocks each line at its original delivered cost (Dr Inventory /
 /// Cr COGS), reverses billing (Dr Revenue + Dr VAT Output / Cr AR control), reduces the invoice's AR
-/// open item, and records the credit note — all in one transaction.
+/// open item, and records the credit note — all in one transaction. When the invoice is already paid
+/// (in full or part) the credit exceeds the outstanding receivable; the excess is refunded from
+/// <see cref="RefundCashAccountId"/> (Cr Cash-Bank) instead of AR.
 /// </summary>
 public sealed record PostSalesReturnCommand(
-    Guid SalesInvoiceId, DateOnly ReturnDate, string? Notes, IReadOnlyList<SalesReturnLineInput> Lines)
+    Guid SalesInvoiceId, DateOnly ReturnDate, string? Notes, IReadOnlyList<SalesReturnLineInput> Lines,
+    Guid? RefundCashAccountId = null)
     : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class PostSalesReturnValidator : AbstractValidator<PostSalesReturnCommand>
@@ -171,14 +174,37 @@ public sealed class PostSalesReturnHandler : ICommandHandler<PostSalesReturnComm
             return inventoryAccount.Error;
         }
 
+        // Split the credit: apply up to the invoice's still-outstanding receivable, refund the rest.
+        var outstanding = await _subledger.GetOutstandingAsync(invoice.ArOpenItemId.Value, ct);
+        if (outstanding.IsFailure)
+        {
+            return outstanding.Error;
+        }
+
+        var applyToAr = Math.Min(salesReturn.GrandTotal, outstanding.Value);
+        var refund = salesReturn.GrandTotal - applyToAr;
+        if (refund > 0m && request.RefundCashAccountId is null)
+        {
+            return SalesErrors.RefundAccountRequired;
+        }
+
         // Credit note (reverse billing) + restock (reverse COGS), one balanced journal:
-        //   Dr Revenue (net) + Dr VAT Output (tax) / Cr AR control (gross)
+        //   Dr Revenue (net) + Dr VAT Output (tax) / Cr AR control (applied) + Cr Cash-Bank (refund)
         //   Dr Inventory (cost)                     / Cr COGS (cost)
         var lines = new List<LedgerLine>
         {
             new(revenue.Value, salesReturn.SubTotal, 0m, "Sales revenue (return)"),
-            new(arControl.Value, 0m, salesReturn.GrandTotal, "Accounts receivable (credit note)", invoice.CustomerId),
         };
+
+        if (applyToAr > 0m)
+        {
+            lines.Add(new LedgerLine(arControl.Value, 0m, applyToAr, "Accounts receivable (credit note)", invoice.CustomerId));
+        }
+
+        if (refund > 0m)
+        {
+            lines.Add(new LedgerLine(request.RefundCashAccountId!.Value, 0m, refund, "Customer refund"));
+        }
 
         if (salesReturn.TaxTotal > 0m)
         {
@@ -207,12 +233,15 @@ public sealed class PostSalesReturnHandler : ICommandHandler<PostSalesReturnComm
             return journal.Error;
         }
 
-        // Reduce the invoice's receivable by the credit amount (keeps AR subledger in step with GL).
-        var allocation = await _subledger.AllocateAsync(
-            invoice.ArOpenItemId.Value, number, request.ReturnDate, salesReturn.GrandTotal, salesReturn.Id, ct);
-        if (allocation.IsFailure)
+        // Reduce the invoice's receivable by the applied credit (keeps AR subledger in step with GL).
+        if (applyToAr > 0m)
         {
-            return allocation.Error;
+            var allocation = await _subledger.AllocateAsync(
+                invoice.ArOpenItemId.Value, number, request.ReturnDate, applyToAr, salesReturn.Id, ct);
+            if (allocation.IsFailure)
+            {
+                return allocation.Error;
+            }
         }
 
         salesReturn.SetJournal(journal.Value);

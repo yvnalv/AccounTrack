@@ -1,4 +1,5 @@
 using Accountrack.Application.Abstractions.Messaging;
+using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.Sales.Application.Abstractions;
 using Accountrack.Sales.Application.Contracts;
 using Accountrack.Sales.Domain;
@@ -195,6 +196,31 @@ public sealed class GetReturnsForSalesOrderHandler
         var items = await _returns.ListBySalesOrderAsync(request.SalesOrderId, ct);
         return Result.Success<IReadOnlyList<SalesReturnSummaryDto>>(items
             .Select(r => new SalesReturnSummaryDto(r.Id, r.Number, r.SalesInvoiceId, r.ReturnDate, r.GrandTotal, r.JournalEntryId))
+            .ToList());
+    }
+}
+
+public sealed record GetSalesReturnsQuery : IQuery<IReadOnlyList<SalesReturnListItemDto>>;
+
+public sealed class GetSalesReturnsHandler : IQueryHandler<GetSalesReturnsQuery, IReadOnlyList<SalesReturnListItemDto>>
+{
+    private readonly ISalesReturnRepository _returns;
+    private readonly IMasterDataLookup _masterData;
+    public GetSalesReturnsHandler(ISalesReturnRepository returns, IMasterDataLookup masterData)
+    {
+        _returns = returns;
+        _masterData = masterData;
+    }
+
+    public async Task<Result<IReadOnlyList<SalesReturnListItemDto>>> Handle(
+        GetSalesReturnsQuery request, CancellationToken ct)
+    {
+        var items = await _returns.ListAsync(ct);
+        var names = await _masterData.ResolveNamesAsync(items.Select(r => r.CustomerId).Distinct().ToList(), ct);
+        return Result.Success<IReadOnlyList<SalesReturnListItemDto>>(items
+            .Select(r => new SalesReturnListItemDto(
+                r.Id, r.Number, r.ReturnDate, r.CustomerId, names.GetValueOrDefault(r.CustomerId, "—"),
+                r.GrandTotal, r.JournalEntryId))
             .ToList());
     }
 }

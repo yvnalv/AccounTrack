@@ -58,3 +58,8 @@ public sealed record SalesReturnDto(
 
 public sealed record SalesReturnSummaryDto(
     Guid Id, string Number, Guid SalesInvoiceId, DateOnly ReturnDate, decimal GrandTotal, Guid? JournalEntryId);
+
+/// <summary>A row in the all-returns list (credit notes), with the customer name resolved.</summary>
+public sealed record SalesReturnListItemDto(
+    Guid Id, string Number, DateOnly ReturnDate, Guid CustomerId, string CustomerName,
+    decimal GrandTotal, Guid? JournalEntryId);

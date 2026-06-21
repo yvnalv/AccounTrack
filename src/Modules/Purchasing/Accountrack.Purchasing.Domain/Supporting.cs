@@ -102,6 +102,12 @@ public static class PurchasingErrors
     public static readonly Error InvoiceNotPosted =
         Error.Conflict("PURCHASING.INVOICE_NOT_POSTED", "Only a posted purchase invoice can be returned.");
 
+    public static readonly Error RefundAccountRequired =
+        Error.Validation(
+            "PURCHASING.REFUND_ACCOUNT_REQUIRED",
+            "This invoice is already paid (in full or part), so the debit exceeds the outstanding payable. " +
+            "Choose a cash/bank account to receive the supplier's refund into.");
+
     public static readonly Error NoReturnLines =
         Error.BusinessRule("BR-PUR-7", "A purchase return requires at least one line.", "PURCHASING.NO_RETURN_LINES");
 

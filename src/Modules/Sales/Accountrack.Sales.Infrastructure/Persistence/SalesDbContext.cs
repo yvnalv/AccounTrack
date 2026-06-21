@@ -296,6 +296,9 @@ public sealed class SalesReturnRepository : ISalesReturnRepository
         await _db.SalesReturns.Where(r => r.SalesOrderId == salesOrderId)
             .OrderByDescending(r => r.Number).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<SalesReturn>> ListAsync(CancellationToken ct) =>
+        await _db.SalesReturns.OrderByDescending(r => r.Number).ToListAsync(ct);
+
     public Task<SalesReturnNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
         _db.SalesReturnNumberSequences.FirstOrDefaultAsync(ct);
 

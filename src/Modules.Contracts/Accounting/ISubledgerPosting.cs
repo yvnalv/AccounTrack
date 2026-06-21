@@ -22,4 +22,7 @@ public interface ISubledgerPosting
     Task<Result<Guid>> AllocateAsync(
         Guid openItemId, string paymentReference, DateOnly date, decimal amount, Guid paymentDocumentId,
         CancellationToken ct);
+
+    /// <summary>The open item's remaining (unsettled) balance — 0 once fully paid.</summary>
+    Task<Result<decimal>> GetOutstandingAsync(Guid openItemId, CancellationToken ct);
 }

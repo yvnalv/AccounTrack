@@ -1,4 +1,5 @@
 using Accountrack.Application.Abstractions.Messaging;
+using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.Purchasing.Application.Abstractions;
 using Accountrack.Purchasing.Application.Contracts;
 using Accountrack.Purchasing.Domain;
@@ -195,6 +196,31 @@ public sealed class GetReturnsForPurchaseOrderHandler
         var items = await _returns.ListByPurchaseOrderAsync(request.PurchaseOrderId, ct);
         return Result.Success<IReadOnlyList<PurchaseReturnSummaryDto>>(items
             .Select(r => new PurchaseReturnSummaryDto(r.Id, r.Number, r.PurchaseInvoiceId, r.ReturnDate, r.GrandTotal, r.JournalEntryId))
+            .ToList());
+    }
+}
+
+public sealed record GetPurchaseReturnsQuery : IQuery<IReadOnlyList<PurchaseReturnListItemDto>>;
+
+public sealed class GetPurchaseReturnsHandler : IQueryHandler<GetPurchaseReturnsQuery, IReadOnlyList<PurchaseReturnListItemDto>>
+{
+    private readonly IPurchaseReturnRepository _returns;
+    private readonly IMasterDataLookup _masterData;
+    public GetPurchaseReturnsHandler(IPurchaseReturnRepository returns, IMasterDataLookup masterData)
+    {
+        _returns = returns;
+        _masterData = masterData;
+    }
+
+    public async Task<Result<IReadOnlyList<PurchaseReturnListItemDto>>> Handle(
+        GetPurchaseReturnsQuery request, CancellationToken ct)
+    {
+        var items = await _returns.ListAsync(ct);
+        var names = await _masterData.ResolveNamesAsync(items.Select(r => r.SupplierId).Distinct().ToList(), ct);
+        return Result.Success<IReadOnlyList<PurchaseReturnListItemDto>>(items
+            .Select(r => new PurchaseReturnListItemDto(
+                r.Id, r.Number, r.ReturnDate, r.SupplierId, names.GetValueOrDefault(r.SupplierId, "—"),
+                r.GrandTotal, r.JournalEntryId))
             .ToList());
     }
 }

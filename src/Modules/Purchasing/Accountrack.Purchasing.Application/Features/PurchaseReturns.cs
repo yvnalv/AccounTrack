@@ -16,10 +16,13 @@ public sealed record PurchaseReturnLineInput(Guid PurchaseInvoiceLineId, decimal
 /// Returns goods to a supplier against a posted purchase invoice and raises a debit note (BR-PUR-7).
 /// Atomically (INTEGRATION_EVENTS.md §2): issues each line out of stock at moving-average cost
 /// (Cr Inventory), reverses billing (Dr AP control / Cr VAT Input), books any cost-vs-price variance,
-/// reduces the invoice's AP open item, and records the debit note — all in one transaction.
+/// reduces the invoice's AP open item, and records the debit note — all in one transaction. When the
+/// invoice is already paid (in full or part) the debit exceeds the outstanding payable; the excess is
+/// recovered into <see cref="RefundCashAccountId"/> (Dr Cash-Bank — a refund from the supplier).
 /// </summary>
 public sealed record PostPurchaseReturnCommand(
-    Guid PurchaseInvoiceId, DateOnly ReturnDate, string? Notes, IReadOnlyList<PurchaseReturnLineInput> Lines)
+    Guid PurchaseInvoiceId, DateOnly ReturnDate, string? Notes, IReadOnlyList<PurchaseReturnLineInput> Lines,
+    Guid? RefundCashAccountId = null)
     : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class PostPurchaseReturnValidator : AbstractValidator<PostPurchaseReturnCommand>
@@ -145,12 +148,33 @@ public sealed class PostPurchaseReturnHandler : ICommandHandler<PostPurchaseRetu
             return inventoryAccount.Error;
         }
 
-        // Debit note (reverse billing) + de-stock:
-        //   Dr AP control (gross) / Cr VAT Input (tax) + Cr Inventory (cost) + Cr/Dr variance (price − cost)
-        var lines = new List<LedgerLine>
+        // Split the debit: apply up to the invoice's still-outstanding payable, recover the rest as cash.
+        var outstanding = await _subledger.GetOutstandingAsync(invoice.ApOpenItemId.Value, ct);
+        if (outstanding.IsFailure)
         {
-            new(apControl.Value, purchaseReturn.GrandTotal, 0m, "Accounts payable (debit note)", invoice.SupplierId),
-        };
+            return outstanding.Error;
+        }
+
+        var applyToAp = Math.Min(purchaseReturn.GrandTotal, outstanding.Value);
+        var refund = purchaseReturn.GrandTotal - applyToAp;
+        if (refund > 0m && request.RefundCashAccountId is null)
+        {
+            return PurchasingErrors.RefundAccountRequired;
+        }
+
+        // Debit note (reverse billing) + de-stock:
+        //   Dr AP control (applied) + Dr Cash-Bank (refund) / Cr VAT Input (tax) + Cr Inventory (cost) + Cr/Dr variance
+        var lines = new List<LedgerLine>();
+
+        if (applyToAp > 0m)
+        {
+            lines.Add(new LedgerLine(apControl.Value, applyToAp, 0m, "Accounts payable (debit note)", invoice.SupplierId));
+        }
+
+        if (refund > 0m)
+        {
+            lines.Add(new LedgerLine(request.RefundCashAccountId!.Value, refund, 0m, "Supplier refund"));
+        }
 
         if (purchaseReturn.TaxTotal > 0m)
         {
@@ -195,12 +219,15 @@ public sealed class PostPurchaseReturnHandler : ICommandHandler<PostPurchaseRetu
             return journal.Error;
         }
 
-        // Reduce the invoice's payable by the debit amount (keeps AP subledger in step with GL).
-        var allocation = await _subledger.AllocateAsync(
-            invoice.ApOpenItemId.Value, number, request.ReturnDate, purchaseReturn.GrandTotal, purchaseReturn.Id, ct);
-        if (allocation.IsFailure)
+        // Reduce the invoice's payable by the applied debit (keeps AP subledger in step with GL).
+        if (applyToAp > 0m)
         {
-            return allocation.Error;
+            var allocation = await _subledger.AllocateAsync(
+                invoice.ApOpenItemId.Value, number, request.ReturnDate, applyToAp, purchaseReturn.Id, ct);
+            if (allocation.IsFailure)
+            {
+                return allocation.Error;
+            }
         }
 
         purchaseReturn.SetJournal(journal.Value);

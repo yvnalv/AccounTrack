@@ -8,13 +8,13 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0073**)
-- **Build:** green — backend `net8.0` (287 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **per-company negative-stock policy** (CHG-0073); Expenses on-account (Cr AP) + category
-  edit/deactivate (CHG-0072); Chart-of-Accounts edit + activate/deactivate, new Accounts tab
-  (CHG-0071); edit draft SO/PO (CHG-0070); list search + full-width content + gated VAT tab
-  (CHG-0069); optional VAT (PKP) flag (CHG-0068); collapsible/responsive sidebar (CHG-0067);
-  insight-rich dashboard (CHG-0063/0064).
+- **As of:** 2026-06-21 (last change **CHG-0074**)
+- **Build:** green — backend `net8.0` (291 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **returns against settled invoices (refund) + returns list screens** (CHG-0074); per-company
+  negative-stock policy (CHG-0073); Expenses on-account (Cr AP) + category edit/deactivate (CHG-0072);
+  Chart-of-Accounts edit + activate/deactivate, new Accounts tab (CHG-0071); edit draft SO/PO
+  (CHG-0070); list search + full-width content + gated VAT tab (CHG-0069); optional VAT (PKP) flag
+  (CHG-0068); collapsible/responsive sidebar (CHG-0067); insight-rich dashboard (CHG-0063/0064).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -78,8 +78,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 - **Returns:** ✅ sales returns (CHG-0046, BR-SAL-8) + purchase returns (CHG-0047, BR-PUR-7) — credit/
   debit notes that restock/de-stock at cost, reverse Revenue/VAT/AR resp. AP/VAT-Input, and move the
-  subledger. Remaining: crediting/debiting a **fully-settled** invoice (refund/credit), and a returns
-  list/landing screen (today returns are driven from the order detail).
+  subledger; ✅ **settled-invoice refund + returns list screens (CHG-0074)** — returning a paid
+  invoice refunds the excess to a chosen cash/bank account; dedicated sales/purchase returns lists.
+  Remaining: a standalone return-detail page.
 - **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
   suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**; **draft
   SO/PO cancel (CHG-0061) + edit (CHG-0070); CoA edit + deactivate (CHG-0071)**. Remaining: distinct

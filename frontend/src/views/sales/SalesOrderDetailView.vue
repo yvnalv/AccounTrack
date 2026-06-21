@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Undo2, FileText, Pencil } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
+import { accountingApi, cashAccounts } from '@/lib/accounting'
 import { downloadFile } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
@@ -13,9 +14,12 @@ import type {
   SalesOrder,
   SalesReturnSummary,
 } from '@/types/sales'
+import type { AccountRef } from '@/types/accounting'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppCard from '@/components/ui/AppCard.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 const { t } = useI18n()
@@ -44,6 +48,11 @@ const returnInvoiceId = ref('')
 const returnRows = ref<ReturnRow[]>([])
 const returnSaving = ref(false)
 const returnError = ref('')
+const refundAccountId = ref('')
+const accounts = ref<AccountRef[]>([])
+const cashOptions = computed(() =>
+  cashAccounts(accounts.value).map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` })),
+)
 
 const id = computed(() => String(route.params.id))
 const currency = computed(() => order.value?.currency ?? 'IDR')
@@ -54,13 +63,14 @@ const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString(
 async function load() {
   loading.value = true
   try {
-    const [o, prods, custs, dels, invs, rets] = await Promise.all([
+    const [o, prods, custs, dels, invs, rets, accs] = await Promise.all([
       salesApi.get(id.value),
       masterData.products(),
       masterData.customers(),
       salesApi.deliveries(id.value),
       salesApi.invoices(id.value),
       salesApi.returns(id.value),
+      accountingApi.accounts(),
     ])
     order.value = o
     products.value = nameMap(prods)
@@ -68,6 +78,7 @@ async function load() {
     deliveries.value = dels
     invoices.value = invs
     returns.value = rets
+    accounts.value = accs
   } finally {
     loading.value = false
   }
@@ -75,6 +86,7 @@ async function load() {
 
 async function openReturn(inv: SalesInvoiceSummary) {
   returnError.value = ''
+  refundAccountId.value = ''
   returnInvoiceId.value = inv.id
   returnInvoiceNo.value = inv.number
   const detail = await salesApi.getInvoice(inv.id)
@@ -95,11 +107,18 @@ async function submitReturn() {
   returnSaving.value = true
   returnError.value = ''
   try {
-    await salesApi.createReturn(returnInvoiceId.value, { returnDate: today(), notes: null, lines })
+    await salesApi.createReturn(returnInvoiceId.value, {
+      returnDate: today(),
+      notes: null,
+      lines,
+      refundCashAccountId: refundAccountId.value || null,
+    })
     returnModal.value = false
     await load()
-  } catch {
-    returnError.value = t('sales.detail.returnFailed')
+  } catch (e) {
+    returnError.value =
+      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+      t('sales.detail.returnFailed')
   } finally {
     returnSaving.value = false
   }
@@ -370,6 +389,12 @@ onMounted(load)
             </tr>
           </tbody>
         </table>
+
+        <FormField v-if="returnRows.length > 0" :label="t('sales.detail.refundAccount')">
+          <AppSelect v-model="refundAccountId" :options="cashOptions" :placeholder="t('sales.detail.refundAccountNone')" />
+          <p class="mt-1 text-xs text-text-muted">{{ t('sales.detail.refundHint') }}</p>
+        </FormField>
+
         <p v-if="returnError" class="text-sm text-negative">{{ returnError }}</p>
       </div>
       <template #footer>

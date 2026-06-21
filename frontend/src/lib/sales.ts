@@ -9,6 +9,7 @@ import type {
   SalesInvoiceSummary,
   SalesOrder,
   SalesOrderSummary,
+  SalesReturnListItem,
   SalesReturnSummary,
 } from '@/types/sales'
 
@@ -37,8 +38,14 @@ export const salesApi = {
 
   getInvoice: (invoiceId: string) => unwrap<SalesInvoice>(http.get(`/sales-invoices/${invoiceId}`)),
   returns: (id: string) => unwrap<SalesReturnSummary[]>(http.get(`/sales-orders/${id}/returns`)),
+  allReturns: () => unwrap<SalesReturnListItem[]>(http.get('/sales-returns')),
   createReturn: (
     invoiceId: string,
-    body: { returnDate: string; notes: string | null; lines: ReturnLineInput[] },
+    body: {
+      returnDate: string
+      notes: string | null
+      lines: ReturnLineInput[]
+      refundCashAccountId?: string | null
+    },
   ) => unwrap<string>(http.post(`/sales-invoices/${invoiceId}/returns`, body)),
 }

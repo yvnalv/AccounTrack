@@ -58,3 +58,8 @@ public sealed record PurchaseReturnDto(
 
 public sealed record PurchaseReturnSummaryDto(
     Guid Id, string Number, Guid PurchaseInvoiceId, DateOnly ReturnDate, decimal GrandTotal, Guid? JournalEntryId);
+
+/// <summary>A row in the all-returns list (debit notes), with the supplier name resolved.</summary>
+public sealed record PurchaseReturnListItemDto(
+    Guid Id, string Number, DateOnly ReturnDate, Guid SupplierId, string SupplierName,
+    decimal GrandTotal, Guid? JournalEntryId);

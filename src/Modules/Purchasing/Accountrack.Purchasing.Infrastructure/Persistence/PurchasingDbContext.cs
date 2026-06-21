@@ -300,6 +300,9 @@ public sealed class PurchaseReturnRepository : IPurchaseReturnRepository
         await _db.PurchaseReturns.Where(r => r.PurchaseOrderId == purchaseOrderId)
             .OrderByDescending(r => r.Number).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<PurchaseReturn>> ListAsync(CancellationToken ct) =>
+        await _db.PurchaseReturns.OrderByDescending(r => r.Number).ToListAsync(ct);
+
     public Task<PurchaseReturnNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
         _db.PurchaseReturnNumberSequences.FirstOrDefaultAsync(ct);
 

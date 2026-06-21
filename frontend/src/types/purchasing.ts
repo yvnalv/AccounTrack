@@ -119,6 +119,16 @@ export interface PurchaseReturnSummary {
   journalEntryId: string | null
 }
 
+export interface PurchaseReturnListItem {
+  id: string
+  number: string
+  returnDate: string
+  supplierId: string
+  supplierName: string
+  grandTotal: number
+  journalEntryId: string | null
+}
+
 export interface ReturnLineInput {
   purchaseInvoiceLineId: string
   quantity: number

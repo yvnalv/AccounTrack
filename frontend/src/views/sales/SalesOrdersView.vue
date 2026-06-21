@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Plus, Wallet } from 'lucide-vue-next'
+import { Plus, Undo2, Wallet } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData, nameMap } from '@/lib/masterData'
 import { downloadExport } from '@/lib/api'
@@ -67,6 +67,9 @@ function openOrder(row: Record<string, unknown>) {
     <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
       <ExportMenu :download="(f) => downloadExport('/sales-orders/export', 'sales-orders', f)" />
+      <AppButton variant="ghost" @click="router.push({ name: 'salesReturns' })">
+        <Undo2 :size="16" /> {{ t('returns.salesTitle') }}
+      </AppButton>
       <AppButton variant="secondary" @click="router.push({ name: 'salesReceivePayment' })">
         <Wallet :size="16" /> {{ t('sales.receivePayment') }}
       </AppButton>

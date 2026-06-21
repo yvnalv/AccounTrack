@@ -43,6 +43,7 @@ public interface IPurchaseReturnRepository
     void Add(PurchaseReturn purchaseReturn);
     Task<PurchaseReturn?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<PurchaseReturn>> ListByPurchaseOrderAsync(Guid purchaseOrderId, CancellationToken ct);
+    Task<IReadOnlyList<PurchaseReturn>> ListAsync(CancellationToken ct);
     Task<PurchaseReturnNumberSequence?> GetSequenceAsync(CancellationToken ct);
     void AddSequence(PurchaseReturnNumberSequence sequence);
 }
