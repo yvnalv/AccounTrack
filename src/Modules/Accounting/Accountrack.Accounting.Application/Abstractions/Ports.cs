@@ -19,6 +19,7 @@ public interface IFiscalPeriodRepository
     void AddFiscalYear(FiscalYear fiscalYear);
     Task<FiscalPeriod?> GetPeriodForDateAsync(DateOnly date, CancellationToken ct);
     Task<FiscalPeriod?> GetPeriodByIdAsync(Guid id, CancellationToken ct);
+    Task<FiscalYear?> GetFiscalYearByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<FiscalYear>> ListYearsWithPeriodsAsync(CancellationToken ct);
 }
 

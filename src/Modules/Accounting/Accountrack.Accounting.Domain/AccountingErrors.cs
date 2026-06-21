@@ -40,6 +40,17 @@ public static class AccountingErrors
     public static readonly Error PeriodNotFound =
         Error.NotFound("ACCOUNTING.PERIOD_NOT_FOUND", "Fiscal period not found.");
 
+    public static readonly Error FiscalYearNotFound =
+        Error.NotFound("ACCOUNTING.FISCAL_YEAR_NOT_FOUND", "Fiscal year not found.");
+
+    public static readonly Error FiscalYearAlreadyClosed =
+        Error.Conflict("ACCOUNTING.FISCAL_YEAR_ALREADY_CLOSED", "This fiscal year is already closed.");
+
+    public static readonly Error FinalPeriodNotOpen =
+        Error.BusinessRule("BR-ACC-14",
+            "The fiscal year's final period must be open to post the year-end closing entry. Reopen it, then close the year.",
+            "ACCOUNTING.FINAL_PERIOD_NOT_OPEN");
+
     public static readonly Error OpenItemNotFound =
         Error.NotFound("ACCOUNTING.OPEN_ITEM_NOT_FOUND", "Subledger open item not found.");
 

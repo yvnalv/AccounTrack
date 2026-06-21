@@ -43,6 +43,9 @@ public sealed class FiscalPeriodRepository : IFiscalPeriodRepository
     public Task<FiscalPeriod?> GetPeriodByIdAsync(Guid id, CancellationToken ct) =>
         _db.FiscalPeriods.FirstOrDefaultAsync(p => p.Id == id, ct);
 
+    public Task<FiscalYear?> GetFiscalYearByIdAsync(Guid id, CancellationToken ct) =>
+        _db.FiscalYears.Include(fy => fy.Periods).FirstOrDefaultAsync(fy => fy.Id == id, ct);
+
     public async Task<IReadOnlyList<FiscalYear>> ListYearsWithPeriodsAsync(CancellationToken ct) =>
         await _db.FiscalYears.Include(fy => fy.Periods).OrderBy(fy => fy.Year).ToListAsync(ct);
 }

@@ -43,7 +43,11 @@ configurable per company with the stated default.
   goes to advances.
 - **BR-ACC-10** Reopening a closed period requires `Accounting.PeriodReopen` and is audited;
   locked periods need an admin override.
-- **BR-ACC-11** Year-end close rolls net P&L into Retained Earnings.
+- **BR-ACC-11** Year-end close rolls net P&L into Retained Earnings. Implemented (CHG-0059): a closing
+  journal zeros each Revenue/Expense account and carries the net to Retained Earnings (profit → credit,
+  loss → debit); the year is then marked closed and all its periods locked.
+- **BR-ACC-14** The year-end closing entry is dated at year-end, so the fiscal year's final period
+  must be **open** when the year is closed; an already-closed year cannot be closed again.
 - **BR-ACC-12 (config)** Rounding differences post to the Rounding account; default rounding
   half-up to the currency scale.
 - **BR-ACC-13** All financial reports derive from the GL/snapshots, never transactional tables.

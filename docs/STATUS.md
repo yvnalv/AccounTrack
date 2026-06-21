@@ -8,11 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-20 (last change **CHG-0058**)
-- **Build:** green — backend `net8.0` (259 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **General Ledger / Account-detail report** — line-level drill-down with opening→running→
-  closing balances, account filter, PDF (CHG-0058). Inventory slice 2 GL posting + opname (CHG-0057);
-  Cash Flow Statement (CHG-0056).
+- **As of:** 2026-06-21 (last change **CHG-0059**)
+- **Build:** green — backend `net8.0` (262 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Year-end close to Retained Earnings** + a **Fiscal-periods management screen** (create
+  year, close/reopen periods, close year) (CHG-0059). General Ledger report (CHG-0058); Inventory
+  slice 2 GL posting + opname (CHG-0057); Cash Flow Statement (CHG-0056).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -91,9 +91,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   TB/P&L/BS/VAT (CHG-0053), all QuestPDF, with the **brand logo** embedded as vector SVG (CHG-0054).
   Remaining: optional Plus Jakarta Sans font embedding, list-export-with-active-filters, Excel
   *import*, async large files. (BR-IMP-*.)
-- **Accounting slice 2 (remaining):** period-close balance snapshots, year-end close to retained
-  earnings. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017; AR/AP subledgers —
-  CHG-0018; **Cash Flow — CHG-0056**.)
+- **Accounting slice 2 (remaining):** period-close balance snapshots (rebuildable, ADR-0022). (P&L +
+  Balance Sheet — CHG-0016; posting-rule engine — CHG-0017; AR/AP subledgers — CHG-0018; **Cash Flow
+  — CHG-0056**; **year-end close to retained earnings — CHG-0059**.)
 - **Inventory slice 2:** ✅ GL posting on stock adjustments (Dr/Cr Inventory↔Variance) + stock opname
   done (CHG-0057). Remaining: per-company negative-stock setting, back-dating recompute. (Transfers
   are GL-neutral under a single Inventory control account.)
@@ -124,7 +124,7 @@ Backend threads that can be picked up independently if desired (none block the f
   same-transaction key write (exactly-once) + RowVersion concurrency.
 - **Reporting:** Cash Flow, AR/AP aging, **VAT (CHG-0043)**, **General Ledger / account detail
   (CHG-0058)** done; inventory valuation report still open.
-- **Accounting:** period-close balance snapshots, year-end close to retained earnings.
+- **Accounting:** period-close balance snapshots (year-end close to retained earnings — done CHG-0059).
 - **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); remaining:
   per-company negative-stock setting, back-dating recompute.
 - **Returns:** purchase & sales returns/credit notes.
@@ -135,7 +135,7 @@ frontend**, which requires the **UI/UX design discussion** before any build (use
 template/AI-ish). Pause and raise it then.
 
 Other open threads (not blocking): a dev **customer seed** (none seeded today); **Inventory slice 2**
-remaining (negative-stock setting, back-dating); **Accounting** period-close snapshots / year-end close; purchase/sales
+remaining (negative-stock setting, back-dating); **Accounting** period-close snapshots; purchase/sales
 **returns**; idempotency **exactly-once** hardening (same-transaction key + RowVersion).
 
 ## How to resume

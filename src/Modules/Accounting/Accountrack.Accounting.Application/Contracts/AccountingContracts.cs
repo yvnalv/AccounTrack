@@ -9,6 +9,10 @@ public sealed record FiscalPeriodDto(Guid Id, int PeriodNo, DateOnly StartDate, 
 public sealed record FiscalYearDto(Guid Id, int Year, DateOnly StartDate, DateOnly EndDate, bool IsClosed,
     IReadOnlyList<FiscalPeriodDto> Periods);
 
+/// <summary>Result of a year-end close: the posted closing journal (null if there was nothing to
+/// close) and the net income carried to retained earnings.</summary>
+public sealed record CloseFiscalYearResult(Guid? JournalEntryId, decimal NetIncome);
+
 public sealed record JournalLineDto(Guid AccountId, decimal Debit, decimal Credit, string? Description);
 
 public sealed record JournalEntryDto(

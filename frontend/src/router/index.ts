@@ -37,6 +37,7 @@ const router = createRouter({
             { path: 'cash-flow', name: 'accountingCashFlow', component: () => import('@/views/accounting/CashFlowView.vue') },
             { path: 'general-ledger', name: 'accountingGeneralLedger', component: () => import('@/views/accounting/GeneralLedgerView.vue') },
             { path: 'vat', name: 'accountingVat', component: () => import('@/views/accounting/VatReportView.vue') },
+            { path: 'periods', name: 'accountingPeriods', component: () => import('@/views/accounting/FiscalPeriodsView.vue') },
           ],
         },
         {

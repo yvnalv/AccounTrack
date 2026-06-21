@@ -1,5 +1,30 @@
 # Accountrack Changelog
 
+## [2026-06-21 02:34:18 UTC]
+
+CHG-0059 — Year-end close to Retained Earnings + Fiscal-periods screen
+
+- **Year-end close** (`POST /api/v1/fiscal-years/{id}/close`, `Accounting.PeriodClose`): posts a
+  closing journal (`JournalSource.PeriodClose`) that zeros every Revenue and Expense account for the
+  year and carries the net result to **Retained Earnings** (account resolved from the posting-rule
+  engine, never hardcoded) — a profit credits RE, a loss debits it. It then marks the fiscal year
+  closed and **locks every period**. The closing entry is dated at year-end, so the final period must
+  still be open; an already-closed year is rejected. Nothing-to-close years finalize without a journal.
+- New repo `GetFiscalYearByIdAsync`; new errors `FISCAL_YEAR_NOT_FOUND` / `FISCAL_YEAR_ALREADY_CLOSED`
+  / `FINAL_PERIOD_NOT_OPEN` (BR-ACC-8). `FiscalYear.Close()` finalizes + locks periods.
+- **Frontend:** a new **Periods** tab in Accounting (+ route + command-palette entry) — create a
+  fiscal year, close/reopen individual periods, and run the year-end close with a confirmation and a
+  net-income-carried result message. Period status badges (Open/Closed/Locked). EN/ID strings.
+- **Tests:** +3 (closing entry zeros P&L and carries net income to RE & locks; already-closed
+  rejected; final-period-must-be-open). Full suite **262** green; frontend builds.
+- **Verified (e2e):** closing 2026 zeroed P&L (rev/exp → 0), moved Retained Earnings by exactly the
+  net loss (−8,000,000,000 → −7,904,171,701.83), kept the trial balance **balanced**, locked all
+  periods; re-close → `FISCAL_YEAR_ALREADY_CLOSED` and a new posting into the locked year →
+  `PERIOD_CLOSED`.
+- **Remaining (Accounting slice 2):** period-close balance snapshots (rebuildable, ADR-0022).
+
+---
+
 ## [2026-06-20 13:58:21 UTC]
 
 CHG-0058 — General Ledger / Account-detail report — report + PDF + screen

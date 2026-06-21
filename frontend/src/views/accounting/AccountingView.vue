@@ -11,6 +11,7 @@ const tabs = [
   { to: { name: 'accountingCashFlow' }, label: t('accounting.tabs.cashFlow') },
   { to: { name: 'accountingGeneralLedger' }, label: t('accounting.tabs.generalLedger') },
   { to: { name: 'accountingVat' }, label: t('accounting.tabs.vat') },
+  { to: { name: 'accountingPeriods' }, label: t('accounting.tabs.periods') },
 ]
 </script>
 

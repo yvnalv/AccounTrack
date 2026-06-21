@@ -51,6 +51,24 @@ public sealed class FiscalYear : TenantOwnedEntity, IAggregateRoot
 
     public FiscalPeriod? PeriodFor(DateOnly date) =>
         _periods.FirstOrDefault(p => date >= p.StartDate && date <= p.EndDate);
+
+    /// <summary>
+    /// Finalizes the year after the closing entry has been posted: marks the year closed and locks
+    /// every period so no further postings (back-dated or otherwise) can land in it.
+    /// </summary>
+    public void Close()
+    {
+        if (IsClosed)
+        {
+            throw new InvalidOperationException("Fiscal year is already closed.");
+        }
+
+        IsClosed = true;
+        foreach (var period in _periods)
+        {
+            period.Lock();
+        }
+    }
 }
 
 /// <summary>A single period (month) within a fiscal year.</summary>

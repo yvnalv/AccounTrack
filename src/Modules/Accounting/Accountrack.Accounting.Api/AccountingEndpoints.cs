@@ -42,6 +42,10 @@ public static class AccountingEndpoints
             (await sender.Send(cmd, ct)).ToCreatedResult("/api/v1/fiscal-years"))
             .RequireAuthorization("Accounting.Post").WithName("CreateFiscalYear");
 
+        fiscal.MapPost("/{id:guid}/close", async (Guid id, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new CloseFiscalYearCommand(id), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.PeriodClose").WithName("CloseFiscalYear");
+
         var periods = app.MapGroup("/api/v1/fiscal-periods").WithTags("Fiscal Periods").RequireAuthorization();
 
         periods.MapPost("/{id:guid}/close", async (Guid id, ISender sender, CancellationToken ct) =>

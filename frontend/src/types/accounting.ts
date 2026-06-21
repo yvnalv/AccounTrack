@@ -19,3 +19,25 @@ export interface AccountRef {
   allowPosting: boolean
   isActive: boolean
 }
+
+export interface FiscalPeriod {
+  id: string
+  periodNo: number
+  startDate: string
+  endDate: string
+  status: string
+}
+
+export interface FiscalYear {
+  id: string
+  year: number
+  startDate: string
+  endDate: string
+  isClosed: boolean
+  periods: FiscalPeriod[]
+}
+
+export interface CloseFiscalYearResult {
+  journalEntryId: string | null
+  netIncome: number
+}
