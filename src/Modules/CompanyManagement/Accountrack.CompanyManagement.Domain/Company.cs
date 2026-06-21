@@ -17,7 +17,8 @@ public sealed class Company : TenantScopedEntity, IAggregateRoot
         string name,
         string functionalCurrency,
         int fiscalYearStartMonth,
-        string timeZone) : base(id)
+        string timeZone,
+        bool isVatRegistered) : base(id)
     {
         TenantId = tenantId;
         Code = code;
@@ -25,6 +26,7 @@ public sealed class Company : TenantScopedEntity, IAggregateRoot
         FunctionalCurrency = functionalCurrency;
         FiscalYearStartMonth = fiscalYearStartMonth;
         TimeZone = timeZone;
+        IsVatRegistered = isVatRegistered;
         IsActive = true;
     }
 
@@ -45,6 +47,13 @@ public sealed class Company : TenantScopedEntity, IAggregateRoot
     /// <summary>Tax identifier (e.g. Indonesian NPWP). Optional in MVP.</summary>
     public string? TaxId { get; private set; }
 
+    /// <summary>
+    /// Whether the company is registered for VAT — in Indonesia a <b>PKP (Pengusaha Kena Pajak)</b>.
+    /// Non-PKP businesses must not charge/reclaim PPN, so when false the app defaults transaction tax
+    /// to 0 and hides the tax inputs (ADR-0012). Off by default — most SMEs are not registered.
+    /// </summary>
+    public bool IsVatRegistered { get; private set; }
+
     public bool IsActive { get; private set; }
 
     public static Company Create(
@@ -53,14 +62,15 @@ public sealed class Company : TenantScopedEntity, IAggregateRoot
         string name,
         string functionalCurrency,
         int fiscalYearStartMonth = 1,
-        string timeZone = "Asia/Jakarta")
+        string timeZone = "Asia/Jakarta",
+        bool isVatRegistered = false)
     {
         ValidateCurrency(functionalCurrency);
         ValidateMonth(fiscalYearStartMonth);
 
         return new Company(
             Guid.NewGuid(), tenantId, code.Trim(), name.Trim(),
-            functionalCurrency.Trim().ToUpperInvariant(), fiscalYearStartMonth, timeZone);
+            functionalCurrency.Trim().ToUpperInvariant(), fiscalYearStartMonth, timeZone, isVatRegistered);
     }
 
     /// <summary>Creates a company with a specific id (used by seeding / provisioning).</summary>
@@ -71,22 +81,24 @@ public sealed class Company : TenantScopedEntity, IAggregateRoot
         string name,
         string functionalCurrency,
         int fiscalYearStartMonth = 1,
-        string timeZone = "Asia/Jakarta")
+        string timeZone = "Asia/Jakarta",
+        bool isVatRegistered = false)
     {
         ValidateCurrency(functionalCurrency);
         ValidateMonth(fiscalYearStartMonth);
 
         return new Company(
             id, tenantId, code.Trim(), name.Trim(),
-            functionalCurrency.Trim().ToUpperInvariant(), fiscalYearStartMonth, timeZone);
+            functionalCurrency.Trim().ToUpperInvariant(), fiscalYearStartMonth, timeZone, isVatRegistered);
     }
 
-    public void UpdateProfile(string name, string? legalName, string? taxId, string timeZone)
+    public void UpdateProfile(string name, string? legalName, string? taxId, string timeZone, bool isVatRegistered)
     {
         Name = name.Trim();
         LegalName = legalName?.Trim();
         TaxId = taxId?.Trim();
         TimeZone = timeZone;
+        IsVatRegistered = isVatRegistered;
     }
 
     public void Deactivate() => IsActive = false;

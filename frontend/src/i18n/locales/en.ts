@@ -546,6 +546,8 @@ export default {
       legalName: 'Legal name',
       taxId: 'Tax ID (NPWP)',
       timeZone: 'Time zone',
+      vatRegistered: 'Registered for VAT (PKP)',
+      vatHint: 'Turn on once your business is a PKP. When off, transactions default to no PPN and the tax fields are hidden.',
       none: 'No company found.',
       readOnly: 'You don’t have permission to edit company details.',
       save: 'Save changes',

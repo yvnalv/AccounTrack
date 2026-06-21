@@ -10,4 +10,5 @@ public sealed record CompanyDto(
     int FiscalYearStartMonth,
     string TimeZone,
     string? TaxId,
+    bool IsVatRegistered,
     bool IsActive);

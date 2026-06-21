@@ -70,12 +70,9 @@ public sealed class GetSalesInvoicePdfHandler : IQueryHandler<GetSalesInvoicePdf
             SalesPdfFormat.Pct(l.TaxRate),
             SalesPdfFormat.Money(l.LineTotal, cur))).ToList();
 
-        var totals = new List<PdfTotalLine>
-        {
-            new("Subtotal", SalesPdfFormat.Money(invoice.SubTotal, cur)),
-            new("VAT (PPN)", SalesPdfFormat.Money(invoice.TaxTotal, cur)),
-            new("Total", SalesPdfFormat.Money(invoice.GrandTotal, cur), Emphasis: true),
-        };
+        var totals = new List<PdfTotalLine> { new("Subtotal", SalesPdfFormat.Money(invoice.SubTotal, cur)) };
+        if (invoice.TaxTotal != 0m) totals.Add(new("VAT (PPN)", SalesPdfFormat.Money(invoice.TaxTotal, cur)));
+        totals.Add(new("Total", SalesPdfFormat.Money(invoice.GrandTotal, cur), Emphasis: true));
 
         return new PdfDocument(
             "Invoice", invoice.Number,
@@ -132,12 +129,9 @@ public sealed class GetQuotationPdfHandler : IQueryHandler<GetQuotationPdfQuery,
             SalesPdfFormat.Pct(l.TaxRate),
             SalesPdfFormat.Money(l.LineTotal, cur))).ToList();
 
-        var totals = new List<PdfTotalLine>
-        {
-            new("Subtotal", SalesPdfFormat.Money(order.SubTotal, cur)),
-            new("VAT (PPN)", SalesPdfFormat.Money(order.TaxTotal, cur)),
-            new("Total", SalesPdfFormat.Money(order.GrandTotal, cur), Emphasis: true),
-        };
+        var totals = new List<PdfTotalLine> { new("Subtotal", SalesPdfFormat.Money(order.SubTotal, cur)) };
+        if (order.TaxTotal != 0m) totals.Add(new("VAT (PPN)", SalesPdfFormat.Money(order.TaxTotal, cur)));
+        totals.Add(new("Total", SalesPdfFormat.Money(order.GrandTotal, cur), Emphasis: true));
 
         return new PdfDocument(
             "Quotation", order.Number,

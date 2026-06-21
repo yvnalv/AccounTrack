@@ -9,6 +9,7 @@ export interface Company {
   fiscalYearStartMonth: number
   timeZone: string
   taxId: string | null
+  isVatRegistered: boolean
   isActive: boolean
 }
 
@@ -17,4 +18,5 @@ export interface UpdateCompany {
   legalName: string | null
   taxId: string | null
   timeZone: string
+  isVatRegistered: boolean
 }

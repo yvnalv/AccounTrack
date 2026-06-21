@@ -33,12 +33,15 @@ public class CompanyDomainTests
     public void UpdateProfile_changes_editable_fields()
     {
         var company = Company.Create(Guid.NewGuid(), "MAIN", "Main Co", "IDR");
-        company.UpdateProfile("New Name", "PT New Name", "01.234.567.8-901.000", "Asia/Makassar");
+        company.IsVatRegistered.Should().BeFalse(); // non-PKP by default
+
+        company.UpdateProfile("New Name", "PT New Name", "01.234.567.8-901.000", "Asia/Makassar", isVatRegistered: true);
 
         company.Name.Should().Be("New Name");
         company.LegalName.Should().Be("PT New Name");
         company.TaxId.Should().Be("01.234.567.8-901.000");
         company.TimeZone.Should().Be("Asia/Makassar");
+        company.IsVatRegistered.Should().BeTrue();
     }
 
     [Fact]

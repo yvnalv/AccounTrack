@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
 import { masterData } from '@/lib/masterData'
+import { useCompanyStore } from '@/stores/company'
 import { formatMoney } from '@/lib/format'
 import type { NamedRef, Product } from '@/types/masterdata'
 import type { CreatePurchaseOrder } from '@/types/purchasing'
@@ -24,10 +25,13 @@ interface LineForm {
 
 const { t } = useI18n()
 const router = useRouter()
+const company = useCompanyStore()
+
+const defaultTaxPct = computed(() => (company.vatRegistered ? 11 : 0))
 
 const today = new Date().toISOString().slice(0, 10)
 const form = reactive({ supplierId: '', warehouseId: '', orderDate: today, notes: '' })
-const lines = reactive<LineForm[]>([{ productId: '', quantity: 1, unitPrice: 0, taxPct: 11, description: '' }])
+const lines = reactive<LineForm[]>([{ productId: '', quantity: 1, unitPrice: 0, taxPct: 0, description: '' }])
 
 const suppliers = ref<NamedRef[]>([])
 const warehouses = ref<NamedRef[]>([])
@@ -40,10 +44,12 @@ onMounted(async () => {
     masterData.suppliers(),
     masterData.warehouses(),
     masterData.products(),
+    company.ensure(),
   ])
   suppliers.value = s
   warehouses.value = w
   products.value = p.filter((x) => x.isActive)
+  lines.forEach((l) => (l.taxPct = defaultTaxPct.value))
 })
 
 const supplierOptions = computed(() => suppliers.value.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` })))
@@ -54,7 +60,7 @@ const subTotal = computed(() => lines.reduce((s, l) => s + l.quantity * l.unitPr
 const taxTotal = computed(() => lines.reduce((s, l) => s + (l.quantity * l.unitPrice * l.taxPct) / 100, 0))
 const grandTotal = computed(() => subTotal.value + taxTotal.value)
 
-const addLine = () => lines.push({ productId: '', quantity: 1, unitPrice: 0, taxPct: 11, description: '' })
+const addLine = () => lines.push({ productId: '', quantity: 1, unitPrice: 0, taxPct: defaultTaxPct.value, description: '' })
 const removeLine = (i: number) => lines.splice(i, 1)
 
 const validLines = computed(() => lines.filter((l) => l.productId && l.quantity > 0))
@@ -122,7 +128,7 @@ async function submit() {
               <th class="px-4 py-2.5 text-left font-semibold">{{ t('purchasing.detail.product') }}</th>
               <th class="px-3 py-2.5 text-right font-semibold w-24">{{ t('purchasing.detail.ordered') }}</th>
               <th class="px-3 py-2.5 text-right font-semibold w-36">{{ t('purchasing.detail.unitPrice') }}</th>
-              <th class="px-3 py-2.5 text-right font-semibold w-20">{{ t('purchasing.detail.taxPct') }}</th>
+              <th v-if="company.vatRegistered" class="px-3 py-2.5 text-right font-semibold w-20">{{ t('purchasing.detail.taxPct') }}</th>
               <th class="px-4 py-2.5 text-right font-semibold w-36">{{ t('purchasing.detail.lineTotal') }}</th>
               <th class="w-10"></th>
             </tr>
@@ -137,7 +143,7 @@ async function submit() {
               </td>
               <td class="px-3 py-2"><input v-model.number="line.quantity" type="number" min="0" step="any" class="field-input text-right tnum" /></td>
               <td class="px-3 py-2"><input v-model.number="line.unitPrice" type="number" min="0" step="any" class="field-input text-right tnum" /></td>
-              <td class="px-3 py-2"><input v-model.number="line.taxPct" type="number" min="0" max="100" step="any" class="field-input text-right tnum" /></td>
+              <td v-if="company.vatRegistered" class="px-3 py-2"><input v-model.number="line.taxPct" type="number" min="0" max="100" step="any" class="field-input text-right tnum" /></td>
               <td class="px-4 py-2 text-right text-text tnum">{{ formatMoney(line.quantity * line.unitPrice * (1 + line.taxPct / 100)) }}</td>
               <td class="px-2 py-2 text-center">
                 <button
@@ -158,7 +164,7 @@ async function submit() {
         <AppButton variant="secondary" @click="addLine"><Plus :size="16" /> {{ t('purchasing.form.addLine') }}</AppButton>
         <dl class="w-full max-w-xs space-y-1.5 text-sm">
           <div class="flex justify-between"><dt class="text-text-muted">{{ t('purchasing.detail.subtotal') }}</dt><dd class="tnum text-text">{{ formatMoney(subTotal) }}</dd></div>
-          <div class="flex justify-between"><dt class="text-text-muted">{{ t('purchasing.detail.taxTotal') }}</dt><dd class="tnum text-text">{{ formatMoney(taxTotal) }}</dd></div>
+          <div v-if="company.vatRegistered" class="flex justify-between"><dt class="text-text-muted">{{ t('purchasing.detail.taxTotal') }}</dt><dd class="tnum text-text">{{ formatMoney(taxTotal) }}</dd></div>
           <div class="flex justify-between border-t border-border pt-1.5 font-semibold"><dt class="text-text">{{ t('purchasing.detail.grandTotal') }}</dt><dd class="tnum text-text">{{ formatMoney(grandTotal) }}</dd></div>
         </dl>
       </div>

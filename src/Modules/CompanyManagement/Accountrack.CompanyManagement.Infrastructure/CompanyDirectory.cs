@@ -20,7 +20,7 @@ public sealed class CompanyDirectory : ICompanyDirectory
         var company = await _db.Companies
             .IgnoreQueryFilters()
             .Where(c => c.Id == companyId && !c.IsDeleted)
-            .Select(c => new CompanyInfo(c.Id, c.Code, c.FunctionalCurrency, c.FiscalYearStartMonth, c.Name, c.LegalName, c.TaxId))
+            .Select(c => new CompanyInfo(c.Id, c.Code, c.FunctionalCurrency, c.FiscalYearStartMonth, c.Name, c.LegalName, c.TaxId, c.IsVatRegistered))
             .FirstOrDefaultAsync(ct);
 
         return company;

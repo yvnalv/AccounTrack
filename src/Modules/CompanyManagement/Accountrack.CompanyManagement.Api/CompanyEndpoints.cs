@@ -12,7 +12,8 @@ public static class CompanyEndpoints
     public sealed record CreateCompanyRequest(
         string Code, string Name, string FunctionalCurrency, int FiscalYearStartMonth, string TimeZone);
 
-    public sealed record UpdateCompanyRequest(string Name, string? LegalName, string? TaxId, string TimeZone);
+    public sealed record UpdateCompanyRequest(
+        string Name, string? LegalName, string? TaxId, string TimeZone, bool IsVatRegistered);
 
     public sealed record SetSettingRequest(string Key, string Value);
 
@@ -40,7 +41,7 @@ public static class CompanyEndpoints
         companies.MapPut("/{id:guid}", async (Guid id, UpdateCompanyRequest body, ISender sender, CancellationToken ct) =>
         {
             var result = await sender.Send(new UpdateCompanyCommand(
-                id, body.Name, body.LegalName, body.TaxId, body.TimeZone), ct);
+                id, body.Name, body.LegalName, body.TaxId, body.TimeZone, body.IsVatRegistered), ct);
             return result.ToHttpResult();
         })
         .RequireAuthorization("Admin.Companies")

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData } from '@/lib/masterData'
+import { useCompanyStore } from '@/stores/company'
 import { formatMoney } from '@/lib/format'
 import type { NamedRef, Product } from '@/types/masterdata'
 import type { CreateSalesOrder } from '@/types/sales'
@@ -24,10 +25,13 @@ interface LineForm {
 
 const { t } = useI18n()
 const router = useRouter()
+const company = useCompanyStore()
+
+const defaultTaxPct = computed(() => (company.vatRegistered ? 11 : 0))
 
 const today = new Date().toISOString().slice(0, 10)
 const form = reactive({ customerId: '', warehouseId: '', orderDate: today, notes: '' })
-const lines = reactive<LineForm[]>([{ productId: '', quantity: 1, unitPrice: 0, taxPct: 11, description: '' }])
+const lines = reactive<LineForm[]>([{ productId: '', quantity: 1, unitPrice: 0, taxPct: 0, description: '' }])
 
 const customers = ref<NamedRef[]>([])
 const warehouses = ref<NamedRef[]>([])
@@ -40,11 +44,14 @@ onMounted(async () => {
     masterData.customers(),
     masterData.warehouses(),
     masterData.products(),
+    company.ensure(),
   ])
   customers.value = c
   warehouses.value = w
   // Active products (the backend doesn't restrict by "is sold"; show all sellable/active stock).
   products.value = p.filter((x) => x.isActive)
+  // Default tax once we know whether the company is VAT-registered (PKP).
+  lines.forEach((l) => (l.taxPct = defaultTaxPct.value))
 })
 
 const customerOptions = computed(() => customers.value.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })))
@@ -56,7 +63,7 @@ const taxTotal = computed(() => lines.reduce((s, l) => s + (l.quantity * l.unitP
 const grandTotal = computed(() => subTotal.value + taxTotal.value)
 
 function addLine() {
-  lines.push({ productId: '', quantity: 1, unitPrice: 0, taxPct: 11, description: '' })
+  lines.push({ productId: '', quantity: 1, unitPrice: 0, taxPct: defaultTaxPct.value, description: '' })
 }
 function removeLine(i: number) {
   lines.splice(i, 1)
@@ -127,7 +134,7 @@ async function submit() {
               <th class="px-4 py-2.5 text-left font-semibold">{{ t('sales.detail.product') }}</th>
               <th class="px-3 py-2.5 text-right font-semibold w-24">{{ t('sales.detail.qty') }}</th>
               <th class="px-3 py-2.5 text-right font-semibold w-36">{{ t('sales.detail.unitPrice') }}</th>
-              <th class="px-3 py-2.5 text-right font-semibold w-20">{{ t('sales.detail.taxPct') }}</th>
+              <th v-if="company.vatRegistered" class="px-3 py-2.5 text-right font-semibold w-20">{{ t('sales.detail.taxPct') }}</th>
               <th class="px-4 py-2.5 text-right font-semibold w-36">{{ t('sales.detail.lineTotal') }}</th>
               <th class="w-10"></th>
             </tr>
@@ -146,7 +153,7 @@ async function submit() {
               <td class="px-3 py-2">
                 <input v-model.number="line.unitPrice" type="number" min="0" step="any" class="field-input text-right tnum" />
               </td>
-              <td class="px-3 py-2">
+              <td v-if="company.vatRegistered" class="px-3 py-2">
                 <input v-model.number="line.taxPct" type="number" min="0" max="100" step="any" class="field-input text-right tnum" />
               </td>
               <td class="px-4 py-2 text-right text-text tnum">
@@ -177,7 +184,7 @@ async function submit() {
             <dt class="text-text-muted">{{ t('sales.detail.subtotal') }}</dt>
             <dd class="tnum text-text">{{ formatMoney(subTotal) }}</dd>
           </div>
-          <div class="flex justify-between">
+          <div v-if="company.vatRegistered" class="flex justify-between">
             <dt class="text-text-muted">{{ t('sales.detail.taxTotal') }}</dt>
             <dd class="tnum text-text">{{ formatMoney(taxTotal) }}</dd>
           </div>

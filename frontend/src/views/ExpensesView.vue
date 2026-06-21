@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Trash2 } from 'lucide-vue-next'
 import { expensesApi } from '@/lib/expenses'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
+import { useCompanyStore } from '@/stores/company'
 import { downloadExport } from '@/lib/api'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { ExpenseCategory, ExpenseVoucherSummary } from '@/types/expenses'
@@ -20,6 +21,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { Column } from '@/components/ui/types'
 
 const { t } = useI18n()
+const company = useCompanyStore()
 
 const rows = ref<ExpenseVoucherSummary[]>([])
 
@@ -78,6 +80,7 @@ async function load() {
       expensesApi.vouchers(),
       expensesApi.categories(),
       accountingApi.accounts(),
+      company.ensure(),
     ])
     rows.value = vs
     categories.value = cats
@@ -185,7 +188,7 @@ async function save() {
               <div class="w-32">
                 <input v-model.number="line.amount" type="number" min="0" step="any" class="field-input text-right tnum" :placeholder="t('expenses.fields.amount')" />
               </div>
-              <label class="flex h-9 items-center gap-1.5 whitespace-nowrap text-xs text-text-muted">
+              <label v-if="company.vatRegistered" class="flex h-9 items-center gap-1.5 whitespace-nowrap text-xs text-text-muted">
                 <input v-model="line.taxed" type="checkbox" class="h-4 w-4 accent-accent" /> {{ t('expenses.fields.ppn') }}
               </label>
               <button class="flex h-9 w-9 items-center justify-center rounded-md text-text-muted hover:bg-surface-2 hover:text-negative" @click="removeLine(i)">

@@ -56,7 +56,11 @@ configurable per company with the stated default.
 
 ## Tax (PPN)
 
-- **BR-TAX-1 (config)** Default tax is `PPN11` at 11%, exclusive. Tax is captured per invoice line.
+- **BR-TAX-0 (config)** VAT applies only when the company is **VAT-registered (PKP)**
+  (`Company.IsVatRegistered`, default off — most SMEs are non-PKP). When off, new transaction lines
+  default to 0% and the tax inputs are hidden; switching the flag affects new documents only.
+  Implemented CHG-0068.
+- **BR-TAX-1 (config)** When registered, default tax is `PPN11` at 11%, exclusive. Tax is captured per invoice line.
 - **BR-TAX-2 (invariant)** Sales tax posts to VAT Output (liability); purchase tax posts to VAT
   Input (asset).
 - **BR-TAX-3** VAT payable/claimable = VAT Output − VAT Input for the period.

@@ -37,7 +37,8 @@ public static class CompanyDataSeeder
                 name: "Main Company",
                 functionalCurrency: "IDR",
                 fiscalYearStartMonth: 1,
-                timeZone: "Asia/Jakarta"));
+                timeZone: "Asia/Jakarta",
+                isVatRegistered: true)); // demo company is PKP so VAT flows/reports stay meaningful
         }
 
         await db.SaveChangesAsync(ct);

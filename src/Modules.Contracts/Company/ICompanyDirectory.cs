@@ -4,7 +4,7 @@ namespace Accountrack.Modules.Contracts.Company;
 /// name + tax id for document headers).</summary>
 public sealed record CompanyInfo(
     Guid Id, string Code, string FunctionalCurrency, int FiscalYearStartMonth,
-    string Name = "", string? LegalName = null, string? TaxId = null);
+    string Name = "", string? LegalName = null, string? TaxId = null, bool IsVatRegistered = false);
 
 /// <summary>
 /// Public contract exposed by the Company Management module for other modules to look up company

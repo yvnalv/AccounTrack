@@ -5,6 +5,7 @@ import { Sun, Moon, Check } from 'lucide-vue-next'
 import { companyApi } from '@/lib/company'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import { useCompanyStore } from '@/stores/company'
 import { persistLocale } from '@/i18n'
 import type { Company } from '@/types/company'
 import AppCard from '@/components/ui/AppCard.vue'
@@ -16,6 +17,7 @@ import FormField from '@/components/ui/FormField.vue'
 const { t, locale } = useI18n()
 const auth = useAuthStore()
 const theme = useThemeStore()
+const companyStore = useCompanyStore()
 
 const canEditCompany = computed(() => auth.has('Admin.Companies'))
 
@@ -25,7 +27,7 @@ const selectedId = ref('')
 const loading = ref(true)
 const saving = ref(false)
 const message = ref<{ kind: 'ok' | 'err'; text: string } | null>(null)
-const form = reactive({ name: '', legalName: '', taxId: '', timeZone: '' })
+const form = reactive({ name: '', legalName: '', taxId: '', timeZone: '', isVatRegistered: false })
 
 const selected = computed(() => companies.value.find((c) => c.id === selectedId.value) ?? null)
 const companyOptions = computed(() => companies.value.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })))
@@ -39,6 +41,7 @@ function syncForm(c: Company | null) {
   form.legalName = c?.legalName ?? ''
   form.taxId = c?.taxId ?? ''
   form.timeZone = c?.timeZone ?? ''
+  form.isVatRegistered = c?.isVatRegistered ?? false
 }
 
 watch(selected, syncForm)
@@ -67,8 +70,10 @@ async function saveCompany() {
       legalName: form.legalName || null,
       taxId: form.taxId || null,
       timeZone: form.timeZone,
+      isVatRegistered: form.isVatRegistered,
     })
     await loadCompanies()
+    await companyStore.refresh() // keep the app-wide VAT/PKP flag in sync for the create forms
     message.value = { kind: 'ok', text: t('settings.company.saved') }
   } catch {
     message.value = { kind: 'err', text: t('settings.company.failed') }
@@ -133,6 +138,20 @@ function setLocale(next: string | undefined) {
             <AppInput v-model="form.timeZone" :disabled="!canEditCompany" />
           </FormField>
         </div>
+
+        <!-- VAT / PKP -->
+        <label class="flex items-start gap-3 rounded-card border border-border bg-surface-2 px-4 py-3">
+          <input
+            v-model="form.isVatRegistered"
+            type="checkbox"
+            class="mt-0.5 h-4 w-4 accent-accent"
+            :disabled="!canEditCompany"
+          />
+          <span class="text-sm">
+            <span class="font-medium text-text">{{ t('settings.company.vatRegistered') }}</span>
+            <span class="mt-0.5 block text-xs text-text-muted">{{ t('settings.company.vatHint') }}</span>
+          </span>
+        </label>
 
         <p v-if="!canEditCompany" class="text-xs text-text-muted">{{ t('settings.company.readOnly') }}</p>
         <p

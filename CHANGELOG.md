@@ -1,5 +1,28 @@
 # Accountrack Changelog
 
+## [2026-06-21 08:41:05 UTC]
+
+CHG-0068 — Optional VAT: company VAT-registration (PKP) flag
+
+- Tax is now **opt-in per company**, reflecting that most Indonesian SMEs are **not** registered for
+  VAT (only a **PKP — Pengusaha Kena Pajak** charges/reclaims PPN). New `Company.IsVatRegistered`
+  (default **false**; EF migration backfills existing rows to false; the seeded demo company is
+  **PKP=true** so the VAT flows/reports stay rich). Exposed on `CompanyInfo`, the company DTO, and the
+  update command/endpoint.
+- **Frontend:** a **"Registered for VAT (PKP)"** toggle in Settings → Company. A new app-wide
+  `company` store surfaces the flag; the Sales/Purchase order create forms and the Expense voucher
+  form now **default tax to 0% and hide the tax column/PPN checkbox** when the company is not
+  registered (when registered, today's 11% behaviour is unchanged).
+- **PDFs** omit the **VAT (PPN)** total line when a document has no tax, so non-PKP invoices/POs/bills
+  read cleanly.
+- No posting-logic change — a 0-rate line already produces no VAT journal, so accounting integrity is
+  untouched; switching PKP status only affects new documents (BR-X / ADR-0012).
+- **Tests:** company domain test asserts the new flag + non-PKP default. Full suite **275** green;
+  frontend builds. e2e: toggling the flag flips form behaviour; a 0-tax order posts subtotal=grand,
+  tax 0.
+
+---
+
 ## [2026-06-21 07:52:18 UTC]
 
 CHG-0067 — Collapsible + responsive sidebar (desktop rail + mobile drawer)

@@ -11,7 +11,8 @@ public sealed record UpdateCompanyCommand(
     string Name,
     string? LegalName,
     string? TaxId,
-    string TimeZone) : ICommand;
+    string TimeZone,
+    bool IsVatRegistered) : ICommand;
 
 public sealed class UpdateCompanyCommandValidator : AbstractValidator<UpdateCompanyCommand>
 {
@@ -42,7 +43,7 @@ public sealed class UpdateCompanyCommandHandler : ICommandHandler<UpdateCompanyC
             return CompanyErrors.NotFound;
         }
 
-        company.UpdateProfile(request.Name, request.LegalName, request.TaxId, request.TimeZone);
+        company.UpdateProfile(request.Name, request.LegalName, request.TaxId, request.TimeZone, request.IsVatRegistered);
         await _uow.SaveChangesAsync(cancellationToken);
 
         return Result.Success();

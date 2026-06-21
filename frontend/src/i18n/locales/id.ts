@@ -547,6 +547,8 @@ export default {
       legalName: 'Nama legal',
       taxId: 'NPWP',
       timeZone: 'Zona waktu',
+      vatRegistered: 'Terdaftar PPN (PKP)',
+      vatHint: 'Aktifkan jika usaha Anda sudah PKP. Saat nonaktif, transaksi tidak dikenai PPN dan kolom pajak disembunyikan.',
       none: 'Perusahaan tidak ditemukan.',
       readOnly: 'Anda tidak memiliki izin untuk mengubah detail perusahaan.',
       save: 'Simpan perubahan',

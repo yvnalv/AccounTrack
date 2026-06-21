@@ -8,12 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0064**)
+- **As of:** 2026-06-21 (last change **CHG-0068**)
 - **Build:** green — backend `net8.0` (275 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **insight-rich dashboard** (6-month trend, AR/AP aging, expense donut, top debtors/creditors,
-  MoM deltas — ECharts, color-coded) + **table pagination** (CHG-0063) and **per-menu insight cards**
-  (CHG-0064). Inventory valuation report (CHG-0062); cancel draft SO/PO (CHG-0061); master-data CRUD
-  completion (CHG-0060). **⏸ Paused for review.**
+  Latest: **optional VAT** — company VAT-registration (PKP) flag; non-PKP companies default tax to 0
+  and hide tax UI (CHG-0068). **Collapsible + responsive sidebar** (CHG-0067); compact-money KPI cards
+  (CHG-0065/0066); **insight-rich dashboard** + **table pagination** (CHG-0063) + **per-menu insight
+  cards** (CHG-0064).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
