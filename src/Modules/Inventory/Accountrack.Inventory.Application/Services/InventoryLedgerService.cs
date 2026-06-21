@@ -1,5 +1,7 @@
+using Accountrack.Application.Abstractions.Context;
 using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Domain;
+using Accountrack.Modules.Contracts.Company;
 using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.Inventory.Application.Services;
@@ -9,11 +11,17 @@ public sealed class InventoryLedgerService : IInventoryLedger
 {
     private readonly IStockBucketRepository _buckets;
     private readonly IInventoryTransactionRepository _transactions;
+    private readonly ICompanyDirectory _companies;
+    private readonly ITenantContext _tenant;
 
-    public InventoryLedgerService(IStockBucketRepository buckets, IInventoryTransactionRepository transactions)
+    public InventoryLedgerService(
+        IStockBucketRepository buckets, IInventoryTransactionRepository transactions,
+        ICompanyDirectory companies, ITenantContext tenant)
     {
         _buckets = buckets;
         _transactions = transactions;
+        _companies = companies;
+        _tenant = tenant;
     }
 
     public async Task<Result<StockMovementResult>> ReceiveAsync(
@@ -42,12 +50,16 @@ public sealed class InventoryLedgerService : IInventoryLedger
     public async Task<Result<StockMovementResult>> IssueAsync(
         Guid productId, Guid warehouseId, decimal quantity,
         DateOnly date, MovementType type, MovementSource source, Guid? sourceDocumentId, string? description,
-        bool allowNegative, CancellationToken ct)
+        CancellationToken ct)
     {
         if (quantity <= 0)
         {
             return InventoryErrors.InvalidQuantity;
         }
+
+        // The negative-stock policy is a per-company setting (default: disallow). BR-INV-3, ADR-0016.
+        var allowNegative = await _companies.GetBoolSettingAsync(
+            _tenant.CompanyId, CompanySettingKeys.AllowNegativeStock, false, ct);
 
         var bucket = await _buckets.GetAsync(productId, warehouseId, ct);
         var onHand = bucket?.OnHandQty ?? 0m;

@@ -74,6 +74,10 @@ reconciled so ledger value = Σ TotalCost.
 - **Configurable per company** (`Inventory.AllowNegativeStock = true`): the issue proceeds at the
   last known `avgCost`; on the next receipt the bucket is reconciled. This is opt-in because it
   weakens valuation accuracy.
+- **Implemented (CHG-0073):** the flag is a `CompanySetting` toggled in Settings (admins only) and
+  read across modules via `ICompanyDirectory.GetBoolSettingAsync`. The policy is resolved once, in
+  `InventoryLedgerService.IssueAsync`, so it applies uniformly to deliveries, purchase returns,
+  adjustments, transfers, and opname — callers no longer pass an `allowNegative` flag.
 
 ## 5. Chronology & Back-Dating — ADR-0017
 

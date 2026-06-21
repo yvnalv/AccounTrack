@@ -10,6 +10,7 @@ export interface Company {
   timeZone: string
   taxId: string | null
   isVatRegistered: boolean
+  allowNegativeStock: boolean
   isActive: boolean
 }
 

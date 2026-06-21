@@ -39,7 +39,7 @@ public interface IInventoryLedger
     Task<Result<StockMovementResult>> IssueAsync(
         Guid productId, Guid warehouseId, decimal quantity,
         DateOnly date, MovementType type, MovementSource source, Guid? sourceDocumentId, string? description,
-        bool allowNegative, CancellationToken ct);
+        CancellationToken ct);
 
     Task<decimal> GetOnHandAsync(Guid productId, Guid warehouseId, CancellationToken ct);
 }

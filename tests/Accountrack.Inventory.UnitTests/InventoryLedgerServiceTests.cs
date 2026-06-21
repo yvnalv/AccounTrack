@@ -1,6 +1,8 @@
+using Accountrack.Application.Abstractions.Context;
 using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Application.Services;
 using Accountrack.Inventory.Domain;
+using Accountrack.Modules.Contracts.Company;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
@@ -12,10 +14,17 @@ public class InventoryLedgerServiceTests
     private static readonly DateOnly Date = new(2026, 6, 13);
     private readonly IStockBucketRepository _buckets = Substitute.For<IStockBucketRepository>();
     private readonly IInventoryTransactionRepository _txns = Substitute.For<IInventoryTransactionRepository>();
+    private readonly ICompanyDirectory _companies = Substitute.For<ICompanyDirectory>();
+    private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
     private readonly Guid _product = Guid.NewGuid();
     private readonly Guid _warehouse = Guid.NewGuid();
 
-    private InventoryLedgerService Service() => new(_buckets, _txns);
+    private InventoryLedgerService Service(bool allowNegative = false)
+    {
+        _companies.GetBoolSettingAsync(Arg.Any<Guid>(), CompanySettingKeys.AllowNegativeStock, Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(allowNegative);
+        return new(_buckets, _txns, _companies, _tenant);
+    }
 
     [Fact]
     public async Task Receive_creates_a_bucket_and_records_a_transaction()
@@ -59,7 +68,7 @@ public class InventoryLedgerServiceTests
 
         var result = await Service().IssueAsync(
             _product, _warehouse, 5m, Date, MovementType.Issue, MovementSource.Sales, null, null,
-            allowNegative: false, CancellationToken.None);
+            CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.CostApplied.Should().Be(550m);
@@ -76,11 +85,27 @@ public class InventoryLedgerServiceTests
 
         var result = await Service().IssueAsync(
             _product, _warehouse, 10m, Date, MovementType.Issue, MovementSource.Sales, null, null,
-            allowNegative: false, CancellationToken.None);
+            CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("INVENTORY.INSUFFICIENT_STOCK");
         _txns.DidNotReceive().Add(Arg.Any<InventoryTransaction>());
+    }
+
+    [Fact]
+    public async Task Issue_below_zero_is_allowed_when_the_company_setting_permits_it()
+    {
+        var bucket = StockCostBucket.Create(_product, _warehouse, "IDR");
+        bucket.Receive(5m, 100m);
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucket);
+
+        var result = await Service(allowNegative: true).IssueAsync(
+            _product, _warehouse, 10m, Date, MovementType.Issue, MovementSource.Sales, null, null,
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.RunningQtyAfter.Should().Be(-5m);
+        _txns.Received(1).Add(Arg.Any<InventoryTransaction>());
     }
 
     [Fact]
@@ -90,7 +115,7 @@ public class InventoryLedgerServiceTests
 
         var result = await Service().IssueAsync(
             _product, _warehouse, 1m, Date, MovementType.Issue, MovementSource.Sales, null, null,
-            allowNegative: false, CancellationToken.None);
+            CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("INVENTORY.INSUFFICIENT_STOCK");

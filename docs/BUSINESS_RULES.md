@@ -71,7 +71,9 @@ configurable per company with the stated default.
   derived from it.
 - **BR-INV-2 (invariant)** Costing is moving weighted average per (Company × Warehouse × Product).
 - **BR-INV-3 (config, default disallow)** An issue that would drive on-hand negative is rejected;
-  negative stock is opt-in per company.
+  negative stock is opt-in per company via the `Inventory.AllowNegativeStock` company setting
+  (resolved centrally in the inventory ledger, so it applies uniformly to deliveries, returns,
+  adjustments, transfers, and opname). (CHG-0073, ADR-0016.)
 - **BR-INV-4 (invariant)** Movements post chronologically; no back-dating into a closed period.
 - **BR-INV-5** Back-dating within the open period triggers a forward recompute of the affected
   cost bucket.

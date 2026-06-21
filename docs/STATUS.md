@@ -8,12 +8,13 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0072**)
-- **Build:** green — backend `net8.0` (286 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Expenses on-account (Cr AP)** + category edit/deactivate (CHG-0072); Chart-of-Accounts
-  edit + activate/deactivate, new Accounts tab (CHG-0071); edit draft SO/PO (CHG-0070); list search +
-  full-width content + gated VAT tab (CHG-0069); optional VAT (PKP) flag (CHG-0068); collapsible/
-  responsive sidebar (CHG-0067); insight-rich dashboard (CHG-0063/0064).
+- **As of:** 2026-06-21 (last change **CHG-0073**)
+- **Build:** green — backend `net8.0` (287 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **per-company negative-stock policy** (CHG-0073); Expenses on-account (Cr AP) + category
+  edit/deactivate (CHG-0072); Chart-of-Accounts edit + activate/deactivate, new Accounts tab
+  (CHG-0071); edit draft SO/PO (CHG-0070); list search + full-width content + gated VAT tab
+  (CHG-0069); optional VAT (PKP) flag (CHG-0068); collapsible/responsive sidebar (CHG-0067);
+  insight-rich dashboard (CHG-0063/0064).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -57,8 +58,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
 - 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
-  opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI). Remaining: per-company
-  negative-stock setting, back-dating recompute
+  opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI); **per-company
+  negative-stock policy (CHG-0073)**. Remaining: back-dating recompute
 - ✅ **Purchasing** (procure-to-pay complete) — Purchase Orders + Approval/Process-Tracker/Notification
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**
@@ -98,8 +99,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   Balance Sheet — CHG-0016; posting-rule engine — CHG-0017; AR/AP subledgers — CHG-0018; **Cash Flow
   — CHG-0056**; **year-end close to retained earnings — CHG-0059**.)
 - **Inventory slice 2:** ✅ GL posting on stock adjustments (Dr/Cr Inventory↔Variance) + stock opname
-  done (CHG-0057). Remaining: per-company negative-stock setting, back-dating recompute. (Transfers
-  are GL-neutral under a single Inventory control account.)
+  done (CHG-0057); ✅ **per-company negative-stock policy (CHG-0073)**. Remaining: back-dating
+  recompute. (Transfers are GL-neutral under a single Inventory control account.)
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
   `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
   flows will reuse it.
@@ -128,8 +129,8 @@ Backend threads that can be picked up independently if desired (none block the f
 - **Reporting:** Cash Flow, AR/AP aging, **VAT (CHG-0043)**, **General Ledger / account detail
   (CHG-0058)**, **inventory valuation (CHG-0062)** done. Reporting suite complete.
 - **Accounting:** period-close balance snapshots (year-end close to retained earnings — done CHG-0059).
-- **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); remaining:
-  per-company negative-stock setting, back-dating recompute.
+- **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); ✅ per-company
+  negative-stock policy (CHG-0073); remaining: back-dating recompute.
 - **Returns:** purchase & sales returns/credit notes.
 - A dev **customer seed** (none seeded today; created via API in e2e).
 
@@ -138,7 +139,7 @@ frontend**, which requires the **UI/UX design discussion** before any build (use
 template/AI-ish). Pause and raise it then.
 
 Other open threads (not blocking): a dev **customer seed** (none seeded today); **Inventory slice 2**
-remaining (negative-stock setting, back-dating); **Accounting** period-close snapshots; purchase/sales
+remaining (back-dating recompute); **Accounting** period-close snapshots; purchase/sales
 **returns**; idempotency **exactly-once** hardening (same-transaction key + RowVersion).
 
 ## How to resume

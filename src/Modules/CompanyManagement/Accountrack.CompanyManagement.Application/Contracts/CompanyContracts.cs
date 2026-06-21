@@ -11,4 +11,5 @@ public sealed record CompanyDto(
     string TimeZone,
     string? TaxId,
     bool IsVatRegistered,
+    bool AllowNegativeStock,
     bool IsActive);

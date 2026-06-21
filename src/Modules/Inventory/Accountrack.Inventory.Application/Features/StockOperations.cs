@@ -11,14 +11,10 @@ using FluentValidation;
 
 namespace Accountrack.Inventory.Application.Features;
 
-// NOTE (slice 1): negative stock is disallowed; reading the company's negative-stock setting is
-// deferred (INVENTORY_DESIGN.md §4). Stock adjustments and opname now post a GL variance journal
-// atomically (slice 2, CHG); warehouse transfers are GL-neutral under a single Inventory control
-// account (cost travels with the goods).
-internal static class InventoryPolicy
-{
-    public const bool AllowNegativeStock = false;
-}
+// NOTE: the negative-stock policy is a per-company setting resolved inside InventoryLedgerService
+// (CompanySettingKeys.AllowNegativeStock, default false; BR-INV-3, ADR-0016). Adjustments and opname post
+// a GL variance journal atomically (slice 2, CHG-0057); warehouse transfers are GL-neutral under a
+// single Inventory control account (cost travels with the goods).
 
 /// <summary>
 /// Posts the GL side of an inventory value change (slice 2): Dr Inventory / Cr Inventory Variance for
@@ -169,8 +165,7 @@ public sealed class AdjustStockHandler : ICommandHandler<AdjustStockCommand, Sto
                 request.UnitCost ?? 0m, request.Date, MovementType.AdjustmentIn, MovementSource.Adjustment, null, request.Reason, ct)
             : await _ledger.IssueAsync(
                 request.ProductId, request.WarehouseId, request.Quantity, request.Date,
-                MovementType.AdjustmentOut, MovementSource.Adjustment, null, request.Reason,
-                InventoryPolicy.AllowNegativeStock, ct);
+                MovementType.AdjustmentOut, MovementSource.Adjustment, null, request.Reason, ct);
 
         if (result.IsFailure)
         {
@@ -229,8 +224,7 @@ public sealed class TransferStockHandler : ICommandHandler<TransferStockCommand,
         // Issue from source at its moving average; the cost travels to the destination.
         var outResult = await _ledger.IssueAsync(
             request.ProductId, request.FromWarehouseId, request.Quantity, request.Date,
-            MovementType.TransferOut, MovementSource.Transfer, null, "Transfer out",
-            InventoryPolicy.AllowNegativeStock, ct);
+            MovementType.TransferOut, MovementSource.Transfer, null, "Transfer out", ct);
 
         if (outResult.IsFailure)
         {
@@ -337,8 +331,7 @@ public sealed class StockOpnameHandler : ICommandHandler<StockOpnameCommand, Sto
         {
             result = await _ledger.IssueAsync(
                 request.ProductId, request.WarehouseId, qty, request.Date,
-                MovementType.AdjustmentOut, MovementSource.Adjustment, null, reason,
-                InventoryPolicy.AllowNegativeStock, ct);
+                MovementType.AdjustmentOut, MovementSource.Adjustment, null, reason, ct);
         }
 
         if (result.IsFailure)

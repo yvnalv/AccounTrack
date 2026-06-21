@@ -25,4 +25,15 @@ public sealed class CompanyDirectory : ICompanyDirectory
 
         return company;
     }
+
+    public async Task<bool> GetBoolSettingAsync(Guid companyId, string key, bool fallback, CancellationToken ct)
+    {
+        var value = await _db.CompanySettings
+            .IgnoreQueryFilters()
+            .Where(s => s.CompanyId == companyId && s.Key == key && !s.IsDeleted)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(ct);
+
+        return value is null ? fallback : bool.TryParse(value, out var parsed) ? parsed : fallback;
+    }
 }

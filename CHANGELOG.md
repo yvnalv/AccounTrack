@@ -1,5 +1,30 @@
 # Accountrack Changelog
 
+## [2026-06-21 13:54:05 UTC]
+
+CHG-0073 — Inventory: per-company negative-stock policy (BR-INV-3)
+
+- The negative-stock policy is now a real **per-company setting** (`Inventory.AllowNegativeStock`,
+  default **false** = disallow) instead of a hardcoded constant (ADR-0016). It is resolved once, at
+  the single choke point `InventoryLedgerService.IssueAsync`, so it applies **uniformly** to sales
+  deliveries, purchase returns, stock adjustments, transfers, and opname. The `allowNegative` flag
+  was removed from the `IInventoryLedger` / `IInventoryPosting` contracts and all callers — modules
+  no longer decide policy; inventory owns it.
+- **Cross-module read:** `ICompanyDirectory` gains `GetBoolSettingAsync(companyId, key, fallback)`;
+  `CompanySettingKeys.AllowNegativeStock` centralizes the key. The company read DTO now carries
+  `allowNegativeStock` (list + detail), so the UI can reflect it.
+- **Frontend:** Settings → Company gains an **Allow negative stock** toggle (admins only,
+  `Admin.Companies`); saved via the existing `PUT /companies/{id}/settings`. EN/ID strings + hints.
+- **Tests:** +1 (issue below zero succeeds when the company setting permits it); existing ledger/
+  delivery/return/adjustment tests updated for the slimmer signature. Full suite **287** green;
+  frontend builds.
+- **Verified (e2e):** with the policy **off**, over-issuing stock is rejected
+  (`INVENTORY.INSUFFICIENT_STOCK`, 409); after toggling the setting **on**, the same issue succeeds
+  and drives on-hand negative; `GET /companies` reflects `allowNegativeStock`. (Dev stock restored.)
+- **Remaining (Inventory slice 2):** back-dating recompute of cost buckets (BR-INV-5).
+
+---
+
 ## [2026-06-21 11:05:22 UTC]
 
 CHG-0072 — Expenses: record on account (Cr AP) + category edit/deactivate

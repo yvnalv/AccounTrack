@@ -73,7 +73,7 @@ public class DeliveryOrderTests
         _orders.GetByIdAsync(so.Id, Arg.Any<CancellationToken>()).Returns(so);
         // Issue 4 units; moving-average cost applied = 400 (unit 100).
         _inventory.IssueAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), 4m, Date, Arg.Any<Guid>(), Arg.Any<string?>(), false, Arg.Any<CancellationToken>())
+                Arg.Any<Guid>(), Arg.Any<Guid>(), 4m, Date, Arg.Any<Guid>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new StockMovementResult(Guid.NewGuid(), 400m, 6m, 100m));
         _accounts.ResolveAsync("GoodsShipment", Arg.Any<string>(), Arg.Any<PostingSelector>(), Arg.Any<CancellationToken>())
             .Returns(_ => Result.Success(Guid.NewGuid()));
@@ -112,7 +112,7 @@ public class DeliveryOrderTests
         result.Error.Code.Should().Be("SALES.OVER_DELIVERY");
         await _inventory.DidNotReceive().IssueAsync(
             Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<decimal>(), Arg.Any<DateOnly>(), Arg.Any<Guid>(),
-            Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+            Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await _ledger.DidNotReceive().PostAsync(Arg.Any<LedgerPostingRequest>(), Arg.Any<CancellationToken>());
     }
 
@@ -124,7 +124,7 @@ public class DeliveryOrderTests
         _orders.GetByIdAsync(so.Id, Arg.Any<CancellationToken>()).Returns(so);
         _inventory.IssueAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<decimal>(), Arg.Any<DateOnly>(), Arg.Any<Guid>(),
-                Arg.Any<string?>(), false, Arg.Any<CancellationToken>())
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Error.BusinessRule("BR-INV-1", "Insufficient stock.", "INVENTORY.INSUFFICIENT_STOCK"));
 
         var result = await Handler().Handle(

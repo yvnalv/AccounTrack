@@ -118,7 +118,7 @@ public sealed class PostPurchaseReturnHandler : ICommandHandler<PostPurchaseRetu
             // Remove goods from stock at moving-average cost; the cost applied is the GL Cr Inventory.
             var movement = await _inventory.IssueAsync(
                 line.ProductId, order.WarehouseId, input.Quantity, request.ReturnDate, purchaseReturn.Id,
-                $"Purchase return {number}", allowNegative: false, ct);
+                $"Purchase return {number}", ct);
 
             if (movement.IsFailure)
             {

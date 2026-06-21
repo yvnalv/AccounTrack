@@ -27,7 +27,14 @@ const selectedId = ref('')
 const loading = ref(true)
 const saving = ref(false)
 const message = ref<{ kind: 'ok' | 'err'; text: string } | null>(null)
-const form = reactive({ name: '', legalName: '', taxId: '', timeZone: '', isVatRegistered: false })
+const form = reactive({
+  name: '',
+  legalName: '',
+  taxId: '',
+  timeZone: '',
+  isVatRegistered: false,
+  allowNegativeStock: false,
+})
 
 const selected = computed(() => companies.value.find((c) => c.id === selectedId.value) ?? null)
 const companyOptions = computed(() => companies.value.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })))
@@ -42,6 +49,7 @@ function syncForm(c: Company | null) {
   form.taxId = c?.taxId ?? ''
   form.timeZone = c?.timeZone ?? ''
   form.isVatRegistered = c?.isVatRegistered ?? false
+  form.allowNegativeStock = c?.allowNegativeStock ?? false
 }
 
 watch(selected, syncForm)
@@ -72,6 +80,9 @@ async function saveCompany() {
       timeZone: form.timeZone,
       isVatRegistered: form.isVatRegistered,
     })
+    if (form.allowNegativeStock !== selected.value.allowNegativeStock) {
+      await companyApi.setSetting(selected.value.id, 'Inventory.AllowNegativeStock', String(form.allowNegativeStock))
+    }
     await loadCompanies()
     await companyStore.refresh() // keep the app-wide VAT/PKP flag in sync for the create forms
     message.value = { kind: 'ok', text: t('settings.company.saved') }
@@ -150,6 +161,20 @@ function setLocale(next: string | undefined) {
           <span class="text-sm">
             <span class="font-medium text-text">{{ t('settings.company.vatRegistered') }}</span>
             <span class="mt-0.5 block text-xs text-text-muted">{{ t('settings.company.vatHint') }}</span>
+          </span>
+        </label>
+
+        <!-- Inventory: negative-stock policy -->
+        <label class="flex items-start gap-3 rounded-card border border-border bg-surface-2 px-4 py-3">
+          <input
+            v-model="form.allowNegativeStock"
+            type="checkbox"
+            class="mt-0.5 h-4 w-4 accent-accent"
+            :disabled="!canEditCompany"
+          />
+          <span class="text-sm">
+            <span class="font-medium text-text">{{ t('settings.inventory.allowNegative') }}</span>
+            <span class="mt-0.5 block text-xs text-text-muted">{{ t('settings.inventory.allowNegativeHint') }}</span>
           </span>
         </label>
 

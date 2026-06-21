@@ -26,6 +26,17 @@ public sealed class CompanyRepository : ICompanyRepository
     public Task<CompanySetting?> GetSettingAsync(Guid companyId, string key, CancellationToken ct) =>
         _db.CompanySettings.FirstOrDefaultAsync(s => s.CompanyId == companyId && s.Key == key, ct);
 
+    public async Task<IReadOnlyDictionary<Guid, bool>> GetBoolSettingsAsync(string key, CancellationToken ct)
+    {
+        // Tenant-scoped by the global query filter.
+        var rows = await _db.CompanySettings
+            .Where(s => s.Key == key)
+            .Select(s => new { s.CompanyId, s.Value })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(r => r.CompanyId, r => bool.TryParse(r.Value, out var b) && b);
+    }
+
     public void Add(Company company) => _db.Companies.Add(company);
 
     public void AddSetting(CompanySetting setting) => _db.CompanySettings.Add(setting);

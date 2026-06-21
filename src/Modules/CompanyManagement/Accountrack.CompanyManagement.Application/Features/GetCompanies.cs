@@ -2,6 +2,7 @@ using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.CompanyManagement.Application.Abstractions;
 using Accountrack.CompanyManagement.Application.Contracts;
 using Accountrack.CompanyManagement.Domain;
+using Accountrack.Modules.Contracts.Company;
 using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.CompanyManagement.Application.Features;
@@ -19,7 +20,9 @@ public sealed class GetCompaniesQueryHandler : IQueryHandler<GetCompaniesQuery, 
         GetCompaniesQuery request, CancellationToken cancellationToken)
     {
         var companies = await _companies.ListForCurrentTenantAsync(cancellationToken);
-        return Result.Success<IReadOnlyList<CompanyDto>>(companies.Select(c => c.ToDto()).ToList());
+        var negStock = await _companies.GetBoolSettingsAsync(CompanySettingKeys.AllowNegativeStock, cancellationToken);
+        return Result.Success<IReadOnlyList<CompanyDto>>(
+            companies.Select(c => c.ToDto(negStock.GetValueOrDefault(c.Id))).ToList());
     }
 }
 
@@ -34,6 +37,13 @@ public sealed class GetCompanyByIdQueryHandler : IQueryHandler<GetCompanyByIdQue
     public async Task<Result<CompanyDto>> Handle(GetCompanyByIdQuery request, CancellationToken cancellationToken)
     {
         var company = await _companies.GetByIdAsync(request.Id, cancellationToken);
-        return company is null ? CompanyErrors.NotFound : company.ToDto();
+        if (company is null)
+        {
+            return CompanyErrors.NotFound;
+        }
+
+        var setting = await _companies.GetSettingAsync(request.Id, CompanySettingKeys.AllowNegativeStock, cancellationToken);
+        var allowNegative = setting is not null && bool.TryParse(setting.Value, out var b) && b;
+        return company.ToDto(allowNegative);
     }
 }

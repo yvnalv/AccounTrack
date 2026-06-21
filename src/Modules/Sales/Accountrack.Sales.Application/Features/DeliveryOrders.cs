@@ -104,7 +104,7 @@ public sealed class PostDeliveryOrderHandler : ICommandHandler<PostDeliveryOrder
             // Issue stock at moving-average cost; the cost applied becomes COGS.
             var movement = await _inventory.IssueAsync(
                 line.ProductId, order.WarehouseId, input.Quantity, request.DeliveryDate, delivery.Id,
-                $"Delivery {number}", allowNegative: false, ct);
+                $"Delivery {number}", ct);
 
             if (movement.IsFailure)
             {

@@ -58,7 +58,7 @@ public class StockOperationsTests
     {
         var txnId = Guid.NewGuid();
         _ledger.IssueAsync(ProductId, WarehouseId, 5m, Date, Arg.Any<Accountrack.Inventory.Domain.MovementType>(),
-                Arg.Any<Accountrack.Inventory.Domain.MovementSource>(), Arg.Any<Guid?>(), Arg.Any<string?>(), false, Arg.Any<CancellationToken>())
+                Arg.Any<Accountrack.Inventory.Domain.MovementSource>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Result.Success(new StockMovementResult(txnId, 500_000m, 3m, 100_000m)));
 
         var result = await AdjustHandler().Handle(
@@ -97,7 +97,7 @@ public class StockOperationsTests
     {
         _ledger.GetOnHandAsync(ProductId, WarehouseId, Arg.Any<CancellationToken>()).Returns(10m);
         _ledger.IssueAsync(ProductId, WarehouseId, 3m, Date, Arg.Any<Accountrack.Inventory.Domain.MovementType>(),
-                Arg.Any<Accountrack.Inventory.Domain.MovementSource>(), Arg.Any<Guid?>(), Arg.Any<string?>(), false, Arg.Any<CancellationToken>())
+                Arg.Any<Accountrack.Inventory.Domain.MovementSource>(), Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Result.Success(new StockMovementResult(Guid.NewGuid(), 270_000m, 7m, 90_000m)));
 
         var result = await OpnameHandler().Handle(
@@ -130,6 +130,6 @@ public class StockOperationsTests
         await _ledger.DidNotReceive().IssueAsync(
             Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<decimal>(), Arg.Any<DateOnly>(),
             Arg.Any<Accountrack.Inventory.Domain.MovementType>(), Arg.Any<Accountrack.Inventory.Domain.MovementSource>(),
-            Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+            Arg.Any<Guid?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 }

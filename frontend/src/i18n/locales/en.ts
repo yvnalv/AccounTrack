@@ -599,6 +599,11 @@ export default {
       saved: 'Company details saved.',
       failed: 'Could not save company details.',
     },
+    inventory: {
+      allowNegative: 'Allow negative stock',
+      allowNegativeHint:
+        'When on, deliveries and issues can proceed even if on-hand would go below zero. Leave off to block selling/issuing more than you have.',
+    },
     profile: {
       title: 'Your profile',
       name: 'Name',

@@ -30,11 +30,11 @@ public sealed class InventoryPostingService : IInventoryPosting
 
     public async Task<Result<StockMovementResult>> IssueAsync(
         Guid productId, Guid warehouseId, decimal quantity,
-        DateOnly date, Guid sourceDocumentId, string? description, bool allowNegative, CancellationToken ct)
+        DateOnly date, Guid sourceDocumentId, string? description, CancellationToken ct)
     {
         var result = await _ledger.IssueAsync(
             productId, warehouseId, quantity, date,
-            MovementType.Issue, MovementSource.Sales, sourceDocumentId, description, allowNegative, ct);
+            MovementType.Issue, MovementSource.Sales, sourceDocumentId, description, ct);
 
         return Map(result);
     }

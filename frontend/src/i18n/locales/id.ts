@@ -600,6 +600,11 @@ export default {
       saved: 'Detail perusahaan tersimpan.',
       failed: 'Gagal menyimpan detail perusahaan.',
     },
+    inventory: {
+      allowNegative: 'Izinkan stok minus',
+      allowNegativeHint:
+        'Jika aktif, pengiriman dan pengeluaran tetap bisa dilakukan walau stok menjadi di bawah nol. Biarkan nonaktif untuk mencegah menjual/mengeluarkan melebihi stok yang ada.',
+    },
     profile: {
       title: 'Profil Anda',
       name: 'Nama',

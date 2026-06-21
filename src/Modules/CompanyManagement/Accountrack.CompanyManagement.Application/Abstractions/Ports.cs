@@ -12,6 +12,9 @@ public interface ICompanyRepository
 
     Task<CompanySetting?> GetSettingAsync(Guid companyId, string key, CancellationToken ct);
 
+    /// <summary>Boolean values of <paramref name="key"/> per company in the current tenant.</summary>
+    Task<IReadOnlyDictionary<Guid, bool>> GetBoolSettingsAsync(string key, CancellationToken ct);
+
     void Add(Company company);
 
     void AddSetting(CompanySetting setting);

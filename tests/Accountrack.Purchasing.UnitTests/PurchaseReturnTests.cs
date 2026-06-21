@@ -70,7 +70,7 @@ public class PurchaseReturnTests
             .Returns(Result.Success(Guid.NewGuid()));
         _inventory.IssueAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<decimal>(), Arg.Any<DateOnly>(), Arg.Any<Guid>(),
-                Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(ci => Result.Success(new StockMovementResult(
                 Guid.NewGuid(), ci.ArgAt<decimal>(2) * issueUnitCost, 0m, 0m)));
     }
@@ -119,7 +119,7 @@ public class PurchaseReturnTests
         _posted.Lines.Should().Contain(l => l.Debit == 444m && l.SubledgerPartyId == _supplier);
 
         await _inventory.Received(1).IssueAsync(
-            _product, _warehouse, 4m, Date, Arg.Any<Guid>(), Arg.Any<string>(), false, Arg.Any<CancellationToken>());
+            _product, _warehouse, 4m, Date, Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
         await _subledger.Received(1).AllocateAsync(
             invoice.ApOpenItemId!.Value, Arg.Any<string>(), Date, 444m, Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
