@@ -15,6 +15,23 @@ export interface StockOpnameResult {
   costApplied: number
 }
 
+export interface InventoryValuationRow {
+  productId: string
+  productName: string
+  quantity: number
+  avgUnitCost: number
+  value: number
+}
+
+export interface InventoryValuation {
+  currency: string
+  rows: InventoryValuationRow[]
+  totalValue: number
+  glInventoryBalance: number
+  difference: number
+  isReconciled: boolean
+}
+
 export interface StockCardEntry {
   transactionId: string
   date: string

@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-06-21 05:42:09 UTC]
+
+CHG-0062 — Inventory valuation report (reconciles to the GL)
+
+- New **Inventory valuation** report: on-hand value by product at moving-average cost (aggregated
+  across warehouses), with the **GL Inventory control-account balance it reconciles to** (BR-INV-7) —
+  the ledger (stock buckets) is the source of truth; the GL figure is read via a new cross-module
+  contract `IGeneralLedgerBalances` (Accounting), surfaced with a difference + Reconciled flag (a
+  sub-unit moving-average rounding residue is tolerated).
+- `GET /api/v1/stock/valuation` and `/stock/valuation/pdf` (`Inventory.View`). The PDF reuses the
+  report renderer (brand logo, grand-total + reconciliation rows); product names via `IMasterDataLookup`.
+- **Frontend:** an **Inventory valuation** screen (value-by-product table, total → GL balance →
+  difference with a Reconciled badge, PDF download), reached from a **Valuation report** link on the
+  Stock-on-hand screen and the command palette. EN/ID.
+- **Tests:** +2 (aggregates value by product & reconciles; flags a difference when the GL disagrees).
+  Full suite **275** green; frontend builds; arch-fitness intact (new contract lives in Modules.Contracts).
+- **Verified (e2e):** against the seeded company the report values 12 products, total
+  **Rp 1,984,611,701.84** ties to the GL Inventory account (TB 1200) within a 0.01 rounding residue →
+  Reconciled; PDF downloads as valid `application/pdf`.
+- This completes the **financial-report suite** (TB / P&L / Balance Sheet / Cash Flow / VAT / GL /
+  AR-AP aging / **inventory valuation**).
+
+---
+
 ## [2026-06-21 05:01:30 UTC]
 
 CHG-0061 — Cancel draft Sales / Purchase Orders (ADR-0029)

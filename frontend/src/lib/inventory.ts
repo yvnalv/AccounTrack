@@ -1,5 +1,10 @@
 import { http, unwrap } from './api'
-import type { StockCardEntry, StockOnHand, StockOpnameResult } from '@/types/inventory'
+import type {
+  InventoryValuation,
+  StockCardEntry,
+  StockOnHand,
+  StockOpnameResult,
+} from '@/types/inventory'
 
 export interface AdjustStockPayload {
   productId: string
@@ -29,6 +34,7 @@ export const inventoryApi = {
   adjust: (payload: AdjustStockPayload) => unwrap(http.post('/stock/adjustments', payload)),
   opname: (payload: StockOpnamePayload) =>
     unwrap<StockOpnameResult>(http.post('/stock/opname', payload)),
+  valuation: () => unwrap<InventoryValuation>(http.get('/stock/valuation')),
 }
 
 /** Movement types that increase stock (the rest decrease it). */

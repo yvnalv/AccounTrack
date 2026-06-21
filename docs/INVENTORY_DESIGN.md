@@ -118,7 +118,9 @@ All costed movements that hit Accounting are **atomic** with the GL posting
 - **Stock on hand** (qty + value) per warehouse/product, as-of date → reconstructable from the
   ledger.
 - **Inventory valuation report** must equal the Inventory GL account balance (reconciliation
-  control).
+  control). Implemented (CHG-0062): value by product at moving-average cost vs the GL Inventory
+  control-account balance (read cross-module via `IGeneralLedgerBalances`), with a difference +
+  Reconciled flag; a sub-unit moving-average rounding residue is tolerated.
 - **Movement / stock-card report**: full per-product transaction history with running balances
   (drill-down to source document).
 

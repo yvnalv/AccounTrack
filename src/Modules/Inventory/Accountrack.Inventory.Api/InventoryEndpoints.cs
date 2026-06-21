@@ -38,6 +38,13 @@ public static class InventoryEndpoints
                 Send(s.Send(new GetStockCardQuery(productId, warehouseId), ct)))
             .RequireAuthorization("Inventory.View").WithName("GetStockCard");
 
+        stock.MapGet("/valuation", (ISender s, CancellationToken ct) => Send(s.Send(new GetInventoryValuationQuery(), ct)))
+            .RequireAuthorization("Inventory.View").WithName("GetInventoryValuation");
+
+        stock.MapGet("/valuation/pdf", (ISender s, CancellationToken ct) =>
+                Accountrack.Web.Common.Pdf.PdfRenderer.ReportFile(s.Send(new GetInventoryValuationPdfQuery(), ct), "inventory-valuation"))
+            .RequireAuthorization("Inventory.View").WithName("GetInventoryValuationPdf");
+
         return app;
     }
 

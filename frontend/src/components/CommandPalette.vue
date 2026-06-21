@@ -54,6 +54,7 @@ const commands = computed<Command[]>(() => {
     { id: 'po-new', label: t('purchasing.new'), group: nav, icon: Plus, run: go('purchaseOrderCreate') },
     { id: 'po-pay', label: t('purchasing.paySupplier'), group: nav, icon: Wallet, run: go('purchasingPaySupplier') },
     { id: 'inventory', label: t('inventory.title'), group: nav, icon: Boxes, run: go('inventory') },
+    { id: 'inventory-valuation', label: t('inventory.valuation.title'), group: nav, icon: Boxes, run: go('inventoryValuation') },
     { id: 'acc-tb', label: t('accounting.tabs.trialBalance'), group: nav, icon: BookOpen, run: go('accountingTrialBalance') },
     { id: 'acc-pl', label: t('accounting.tabs.profitLoss'), group: nav, icon: BookOpen, run: go('accountingProfitLoss') },
     { id: 'acc-bs', label: t('accounting.tabs.balanceSheet'), group: nav, icon: BookOpen, run: go('accountingBalanceSheet') },

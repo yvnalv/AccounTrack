@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { Scale } from 'lucide-vue-next'
 import { inventoryApi } from '@/lib/inventory'
 import { masterData, nameMap } from '@/lib/masterData'
 import { downloadExport } from '@/lib/api'
@@ -128,7 +129,13 @@ async function submit() {
 
 <template>
   <div class="space-y-4">
-    <div class="flex justify-end">
+    <div class="flex items-center justify-end gap-2">
+      <RouterLink
+        :to="{ name: 'inventoryValuation' }"
+        class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+      >
+        <Scale :size="16" /> {{ t('inventory.valuation.link') }}
+      </RouterLink>
       <ExportMenu :download="(f) => downloadExport('/stock/on-hand/export', 'stock-on-hand', f)" />
     </div>
     <DataTable

@@ -48,6 +48,7 @@ public static class DependencyInjection
 
         // Public cross-module contracts (consumed by Purchasing/Sales atomic flows).
         services.AddScoped<IGeneralLedgerPoster, GeneralLedgerPoster>();
+        services.AddScoped<IGeneralLedgerBalances, GeneralLedgerBalances>();
         services.AddScoped<IPostingAccountResolver, PostingAccountResolverAdapter>();
         services.AddScoped<ISubledgerPosting, SubledgerPostingAdapter>();
 
