@@ -244,7 +244,7 @@ export default {
   },
   masterData: {
     title: 'Data master',
-    tabs: { products: 'Produk', customers: 'Pelanggan', suppliers: 'Pemasok', warehouses: 'Gudang' },
+    tabs: { products: 'Produk', customers: 'Pelanggan', suppliers: 'Pemasok', warehouses: 'Gudang', unitsOfMeasure: 'Satuan', categories: 'Kategori', taxCodes: 'Kode pajak' },
     save: 'Simpan',
     saving: 'Menyimpan…',
     cancel: 'Batal',
@@ -272,6 +272,7 @@ export default {
       stockTracked: 'Lacak stok',
       sold: 'Dijual',
       purchased: 'Dibeli',
+      rate: 'Tarif (%)',
     },
     import: {
       title: 'Impor pelanggan',
@@ -293,6 +294,9 @@ export default {
     customers: { title: 'Pelanggan', new: 'Pelanggan baru', edit: 'Ubah pelanggan' },
     suppliers: { title: 'Pemasok', new: 'Pemasok baru', edit: 'Ubah pemasok' },
     warehouses: { title: 'Gudang', new: 'Gudang baru', edit: 'Ubah gudang' },
+    unitsOfMeasure: { title: 'Satuan ukur', new: 'Satuan baru', edit: 'Ubah satuan' },
+    categories: { title: 'Kategori produk', new: 'Kategori baru', edit: 'Ubah kategori' },
+    taxCodes: { title: 'Kode pajak', new: 'Kode pajak baru', edit: 'Ubah kode pajak' },
   },
   inventory: {
     title: 'Stok tersedia',

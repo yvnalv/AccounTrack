@@ -20,10 +20,18 @@ public static class MasterDataEndpoints
         var uoms = app.MapGroup("/api/v1/units-of-measure").WithTags("Units of Measure").RequireAuthorization();
         uoms.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetUomsQuery(), ct))).RequireAuthorization(View);
         uoms.MapPost("/", (CreateUomCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/units-of-measure")).RequireAuthorization(Manage);
+        uoms.MapPut("/{id:guid}", (Guid id, NameBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpdateUomCommand(id, b.Name), ct))).RequireAuthorization(Manage);
+        uoms.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new SetUomActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
 
         var cats = app.MapGroup("/api/v1/product-categories").WithTags("Product Categories").RequireAuthorization();
         cats.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetCategoriesQuery(), ct))).RequireAuthorization(View);
         cats.MapPost("/", (CreateCategoryCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/product-categories")).RequireAuthorization(Manage);
+        cats.MapPut("/{id:guid}", (Guid id, NameBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpdateCategoryCommand(id, b.Name), ct))).RequireAuthorization(Manage);
+        cats.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new SetCategoryActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
 
         var products = app.MapGroup("/api/v1/products").WithTags("Products").RequireAuthorization();
         products.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetProductsQuery(), ct))).RequireAuthorization(View);
@@ -113,12 +121,18 @@ public static class MasterDataEndpoints
         var taxCodes = app.MapGroup("/api/v1/tax-codes").WithTags("Tax Codes").RequireAuthorization();
         taxCodes.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetTaxCodesQuery(), ct))).RequireAuthorization(View);
         taxCodes.MapPost("/", (CreateTaxCodeCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/tax-codes")).RequireAuthorization(Manage);
+        taxCodes.MapPut("/{id:guid}", (Guid id, UpdateTaxCodeBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpdateTaxCodeCommand(id, b.Name, b.Rate), ct))).RequireAuthorization(Manage);
+        taxCodes.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new SetTaxCodeActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Manage);
 
         return app;
     }
 
     // Request bodies for edits — the id comes from the route, the rest from the body.
     public sealed record SetActiveBody(bool IsActive);
+    public sealed record NameBody(string Name);
+    public sealed record UpdateTaxCodeBody(string Name, decimal Rate);
     public sealed record UpdateCustomerBody(string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit);
     public sealed record UpdateSupplierBody(string Name, string? TaxId, int PaymentTermDays);
     public sealed record UpdateWarehouseBody(string Name, string? Address);

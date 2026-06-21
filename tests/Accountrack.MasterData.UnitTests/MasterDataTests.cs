@@ -327,3 +327,74 @@ public class ProductImportTests
         result.Value.Rows[0].Errors.Should().Contain(e => e.Contains("BaseUom"));
     }
 }
+
+public class MasterDataEditCompletionTests
+{
+    private readonly IMasterDataUnitOfWork _uow = Substitute.For<IMasterDataUnitOfWork>();
+
+    [Fact]
+    public void New_uom_and_category_are_active_and_editable()
+    {
+        var uom = UnitOfMeasure.Create("kg", "Kilogram");
+        uom.IsActive.Should().BeTrue();
+        uom.Update("Kilograms");
+        uom.Name.Should().Be("Kilograms");
+        uom.Deactivate();
+        uom.IsActive.Should().BeFalse();
+        uom.Activate();
+        uom.IsActive.Should().BeTrue();
+
+        var cat = ProductCategory.Create("raw", "Raw materials");
+        cat.IsActive.Should().BeTrue();
+        cat.Update("Raw mats");
+        cat.Name.Should().Be("Raw mats");
+    }
+
+    [Fact]
+    public void TaxCode_update_changes_name_and_rate_but_validates_fraction()
+    {
+        var tax = TaxCode.Create("PPN11", "PPN 11%", 0.11m);
+        tax.Update("PPN 12%", 0.12m);
+        tax.Name.Should().Be("PPN 12%");
+        tax.Rate.Should().Be(0.12m);
+        FluentActions.Invoking(() => tax.Update("Bad", 2m)).Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public async Task UpdateUom_renames_existing_unit()
+    {
+        var repo = Substitute.For<ICodedRepository<UnitOfMeasure>>();
+        var uom = UnitOfMeasure.Create("PCS", "Piece");
+        repo.GetByIdAsync(uom.Id, Arg.Any<CancellationToken>()).Returns(uom);
+
+        var result = await new UpdateUomHandler(repo, _uow).Handle(new UpdateUomCommand(uom.Id, "Pieces"), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        uom.Name.Should().Be("Pieces");
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SetTaxCodeActive_deactivates_existing_code()
+    {
+        var repo = Substitute.For<ICodedRepository<TaxCode>>();
+        var tax = TaxCode.Create("PPN11", "PPN 11%", 0.11m);
+        repo.GetByIdAsync(tax.Id, Arg.Any<CancellationToken>()).Returns(tax);
+
+        var result = await new SetTaxCodeActiveHandler(repo, _uow).Handle(new SetTaxCodeActiveCommand(tax.Id, false), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        tax.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateCategory_returns_not_found_for_missing_id()
+    {
+        var repo = Substitute.For<ICodedRepository<ProductCategory>>();
+        repo.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((ProductCategory?)null);
+
+        var result = await new UpdateCategoryHandler(repo, _uow).Handle(new UpdateCategoryCommand(Guid.NewGuid(), "X"), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+    }
+}

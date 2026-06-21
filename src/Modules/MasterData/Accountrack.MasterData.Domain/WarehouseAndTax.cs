@@ -68,5 +68,19 @@ public sealed class TaxCode : TenantOwnedEntity, IAggregateRoot, IHasCode
         return new TaxCode(code.Trim().ToUpperInvariant(), name.Trim(), rate);
     }
 
+    /// <summary>Edits the mutable fields. Code (the natural key) is immutable after creation.</summary>
+    public void Update(string name, decimal rate)
+    {
+        if (rate is < 0 or > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(rate), "Rate must be a fraction between 0 and 1.");
+        }
+
+        Name = name.Trim();
+        Rate = rate;
+    }
+
+    public void Activate() => IsActive = true;
+
     public void Deactivate() => IsActive = false;
 }

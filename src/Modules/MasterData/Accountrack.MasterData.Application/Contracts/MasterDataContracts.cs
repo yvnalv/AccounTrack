@@ -1,7 +1,7 @@
 namespace Accountrack.MasterData.Application.Contracts;
 
-public sealed record UnitOfMeasureDto(Guid Id, string Code, string Name);
-public sealed record ProductCategoryDto(Guid Id, string Code, string Name);
+public sealed record UnitOfMeasureDto(Guid Id, string Code, string Name, bool IsActive);
+public sealed record ProductCategoryDto(Guid Id, string Code, string Name, bool IsActive);
 public sealed record ProductDto(
     Guid Id, string Code, string Name, Guid BaseUomId, Guid? CategoryId,
     bool IsStockTracked, bool IsSold, bool IsPurchased, bool IsActive);

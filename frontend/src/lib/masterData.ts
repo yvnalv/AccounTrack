@@ -10,7 +10,10 @@ import type {
   ImportPreview,
   NamedRef,
   Product,
+  ProductCategory,
   Supplier,
+  TaxCode,
+  UnitOfMeasure,
   Warehouse,
 } from '@/types/masterdata'
 
@@ -19,13 +22,17 @@ export const masterData = {
   suppliers: () => unwrap<Supplier[]>(http.get('/suppliers')),
   warehouses: () => unwrap<Warehouse[]>(http.get('/warehouses')),
   products: () => unwrap<Product[]>(http.get('/products')),
-  unitsOfMeasure: () => unwrap<NamedRef[]>(http.get('/units-of-measure')),
-  productCategories: () => unwrap<NamedRef[]>(http.get('/product-categories')),
+  unitsOfMeasure: () => unwrap<UnitOfMeasure[]>(http.get('/units-of-measure')),
+  productCategories: () => unwrap<ProductCategory[]>(http.get('/product-categories')),
+  taxCodes: () => unwrap<TaxCode[]>(http.get('/tax-codes')),
 
   createCustomer: (body: CreateCustomer) => unwrap<string>(http.post('/customers', body)),
   createSupplier: (body: CreateSupplier) => unwrap<string>(http.post('/suppliers', body)),
   createWarehouse: (body: CreateWarehouse) => unwrap<string>(http.post('/warehouses', body)),
   createProduct: (body: CreateProduct) => unwrap<string>(http.post('/products', body)),
+  createUom: (body: { code: string; name: string }) => unwrap<string>(http.post('/units-of-measure', body)),
+  createCategory: (body: { code: string; name: string }) => unwrap<string>(http.post('/product-categories', body)),
+  createTaxCode: (body: { code: string; name: string; rate: number }) => unwrap<string>(http.post('/tax-codes', body)),
 
   // Edits (code is the immutable natural key, so it isn't part of the update body).
   updateCustomer: (id: string, body: Omit<CreateCustomer, 'code'>) =>
@@ -36,6 +43,9 @@ export const masterData = {
     unwrap<string>(http.put(`/warehouses/${id}`, body)),
   updateProduct: (id: string, body: Omit<CreateProduct, 'code' | 'baseUomId'>) =>
     unwrap<string>(http.put(`/products/${id}`, body)),
+  updateUom: (id: string, body: { name: string }) => unwrap<string>(http.put(`/units-of-measure/${id}`, body)),
+  updateCategory: (id: string, body: { name: string }) => unwrap<string>(http.put(`/product-categories/${id}`, body)),
+  updateTaxCode: (id: string, body: { name: string; rate: number }) => unwrap<string>(http.put(`/tax-codes/${id}`, body)),
 
   setCustomerActive: (id: string, isActive: boolean) =>
     unwrap<string>(http.put(`/customers/${id}/active`, { isActive })),
@@ -45,6 +55,12 @@ export const masterData = {
     unwrap<string>(http.put(`/warehouses/${id}/active`, { isActive })),
   setProductActive: (id: string, isActive: boolean) =>
     unwrap<string>(http.put(`/products/${id}/active`, { isActive })),
+  setUomActive: (id: string, isActive: boolean) =>
+    unwrap<string>(http.put(`/units-of-measure/${id}/active`, { isActive })),
+  setCategoryActive: (id: string, isActive: boolean) =>
+    unwrap<string>(http.put(`/product-categories/${id}/active`, { isActive })),
+  setTaxCodeActive: (id: string, isActive: boolean) =>
+    unwrap<string>(http.put(`/tax-codes/${id}/active`, { isActive })),
 
   // CSV import/export (ADR-0031). One helper set per entity, same shape.
   customerImport: csvIo('customers'),

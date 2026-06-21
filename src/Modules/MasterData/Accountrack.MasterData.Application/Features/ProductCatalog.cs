@@ -47,7 +47,7 @@ public sealed class GetUomsHandler : IQueryHandler<GetUomsQuery, IReadOnlyList<U
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<UnitOfMeasureDto>>(
-            items.Select(u => new UnitOfMeasureDto(u.Id, u.Code, u.Name)).ToList());
+            items.Select(u => new UnitOfMeasureDto(u.Id, u.Code, u.Name, u.IsActive)).ToList());
     }
 }
 
@@ -91,7 +91,7 @@ public sealed class GetCategoriesHandler : IQueryHandler<GetCategoriesQuery, IRe
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<ProductCategoryDto>>(
-            items.Select(c => new ProductCategoryDto(c.Id, c.Code, c.Name)).ToList());
+            items.Select(c => new ProductCategoryDto(c.Id, c.Code, c.Name, c.IsActive)).ToList());
     }
 }
 

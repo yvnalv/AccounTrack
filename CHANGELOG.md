@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-06-21 04:06:52 UTC]
+
+CHG-0060 — Master-data CRUD completion — Units, Categories, Tax codes
+
+- **Edit + activate/deactivate** for the remaining master data, bringing it to parity with
+  customers/suppliers/warehouses/products (ADR-0029, soft-delete only — rows are never physically
+  removed; Code stays the immutable natural key):
+  - **Units of measure** and **Product categories** gained an `IsActive` flag (EF migration backfills
+    existing rows to active) plus `Update`/`Activate`/`Deactivate`; **Tax codes** gained `Update`
+    (name + rate, fraction-validated) and `Activate`.
+  - New `Update*`/`Set*Active` commands + handlers; `PUT /{id}` and `PUT /{id}/active` endpoints for
+    `units-of-measure`, `product-categories`, `tax-codes` (`MasterData.Manage`). List DTOs now expose
+    `IsActive`.
+- **Frontend:** three new Master-data tabs — **Units**, **Categories**, **Tax codes** — each a
+  list + create/edit modal + activate/deactivate (Tax codes edits the rate as a percentage). EN/ID.
+- **Tests:** +5 (domain edit/activate, tax-rate validation, Update/SetActive handlers, not-found).
+  Full suite **267** green; frontend builds.
+- **Verified (e2e):** created/renamed/deactivated a unit, edited a tax code's name + rate, and
+  created/renamed a category; seeded rows backfilled to active.
+- **Remaining (CRUD completion):** Chart-of-Accounts edit; distinct `*.Edit`/`*.Delete` permissions;
+  status-gated edit/cancel for draft documents.
+
+---
+
 ## [2026-06-21 02:34:18 UTC]
 
 CHG-0059 — Year-end close to Retained Earnings + Fiscal-periods screen

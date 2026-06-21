@@ -243,7 +243,7 @@ export default {
   },
   masterData: {
     title: 'Master data',
-    tabs: { products: 'Products', customers: 'Customers', suppliers: 'Suppliers', warehouses: 'Warehouses' },
+    tabs: { products: 'Products', customers: 'Customers', suppliers: 'Suppliers', warehouses: 'Warehouses', unitsOfMeasure: 'Units', categories: 'Categories', taxCodes: 'Tax codes' },
     save: 'Save',
     saving: 'Saving…',
     cancel: 'Cancel',
@@ -271,6 +271,7 @@ export default {
       stockTracked: 'Stock tracked',
       sold: 'Sold',
       purchased: 'Purchased',
+      rate: 'Rate (%)',
     },
     import: {
       title: 'Import customers',
@@ -292,6 +293,9 @@ export default {
     customers: { title: 'Customers', new: 'New customer', edit: 'Edit customer' },
     suppliers: { title: 'Suppliers', new: 'New supplier', edit: 'Edit supplier' },
     warehouses: { title: 'Warehouses', new: 'New warehouse', edit: 'Edit warehouse' },
+    unitsOfMeasure: { title: 'Units of measure', new: 'New unit', edit: 'Edit unit' },
+    categories: { title: 'Product categories', new: 'New category', edit: 'Edit category' },
+    taxCodes: { title: 'Tax codes', new: 'New tax code', edit: 'Edit tax code' },
   },
   inventory: {
     title: 'Stock on hand',

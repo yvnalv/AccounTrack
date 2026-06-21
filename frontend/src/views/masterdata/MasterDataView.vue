@@ -9,6 +9,9 @@ const tabs = [
   { to: { name: 'masterDataCustomers' }, label: t('masterData.tabs.customers') },
   { to: { name: 'masterDataSuppliers' }, label: t('masterData.tabs.suppliers') },
   { to: { name: 'masterDataWarehouses' }, label: t('masterData.tabs.warehouses') },
+  { to: { name: 'masterDataUnits' }, label: t('masterData.tabs.unitsOfMeasure') },
+  { to: { name: 'masterDataCategories' }, label: t('masterData.tabs.categories') },
+  { to: { name: 'masterDataTaxCodes' }, label: t('masterData.tabs.taxCodes') },
 ]
 </script>
 

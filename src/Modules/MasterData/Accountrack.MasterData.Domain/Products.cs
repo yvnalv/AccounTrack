@@ -11,13 +11,22 @@ public sealed class UnitOfMeasure : TenantOwnedEntity, IAggregateRoot, IHasCode
     {
         Code = code;
         Name = name;
+        IsActive = true;
     }
 
     public string Code { get; private set; } = default!;
     public string Name { get; private set; } = default!;
+    public bool IsActive { get; private set; }
 
     public static UnitOfMeasure Create(string code, string name) =>
         new(Guid.NewGuid(), code.Trim().ToUpperInvariant(), name.Trim());
+
+    /// <summary>Edits the name. Code (the natural key) is immutable after creation.</summary>
+    public void Update(string name) => Name = name.Trim();
+
+    public void Activate() => IsActive = true;
+
+    public void Deactivate() => IsActive = false;
 }
 
 /// <summary>A grouping for products.</summary>
@@ -29,13 +38,22 @@ public sealed class ProductCategory : TenantOwnedEntity, IAggregateRoot, IHasCod
     {
         Code = code;
         Name = name;
+        IsActive = true;
     }
 
     public string Code { get; private set; } = default!;
     public string Name { get; private set; } = default!;
+    public bool IsActive { get; private set; }
 
     public static ProductCategory Create(string code, string name) =>
         new(Guid.NewGuid(), code.Trim().ToUpperInvariant(), name.Trim());
+
+    /// <summary>Edits the name. Code (the natural key) is immutable after creation.</summary>
+    public void Update(string name) => Name = name.Trim();
+
+    public void Activate() => IsActive = true;
+
+    public void Deactivate() => IsActive = false;
 }
 
 /// <summary>

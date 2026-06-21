@@ -197,3 +197,142 @@ public sealed class SetProductActiveHandler : ICommandHandler<SetProductActiveCo
         return product.Id;
     }
 }
+
+// ---- Units of measure ----
+public sealed record UpdateUomCommand(Guid Id, string Name) : ICommand<Guid>;
+
+public sealed class UpdateUomValidator : AbstractValidator<UpdateUomCommand>
+{
+    public UpdateUomValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+    }
+}
+
+public sealed class UpdateUomHandler : ICommandHandler<UpdateUomCommand, Guid>
+{
+    private readonly ICodedRepository<UnitOfMeasure> _repo;
+    private readonly IMasterDataUnitOfWork _uow;
+    public UpdateUomHandler(ICodedRepository<UnitOfMeasure> repo, IMasterDataUnitOfWork uow) { _repo = repo; _uow = uow; }
+
+    public async Task<Result<Guid>> Handle(UpdateUomCommand request, CancellationToken ct)
+    {
+        var uom = await _repo.GetByIdAsync(request.Id, ct);
+        if (uom is null) return MasterDataErrors.NotFound("unit of measure");
+        uom.Update(request.Name);
+        await _uow.SaveChangesAsync(ct);
+        return uom.Id;
+    }
+}
+
+public sealed record SetUomActiveCommand(Guid Id, bool IsActive) : ICommand<Guid>;
+
+public sealed class SetUomActiveHandler : ICommandHandler<SetUomActiveCommand, Guid>
+{
+    private readonly ICodedRepository<UnitOfMeasure> _repo;
+    private readonly IMasterDataUnitOfWork _uow;
+    public SetUomActiveHandler(ICodedRepository<UnitOfMeasure> repo, IMasterDataUnitOfWork uow) { _repo = repo; _uow = uow; }
+
+    public async Task<Result<Guid>> Handle(SetUomActiveCommand request, CancellationToken ct)
+    {
+        var uom = await _repo.GetByIdAsync(request.Id, ct);
+        if (uom is null) return MasterDataErrors.NotFound("unit of measure");
+        if (request.IsActive) uom.Activate(); else uom.Deactivate();
+        await _uow.SaveChangesAsync(ct);
+        return uom.Id;
+    }
+}
+
+// ---- Product categories ----
+public sealed record UpdateCategoryCommand(Guid Id, string Name) : ICommand<Guid>;
+
+public sealed class UpdateCategoryValidator : AbstractValidator<UpdateCategoryCommand>
+{
+    public UpdateCategoryValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+    }
+}
+
+public sealed class UpdateCategoryHandler : ICommandHandler<UpdateCategoryCommand, Guid>
+{
+    private readonly ICodedRepository<ProductCategory> _repo;
+    private readonly IMasterDataUnitOfWork _uow;
+    public UpdateCategoryHandler(ICodedRepository<ProductCategory> repo, IMasterDataUnitOfWork uow) { _repo = repo; _uow = uow; }
+
+    public async Task<Result<Guid>> Handle(UpdateCategoryCommand request, CancellationToken ct)
+    {
+        var category = await _repo.GetByIdAsync(request.Id, ct);
+        if (category is null) return MasterDataErrors.NotFound("category");
+        category.Update(request.Name);
+        await _uow.SaveChangesAsync(ct);
+        return category.Id;
+    }
+}
+
+public sealed record SetCategoryActiveCommand(Guid Id, bool IsActive) : ICommand<Guid>;
+
+public sealed class SetCategoryActiveHandler : ICommandHandler<SetCategoryActiveCommand, Guid>
+{
+    private readonly ICodedRepository<ProductCategory> _repo;
+    private readonly IMasterDataUnitOfWork _uow;
+    public SetCategoryActiveHandler(ICodedRepository<ProductCategory> repo, IMasterDataUnitOfWork uow) { _repo = repo; _uow = uow; }
+
+    public async Task<Result<Guid>> Handle(SetCategoryActiveCommand request, CancellationToken ct)
+    {
+        var category = await _repo.GetByIdAsync(request.Id, ct);
+        if (category is null) return MasterDataErrors.NotFound("category");
+        if (request.IsActive) category.Activate(); else category.Deactivate();
+        await _uow.SaveChangesAsync(ct);
+        return category.Id;
+    }
+}
+
+// ---- Tax codes ----
+public sealed record UpdateTaxCodeCommand(Guid Id, string Name, decimal Rate) : ICommand<Guid>;
+
+public sealed class UpdateTaxCodeValidator : AbstractValidator<UpdateTaxCodeCommand>
+{
+    public UpdateTaxCodeValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Rate).InclusiveBetween(0m, 1m);
+    }
+}
+
+public sealed class UpdateTaxCodeHandler : ICommandHandler<UpdateTaxCodeCommand, Guid>
+{
+    private readonly ICodedRepository<TaxCode> _repo;
+    private readonly IMasterDataUnitOfWork _uow;
+    public UpdateTaxCodeHandler(ICodedRepository<TaxCode> repo, IMasterDataUnitOfWork uow) { _repo = repo; _uow = uow; }
+
+    public async Task<Result<Guid>> Handle(UpdateTaxCodeCommand request, CancellationToken ct)
+    {
+        var taxCode = await _repo.GetByIdAsync(request.Id, ct);
+        if (taxCode is null) return MasterDataErrors.NotFound("tax code");
+        taxCode.Update(request.Name, request.Rate);
+        await _uow.SaveChangesAsync(ct);
+        return taxCode.Id;
+    }
+}
+
+public sealed record SetTaxCodeActiveCommand(Guid Id, bool IsActive) : ICommand<Guid>;
+
+public sealed class SetTaxCodeActiveHandler : ICommandHandler<SetTaxCodeActiveCommand, Guid>
+{
+    private readonly ICodedRepository<TaxCode> _repo;
+    private readonly IMasterDataUnitOfWork _uow;
+    public SetTaxCodeActiveHandler(ICodedRepository<TaxCode> repo, IMasterDataUnitOfWork uow) { _repo = repo; _uow = uow; }
+
+    public async Task<Result<Guid>> Handle(SetTaxCodeActiveCommand request, CancellationToken ct)
+    {
+        var taxCode = await _repo.GetByIdAsync(request.Id, ct);
+        if (taxCode is null) return MasterDataErrors.NotFound("tax code");
+        if (request.IsActive) taxCode.Activate(); else taxCode.Deactivate();
+        await _uow.SaveChangesAsync(ct);
+        return taxCode.Id;
+    }
+}

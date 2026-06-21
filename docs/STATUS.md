@@ -8,11 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0059**)
-- **Build:** green — backend `net8.0` (262 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Year-end close to Retained Earnings** + a **Fiscal-periods management screen** (create
-  year, close/reopen periods, close year) (CHG-0059). General Ledger report (CHG-0058); Inventory
-  slice 2 GL posting + opname (CHG-0057); Cash Flow Statement (CHG-0056).
+- **As of:** 2026-06-21 (last change **CHG-0060**)
+- **Build:** green — backend `net8.0` (267 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Master-data CRUD completion** — edit + activate/deactivate for Units / Categories / Tax
+  codes, with new Master-data tabs (CHG-0060). Year-end close + Fiscal-periods screen (CHG-0059);
+  General Ledger report (CHG-0058); Inventory slice 2 (CHG-0057); Cash Flow (CHG-0056).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -79,8 +79,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   subledger. Remaining: crediting/debiting a **fully-settled** invoice (refund/credit), and a returns
   list/landing screen (today returns are driven from the order detail).
 - **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
-  suppliers/warehouses/products (CHG-0045). Remaining: UoM/categories/tax-codes/CoA edit; distinct
-  `*.Edit`/`*.Delete` permissions; status-gated edit/cancel for draft documents. (BR-X-7/8.)
+  suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**. Remaining:
+  CoA edit; distinct `*.Edit`/`*.Delete` permissions; status-gated edit/cancel for draft documents.
+  (BR-X-7/8.)
 - **Expenses module (ADR-0030):** 🟡 done (CHG-0048) — vouchers paid from cash/bank, category→GL via
   posting rules, atomic Dr Expense [+ VAT Input] / Cr Cash-Bank. Remaining: on-account (Cr AP),
   approvals, category edit/deactivate. (BR-EXP-*.)

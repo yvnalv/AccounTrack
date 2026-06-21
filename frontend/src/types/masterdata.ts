@@ -31,6 +31,19 @@ export interface Warehouse extends NamedRef {
   isActive: boolean
 }
 
+export interface UnitOfMeasure extends NamedRef {
+  isActive: boolean
+}
+
+export interface ProductCategory extends NamedRef {
+  isActive: boolean
+}
+
+export interface TaxCode extends NamedRef {
+  rate: number
+  isActive: boolean
+}
+
 export interface CreateProduct {
   code: string
   name: string
