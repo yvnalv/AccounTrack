@@ -1,5 +1,28 @@
 # Accountrack Changelog
 
+## [2026-06-21 06:30:44 UTC]
+
+CHG-0063 — Insight-rich dashboard + table pagination
+
+- **Dashboard rebuilt for decision-making.** The summary endpoint now returns, alongside cash / AR /
+  AP / month P&L: **inventory value**, **prev-month** revenue & expense (for MoM deltas), **overdue
+  counts**, a **6-month revenue / expense / profit trend**, **AR & AP aging buckets**
+  (current / 1–30 / 31–60 / 61–90 / 90+), **expense composition by account** for the month, and the
+  **top 5 debtors / creditors by name** (party names resolved via `IMasterDataLookup`).
+- **Frontend dashboard** (ECharts, already bundled): six insight tiles (with a revenue MoM delta),
+  a **combo bar+line** revenue/expense/profit trend, an **expense-breakdown donut** (color-coded
+  categorical palette), **AR & AP aging** bar charts (green→red severity colors), and **top
+  receivables/payables** mini-bar lists. Theme- and dark-mode-aware; money tooltips, compact axes.
+- **Shared `DataTable` now paginates** (client-side, 12/page by default, prev/next + "showing X–Y of
+  N"), so every list screen (master data, sales, purchasing, inventory, expenses, approvals) paginates
+  automatically. Snaps to page 1 on filter/reload.
+- **Tests:** dashboard handler test extended to assert the new insights (trend, aging, inventory
+  value, top parties, expense composition). Full suite **275** green; frontend builds.
+- **Verified (e2e):** the seeded company returns a populated trend, aging, named expense categories,
+  and named top debtors/creditors.
+
+---
+
 ## [2026-06-21 05:42:09 UTC]
 
 CHG-0062 — Inventory valuation report (reconciles to the GL)

@@ -25,6 +25,26 @@ export interface AuthResponse {
   companyIds: string[]
 }
 
+export interface DashboardMonthlyPoint {
+  month: string
+  revenue: number
+  expense: number
+  profit: number
+}
+
+export interface DashboardAging {
+  current: number
+  days1To30: number
+  days31To60: number
+  days61To90: number
+  days90Plus: number
+}
+
+export interface DashboardNamedAmount {
+  name: string
+  amount: number
+}
+
 export interface DashboardSummary {
   currency: string
   asOfDate: string
@@ -36,4 +56,15 @@ export interface DashboardSummary {
   revenueThisMonth: number
   expenseThisMonth: number
   netProfitThisMonth: number
+  revenuePrevMonth: number
+  expensePrevMonth: number
+  inventoryValue: number
+  overdueReceivableCount: number
+  overduePayableCount: number
+  monthlyTrend: DashboardMonthlyPoint[]
+  arAging: DashboardAging
+  apAging: DashboardAging
+  expenseByCategory: DashboardNamedAmount[]
+  topReceivables: DashboardNamedAmount[]
+  topPayables: DashboardNamedAmount[]
 }

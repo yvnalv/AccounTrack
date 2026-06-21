@@ -41,6 +41,13 @@ public sealed record AgingReportDto(
     decimal Current, decimal Days1To30, decimal Days31To60, decimal Days61To90, decimal Days90Plus, decimal Total);
 
 /// <summary>Finance KPIs for the home dashboard (derived from the GL + AR/AP subledgers).</summary>
+public sealed record DashboardMonthlyPointDto(string Month, decimal Revenue, decimal Expense, decimal Profit);
+
+public sealed record DashboardAgingDto(
+    decimal Current, decimal Days1To30, decimal Days31To60, decimal Days61To90, decimal Days90Plus);
+
+public sealed record DashboardNamedAmountDto(string Name, decimal Amount);
+
 public sealed record DashboardSummaryDto(
     string Currency,
     DateOnly AsOfDate,
@@ -51,4 +58,15 @@ public sealed record DashboardSummaryDto(
     decimal OverduePayable,
     decimal RevenueThisMonth,
     decimal ExpenseThisMonth,
-    decimal NetProfitThisMonth);
+    decimal NetProfitThisMonth,
+    decimal RevenuePrevMonth,
+    decimal ExpensePrevMonth,
+    decimal InventoryValue,
+    int OverdueReceivableCount,
+    int OverduePayableCount,
+    IReadOnlyList<DashboardMonthlyPointDto> MonthlyTrend,
+    DashboardAgingDto ArAging,
+    DashboardAgingDto ApAging,
+    IReadOnlyList<DashboardNamedAmountDto> ExpenseByCategory,
+    IReadOnlyList<DashboardNamedAmountDto> TopReceivables,
+    IReadOnlyList<DashboardNamedAmountDto> TopPayables);
