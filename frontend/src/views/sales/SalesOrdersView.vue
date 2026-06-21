@@ -6,7 +6,7 @@ import { Plus, Wallet } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData, nameMap } from '@/lib/masterData'
 import { downloadExport } from '@/lib/api'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { SalesOrderSummary } from '@/types/sales'
 import AppButton from '@/components/ui/AppButton.vue'
 import DataTable from '@/components/ui/DataTable.vue'
@@ -41,7 +41,7 @@ const insights = computed<Insight[]>(() => {
   const delivered = list.filter((o) => o.status === 'Delivered').length
   return [
     { label: t('common.insights.orders'), value: String(list.length) },
-    { label: t('common.insights.value'), value: formatMoney(value), tone: 'accent' },
+    { label: t('common.insights.value'), value: formatMoneyShort(value), tone: 'accent' },
     { label: t('common.insights.drafts'), value: String(drafts) },
     { label: t('common.insights.delivered'), value: String(delivered), tone: 'positive' },
   ]

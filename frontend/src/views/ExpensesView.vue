@@ -5,7 +5,7 @@ import { Plus, Trash2 } from 'lucide-vue-next'
 import { expensesApi } from '@/lib/expenses'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
 import { downloadExport } from '@/lib/api'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { ExpenseCategory, ExpenseVoucherSummary } from '@/types/expenses'
 import type { AccountRef } from '@/types/accounting'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -27,7 +27,7 @@ const insights = computed<Insight[]>(() => {
   const total = rows.value.reduce((s, v) => s + v.grandTotal, 0)
   return [
     { label: t('common.insights.vouchers'), value: String(rows.value.length) },
-    { label: t('common.insights.value'), value: formatMoney(total), tone: 'accent' },
+    { label: t('common.insights.value'), value: formatMoneyShort(total), tone: 'accent' },
   ]
 })
 const categories = ref<ExpenseCategory[]>([])

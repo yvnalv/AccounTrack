@@ -17,3 +17,21 @@ export function formatMoney(value: number, currency = 'IDR', fractionDigits = 0)
 export function formatPercent(value: number, fractionDigits = 1): string {
   return `${idID(fractionDigits, fractionDigits).format(value)}%`
 }
+
+/**
+ * Compact money for KPI tiles where space is tight (e.g. "IDR 5,9B", "IDR 28M").
+ * Uses K / M / B / T suffixes; below 1,000 it falls back to the full number.
+ * Negatives render in parentheses (accounting convention).
+ */
+export function formatMoneyShort(value: number, currency = 'IDR'): string {
+  const abs = Math.abs(value)
+  const mantissa = (n: number) => idID(0, 1).format(n)
+  let body: string
+  if (abs >= 1e12) body = `${mantissa(abs / 1e12)}T`
+  else if (abs >= 1e9) body = `${mantissa(abs / 1e9)}B`
+  else if (abs >= 1e6) body = `${mantissa(abs / 1e6)}M`
+  else if (abs >= 1e3) body = `${mantissa(abs / 1e3)}K`
+  else body = idID(0, 0).format(abs)
+  const full = `${currency} ${body}`
+  return value < 0 ? `(${full})` : full
+}

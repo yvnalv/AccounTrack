@@ -8,7 +8,7 @@ import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { http, unwrap } from '@/lib/api'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { DashboardAging, DashboardSummary } from '@/types/api'
 import { useThemeStore } from '@/stores/theme'
 import AppCard from '@/components/ui/AppCard.vue'
@@ -191,12 +191,12 @@ function barWidth(amount: number, list: { amount: number }[]): string {
     <template v-else-if="summary">
       <!-- Insight tiles -->
       <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <StatTile :label="t('dashboard.cashAndBank')" :value="formatMoney(summary.cashAndBank, currency)" />
-        <StatTile :label="t('dashboard.accountsReceivable')" :value="formatMoney(summary.accountsReceivable, currency)" :hint="overdueArHint" hint-tone="negative" />
-        <StatTile :label="t('dashboard.accountsPayable')" :value="formatMoney(summary.accountsPayable, currency)" :hint="overdueApHint" hint-tone="negative" />
-        <StatTile :label="t('dashboard.inventoryValue')" :value="formatMoney(summary.inventoryValue, currency)" />
-        <StatTile :label="t('dashboard.revenue')" :value="formatMoney(summary.revenueThisMonth, currency)" :delta="revenueDelta" :hint="t('dashboard.vsLastMonth')" />
-        <StatTile :label="t('dashboard.netProfitMonth')" :value="formatMoney(summary.netProfitThisMonth, currency)" :hint-tone="summary.netProfitThisMonth >= 0 ? 'positive' : 'negative'" />
+        <StatTile :label="t('dashboard.cashAndBank')" :value="formatMoneyShort(summary.cashAndBank, currency)" />
+        <StatTile :label="t('dashboard.accountsReceivable')" :value="formatMoneyShort(summary.accountsReceivable, currency)" :hint="overdueArHint" hint-tone="negative" />
+        <StatTile :label="t('dashboard.accountsPayable')" :value="formatMoneyShort(summary.accountsPayable, currency)" :hint="overdueApHint" hint-tone="negative" />
+        <StatTile :label="t('dashboard.inventoryValue')" :value="formatMoneyShort(summary.inventoryValue, currency)" />
+        <StatTile :label="t('dashboard.revenue')" :value="formatMoneyShort(summary.revenueThisMonth, currency)" :delta="revenueDelta" :hint="t('dashboard.vsLastMonth')" />
+        <StatTile :label="t('dashboard.netProfitMonth')" :value="formatMoneyShort(summary.netProfitThisMonth, currency)" :hint-tone="summary.netProfitThisMonth >= 0 ? 'positive' : 'negative'" />
       </div>
 
       <!-- Trend + expense breakdown -->
@@ -228,7 +228,7 @@ function barWidth(amount: number, list: { amount: number }[]): string {
             <li v-for="p in summary.topReceivables" :key="p.name">
               <div class="flex items-center justify-between text-sm">
                 <span class="truncate text-text">{{ p.name }}</span>
-                <span class="tnum text-text-muted">{{ formatMoney(p.amount, currency) }}</span>
+                <span class="tnum text-text-muted">{{ formatMoneyShort(p.amount, currency) }}</span>
               </div>
               <div class="mt-1 h-1.5 w-full rounded-full bg-surface-2">
                 <div class="h-1.5 rounded-full bg-accent" :style="{ width: barWidth(p.amount, summary.topReceivables) }" />
@@ -242,7 +242,7 @@ function barWidth(amount: number, list: { amount: number }[]): string {
             <li v-for="p in summary.topPayables" :key="p.name">
               <div class="flex items-center justify-between text-sm">
                 <span class="truncate text-text">{{ p.name }}</span>
-                <span class="tnum text-text-muted">{{ formatMoney(p.amount, currency) }}</span>
+                <span class="tnum text-text-muted">{{ formatMoneyShort(p.amount, currency) }}</span>
               </div>
               <div class="mt-1 h-1.5 w-full rounded-full bg-surface-2">
                 <div class="h-1.5 rounded-full" :style="{ width: barWidth(p.amount, summary.topPayables), background: '#EF4444' }" />

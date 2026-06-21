@@ -6,7 +6,7 @@ import { Scale } from 'lucide-vue-next'
 import { inventoryApi } from '@/lib/inventory'
 import { masterData, nameMap } from '@/lib/masterData'
 import { downloadExport } from '@/lib/api'
-import { formatMoney, formatNumber } from '@/lib/format'
+import { formatMoney, formatMoneyShort, formatNumber } from '@/lib/format'
 import type { StockOnHand } from '@/types/inventory'
 import DataTable from '@/components/ui/DataTable.vue'
 import ExportMenu from '@/components/ui/ExportMenu.vue'
@@ -47,7 +47,7 @@ const insights = computed<Insight[]>(() => {
   const totalValue = stock.value.reduce((sum, s) => sum + s.value, 0)
   return [
     { label: t('common.insights.items'), value: String(inStock.length) },
-    { label: t('common.insights.value'), value: formatMoney(totalValue), tone: 'accent' },
+    { label: t('common.insights.value'), value: formatMoneyShort(totalValue), tone: 'accent' },
   ]
 })
 
