@@ -22,6 +22,14 @@ public static class ExpensesEndpoints
                 Created(s.Send(c, ct), "/api/v1/expense-categories"))
             .RequireAuthorization("Expenses.Manage").WithName("CreateExpenseCategory");
 
+        cats.MapPut("/{id:guid}", (Guid id, UpdateExpenseCategoryBody b, ISender s, CancellationToken ct) =>
+                SendResult(s.Send(new UpdateExpenseCategoryCommand(id, b.Name, b.PostingRuleKey), ct)))
+            .RequireAuthorization("Expenses.Manage").WithName("UpdateExpenseCategory");
+
+        cats.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
+                SendResult(s.Send(new SetExpenseCategoryActiveCommand(id, b.IsActive), ct)))
+            .RequireAuthorization("Expenses.Manage").WithName("SetExpenseCategoryActive");
+
         var vouchers = app.MapGroup("/api/v1/expense-vouchers").WithTags("Expenses").RequireAuthorization();
 
         vouchers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetExpenseVouchersQuery(), ct)))
@@ -44,6 +52,11 @@ public static class ExpensesEndpoints
 
     private static async Task<IResult> Send<T>(Task<Result<T>> task) => (await task).ToHttpResult();
 
+    private static async Task<IResult> SendResult(Task<Result> task) => (await task).ToHttpResult();
+
     private static async Task<IResult> Created<T>(Task<Result<T>> task, string location) =>
         (await task).ToCreatedResult(location);
 }
+
+public sealed record UpdateExpenseCategoryBody(string Name, string PostingRuleKey);
+public sealed record SetActiveBody(bool IsActive);

@@ -6,6 +6,7 @@ using Accountrack.Expenses.Application.Contracts;
 using Accountrack.Expenses.Domain;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Company;
+using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.Modules.Contracts.Transactions;
 using Accountrack.SharedKernel.Results;
 using FluentValidation;
@@ -15,19 +16,25 @@ namespace Accountrack.Expenses.Application.Features;
 public sealed record ExpenseVoucherLineInput(Guid ExpenseCategoryId, string? Description, decimal Amount, decimal TaxRate);
 
 /// <summary>
-/// Records and posts an operating-expense voucher paid from a cash/bank account (ADR-0030). Atomically
-/// posts Dr Expense per category (accounts resolved by the posting-rule engine) + Dr VAT Input (where
-/// creditable) / Cr Cash-Bank, and records the voucher — all in one transaction (BR-EXP-3).
+/// Records and posts an operating-expense voucher (ADR-0030). Atomically posts Dr Expense per category
+/// (accounts resolved by the posting-rule engine) + Dr VAT Input (where creditable), with the credit
+/// going either to <b>Cash-Bank</b> (paid) or, when recorded <b>on account</b>, to <b>Accounts Payable</b>
+/// for a supplier (creating an AP open item) — all in one transaction (BR-EXP-3).
 /// </summary>
 public sealed record PostExpenseVoucherCommand(
-    DateOnly ExpenseDate, string? PayeeName, Guid CashAccountId, string? Reference, string? Notes,
+    DateOnly ExpenseDate, string? PayeeName, Guid? CashAccountId, Guid? SupplierId, DateOnly? DueDate,
+    string? Reference, string? Notes,
     IReadOnlyList<ExpenseVoucherLineInput> Lines) : ICommand<Guid>, IIdempotentCommand;
 
 public sealed class PostExpenseVoucherValidator : AbstractValidator<PostExpenseVoucherCommand>
 {
     public PostExpenseVoucherValidator()
     {
-        RuleFor(x => x.CashAccountId).NotEmpty();
+        RuleFor(x => x)
+            .Must(x => x.CashAccountId.HasValue ^ x.SupplierId.HasValue)
+            .WithMessage("Provide either a cash/bank account (paid) or a supplier (on account), not both.");
+        RuleFor(x => x.DueDate).NotNull().When(x => x.SupplierId.HasValue)
+            .WithMessage("An on-account voucher needs a due date.");
         RuleFor(x => x.Lines).NotEmpty().WithMessage("An expense voucher requires at least one line.");
         RuleForEach(x => x.Lines).ChildRules(l =>
         {
@@ -45,6 +52,8 @@ public sealed class PostExpenseVoucherHandler : ICommandHandler<PostExpenseVouch
     private readonly ICrossModuleUnitOfWork _uow;
     private readonly IGeneralLedgerPoster _ledger;
     private readonly IPostingAccountResolver _accounts;
+    private readonly ISubledgerPosting _subledger;
+    private readonly IMasterDataLookup _masterData;
     private readonly ICompanyDirectory _companies;
     private readonly ITenantContext _tenant;
 
@@ -54,6 +63,8 @@ public sealed class PostExpenseVoucherHandler : ICommandHandler<PostExpenseVouch
         ICrossModuleUnitOfWork uow,
         IGeneralLedgerPoster ledger,
         IPostingAccountResolver accounts,
+        ISubledgerPosting subledger,
+        IMasterDataLookup masterData,
         ICompanyDirectory companies,
         ITenantContext tenant)
     {
@@ -62,6 +73,8 @@ public sealed class PostExpenseVoucherHandler : ICommandHandler<PostExpenseVouch
         _uow = uow;
         _ledger = ledger;
         _accounts = accounts;
+        _subledger = subledger;
+        _masterData = masterData;
         _companies = companies;
         _tenant = tenant;
     }
@@ -84,10 +97,20 @@ public sealed class PostExpenseVoucherHandler : ICommandHandler<PostExpenseVouch
             _vouchers.AddSequence(sequence);
         }
 
+        var onAccount = request.SupplierId.HasValue;
+        if (onAccount && !await _masterData.SupplierExistsAsync(request.SupplierId!.Value, ct))
+        {
+            return Error.NotFound("EXPENSES.SUPPLIER_NOT_FOUND", "Supplier not found.");
+        }
+
         var number = sequence.Take(request.ExpenseDate);
-        var voucher = ExpenseVoucher.Create(
-            number, request.ExpenseDate, request.PayeeName, request.CashAccountId, company.FunctionalCurrency,
-            request.Reference, request.Notes);
+        var voucher = onAccount
+            ? ExpenseVoucher.CreateOnAccount(
+                number, request.ExpenseDate, request.PayeeName, request.SupplierId!.Value, request.DueDate!.Value,
+                company.FunctionalCurrency, request.Reference, request.Notes)
+            : ExpenseVoucher.CreatePaid(
+                number, request.ExpenseDate, request.PayeeName, request.CashAccountId!.Value,
+                company.FunctionalCurrency, request.Reference, request.Notes);
 
         // Resolve each line's expense account via the posting-rule engine and accumulate the debit
         // per account (so a multi-line voucher posts one Dr per distinct expense account).
@@ -126,7 +149,21 @@ public sealed class PostExpenseVoucherHandler : ICommandHandler<PostExpenseVouch
             lines.Add(new LedgerLine(vatInput.Value, voucher.TaxTotal, 0m, "VAT input (PPN Masukan)"));
         }
 
-        lines.Add(new LedgerLine(request.CashAccountId, 0m, voucher.GrandTotal, "Cash / bank"));
+        // Credit side: Cr Cash-Bank (paid) or Cr Accounts Payable for the supplier (on account).
+        if (onAccount)
+        {
+            var apControl = await _accounts.ResolveAsync("Expense", PostingKeys.ApControl, PostingSelector.None, ct);
+            if (apControl.IsFailure)
+            {
+                return apControl.Error;
+            }
+
+            lines.Add(new LedgerLine(apControl.Value, 0m, voucher.GrandTotal, "Accounts payable", request.SupplierId));
+        }
+        else
+        {
+            lines.Add(new LedgerLine(request.CashAccountId!.Value, 0m, voucher.GrandTotal, "Cash / bank"));
+        }
 
         var posting = new LedgerPostingRequest(
             request.ExpenseDate, LedgerSource.Expense, voucher.Id,
@@ -139,6 +176,20 @@ public sealed class PostExpenseVoucherHandler : ICommandHandler<PostExpenseVouch
         }
 
         voucher.SetJournal(journal.Value);
+
+        if (onAccount)
+        {
+            var openItem = await _subledger.OpenPayableAsync(
+                request.SupplierId!.Value, voucher.Id, number, request.ExpenseDate, request.DueDate!.Value,
+                voucher.GrandTotal, ct);
+            if (openItem.IsFailure)
+            {
+                return openItem.Error;
+            }
+
+            voucher.SetApOpenItem(openItem.Value);
+        }
+
         _vouchers.Add(voucher);
 
         return voucher.Id;
@@ -163,8 +214,8 @@ public sealed class GetExpenseVoucherHandler : IQueryHandler<GetExpenseVoucherQu
         }
 
         return new ExpenseVoucherDto(
-            v.Id, v.Number, v.ExpenseDate, v.PayeeName, v.CashAccountId, v.Currency,
-            v.SubTotal, v.TaxTotal, v.GrandTotal, v.JournalEntryId, v.Reference, v.Notes,
+            v.Id, v.Number, v.ExpenseDate, v.PayeeName, v.CashAccountId, v.SupplierId, v.DueDate, v.Currency,
+            v.SubTotal, v.TaxTotal, v.GrandTotal, v.JournalEntryId, v.ApOpenItemId, v.Reference, v.Notes,
             v.Lines.Select(l => new ExpenseVoucherLineDto(
                 l.ExpenseCategoryId, l.Description, l.Amount, l.TaxRate, l.LineTax, l.LineTotal)).ToList());
     }
@@ -181,7 +232,7 @@ public sealed class GetExpenseVouchersHandler : IQueryHandler<GetExpenseVouchers
     {
         var items = await _vouchers.ListAsync(ct);
         return Result.Success<IReadOnlyList<ExpenseVoucherSummaryDto>>(items
-            .Select(v => new ExpenseVoucherSummaryDto(v.Id, v.Number, v.ExpenseDate, v.PayeeName, v.GrandTotal, v.JournalEntryId))
+            .Select(v => new ExpenseVoucherSummaryDto(v.Id, v.Number, v.ExpenseDate, v.PayeeName, v.SupplierId, v.GrandTotal, v.JournalEntryId))
             .ToList());
     }
 }

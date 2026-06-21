@@ -1,5 +1,33 @@
 # Accountrack Changelog
 
+## [2026-06-21 11:05:22 UTC]
+
+CHG-0072 — Expenses: record on account (Cr AP) + category edit/deactivate
+
+- An expense voucher can now be recorded **on account** (unpaid) against a supplier instead of being
+  paid immediately from cash/bank (ADR-0030). The atomic posting branches on the credit side:
+  **paid** → Dr Expense (+ Dr VAT Input) / **Cr Cash-Bank**; **on account** → Dr Expense (+ Dr VAT
+  Input) / **Cr Accounts Payable**, and it **opens an AP subledger item** for the supplier (due date
+  tracked), reconciled to the AP control account like a purchase invoice. `POST /api/v1/expense-vouchers`
+  now takes either `cashAccountId` (paid) or `supplierId` + `dueDate` (on account) — exactly one,
+  enforced (`422` otherwise).
+- **Expense categories** are now manageable: **edit** (name + posting-rule key) and
+  **activate/deactivate** (ADR-0029; Code immutable). `PUT /api/v1/expense-categories/{id}` and
+  `/{id}/active` (`Expenses.Manage`).
+- **Frontend:** the New-expense modal gains a **Pay now / On account** toggle — on account swaps the
+  cash-account field for a supplier + due-date picker; the list flags on-account vouchers with an
+  **On account** badge. A new **Categories** manager (inline create / rename / activate-deactivate).
+  EN/ID strings.
+- **Tests:** +2 (on-account voucher credits AP & opens a payable with the supplier as subledger party;
+  unknown supplier rejected). Full suite **286** green; frontend builds.
+- **Verified (e2e):** an on-account voucher posted a balanced journal, set `apOpenItemId`, and left
+  `cashAccountId` null; a paid voucher still credits cash; supplying both cash account and supplier is
+  rejected (`422`); a category was renamed and deactivated.
+- **DB:** migration `ExpenseOnAccount` (nullable `CashAccountId`; new `SupplierId`, `DueDate`,
+  `ApOpenItemId`).
+
+---
+
 ## [2026-06-21 10:44:18 UTC]
 
 CHG-0071 — Chart-of-Accounts edit + activate/deactivate

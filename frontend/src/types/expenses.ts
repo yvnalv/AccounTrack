@@ -11,6 +11,7 @@ export interface ExpenseVoucherSummary {
   number: string
   expenseDate: string
   payeeName: string | null
+  supplierId: string | null
   grandTotal: number
   journalEntryId: string | null
 }
@@ -25,8 +26,16 @@ export interface ExpenseLineInput {
 export interface CreateExpenseVoucher {
   expenseDate: string
   payeeName: string | null
-  cashAccountId: string
+  cashAccountId: string | null
+  supplierId: string | null
+  dueDate: string | null
   reference: string | null
   notes: string | null
   lines: ExpenseLineInput[]
+}
+
+export interface SaveExpenseCategory {
+  code: string
+  name: string
+  postingRuleKey: string
 }

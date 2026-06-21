@@ -194,3 +194,7 @@ $RECYCLE.BIN/
 *.bak
 *.orig
 *.rej
+
+# Local e2e API logs
+api-out.log
+api-err.log

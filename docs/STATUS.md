@@ -8,11 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0071**)
-- **Build:** green — backend `net8.0` (284 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Chart-of-Accounts edit** + activate/deactivate, new Accounts tab (CHG-0071); edit draft
-  SO/PO (CHG-0070); list search + full-width content + gated VAT tab (CHG-0069); optional VAT (PKP)
-  flag (CHG-0068); collapsible/responsive sidebar (CHG-0067); insight-rich dashboard (CHG-0063/0064).
+- **As of:** 2026-06-21 (last change **CHG-0072**)
+- **Build:** green — backend `net8.0` (286 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Expenses on-account (Cr AP)** + category edit/deactivate (CHG-0072); Chart-of-Accounts
+  edit + activate/deactivate, new Accounts tab (CHG-0071); edit draft SO/PO (CHG-0070); list search +
+  full-width content + gated VAT tab (CHG-0069); optional VAT (PKP) flag (CHG-0068); collapsible/
+  responsive sidebar (CHG-0067); insight-rich dashboard (CHG-0063/0064).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -82,9 +83,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**; **draft
   SO/PO cancel (CHG-0061) + edit (CHG-0070); CoA edit + deactivate (CHG-0071)**. Remaining: distinct
   `*.Edit`/`*.Delete`/`*.Cancel` permissions. (BR-X-7/8.)
-- **Expenses module (ADR-0030):** 🟡 done (CHG-0048) — vouchers paid from cash/bank, category→GL via
-  posting rules, atomic Dr Expense [+ VAT Input] / Cr Cash-Bank. Remaining: on-account (Cr AP),
-  approvals, category edit/deactivate. (BR-EXP-*.)
+- **Expenses module (ADR-0030):** 🟡 done (CHG-0048/0072) — vouchers paid from cash/bank **or on
+  account (Cr AP, opens an AP subledger item)**; category→GL via posting rules; atomic Dr Expense
+  [+ VAT Input] / Cr Cash-Bank|AP; **category edit + activate/deactivate (CHG-0072)**. Remaining:
+  approvals. (BR-EXP-*.)
 - **Data Import/Export (ADR-0031):** 🟡 CSV **import** for all four master-data entities
   (CHG-0049/0050); **CSV + Excel export** across all list menus — master data, sales orders, purchase
   orders, inventory on-hand, expenses (CHG-0051, ClosedXML/MIT); **PDF** documents — Invoice +

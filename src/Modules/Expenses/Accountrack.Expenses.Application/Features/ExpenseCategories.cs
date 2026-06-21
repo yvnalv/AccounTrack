@@ -40,6 +40,68 @@ public sealed class CreateExpenseCategoryHandler : ICommandHandler<CreateExpense
     }
 }
 
+public sealed record UpdateExpenseCategoryCommand(Guid Id, string Name, string PostingRuleKey) : ICommand;
+
+public sealed class UpdateExpenseCategoryValidator : AbstractValidator<UpdateExpenseCategoryCommand>
+{
+    public UpdateExpenseCategoryValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.PostingRuleKey).NotEmpty().MaximumLength(64);
+    }
+}
+
+public sealed class UpdateExpenseCategoryHandler : ICommandHandler<UpdateExpenseCategoryCommand>
+{
+    private readonly IExpenseCategoryRepository _repo;
+    private readonly IExpensesUnitOfWork _uow;
+    public UpdateExpenseCategoryHandler(IExpenseCategoryRepository repo, IExpensesUnitOfWork uow) { _repo = repo; _uow = uow; }
+
+    public async Task<Result> Handle(UpdateExpenseCategoryCommand request, CancellationToken ct)
+    {
+        var category = await _repo.GetByIdAsync(request.Id, ct);
+        if (category is null)
+        {
+            return ExpenseErrors.CategoryNotFound;
+        }
+
+        category.Update(request.Name, request.PostingRuleKey);
+        await _uow.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+}
+
+public sealed record SetExpenseCategoryActiveCommand(Guid Id, bool IsActive) : ICommand;
+
+public sealed class SetExpenseCategoryActiveHandler : ICommandHandler<SetExpenseCategoryActiveCommand>
+{
+    private readonly IExpenseCategoryRepository _repo;
+    private readonly IExpensesUnitOfWork _uow;
+    public SetExpenseCategoryActiveHandler(IExpenseCategoryRepository repo, IExpensesUnitOfWork uow) { _repo = repo; _uow = uow; }
+
+    public async Task<Result> Handle(SetExpenseCategoryActiveCommand request, CancellationToken ct)
+    {
+        var category = await _repo.GetByIdAsync(request.Id, ct);
+        if (category is null)
+        {
+            return ExpenseErrors.CategoryNotFound;
+        }
+
+        if (request.IsActive)
+        {
+            category.Activate();
+        }
+        else
+        {
+            category.Deactivate();
+        }
+
+        await _uow.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+}
+
 public sealed record GetExpenseCategoriesQuery : IQuery<IReadOnlyList<ExpenseCategoryDto>>;
 
 public sealed class GetExpenseCategoriesHandler : IQueryHandler<GetExpenseCategoriesQuery, IReadOnlyList<ExpenseCategoryDto>>

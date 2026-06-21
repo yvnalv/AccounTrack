@@ -15,13 +15,15 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
     private ExpenseVoucher() { }
 
     private ExpenseVoucher(
-        string number, DateOnly expenseDate, string? payeeName, Guid cashAccountId, string currency,
-        string? reference, string? notes)
+        string number, DateOnly expenseDate, string? payeeName, Guid? cashAccountId, Guid? supplierId,
+        DateOnly? dueDate, string currency, string? reference, string? notes)
     {
         Number = number;
         ExpenseDate = expenseDate;
         PayeeName = payeeName;
         CashAccountId = cashAccountId;
+        SupplierId = supplierId;
+        DueDate = dueDate;
         Currency = currency;
         Reference = reference;
         Notes = notes;
@@ -33,8 +35,14 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
     /// <summary>Who was paid (free text — supplier or ad-hoc payee).</summary>
     public string? PayeeName { get; private set; }
 
-    /// <summary>The cash/bank GL account the expense is paid from.</summary>
-    public Guid CashAccountId { get; private set; }
+    /// <summary>The cash/bank GL account the expense is paid from (null for an on-account voucher).</summary>
+    public Guid? CashAccountId { get; private set; }
+
+    /// <summary>The supplier owed when the expense is recorded on account (Cr AP) rather than paid.</summary>
+    public Guid? SupplierId { get; private set; }
+
+    /// <summary>Due date for an on-account voucher.</summary>
+    public DateOnly? DueDate { get; private set; }
 
     public string Currency { get; private set; } = default!;
     public string? Reference { get; private set; }
@@ -47,13 +55,27 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
     /// <summary>The GL journal posted for this voucher.</summary>
     public Guid? JournalEntryId { get; private set; }
 
+    /// <summary>The AP open item created for an on-account voucher (null when paid from cash/bank).</summary>
+    public Guid? ApOpenItemId { get; private set; }
+
+    /// <summary>Whether this voucher is recorded on account (unpaid, Cr AP) rather than paid from cash/bank.</summary>
+    public bool IsOnAccount => SupplierId is not null;
+
     public IReadOnlyList<ExpenseVoucherLine> Lines => _lines;
 
-    public static ExpenseVoucher Create(
+    /// <summary>A voucher paid immediately from a cash/bank account.</summary>
+    public static ExpenseVoucher CreatePaid(
         string number, DateOnly expenseDate, string? payeeName, Guid cashAccountId, string currency,
         string? reference, string? notes) =>
-        new(number, expenseDate, payeeName?.Trim(), cashAccountId, currency.Trim().ToUpperInvariant(),
-            reference?.Trim(), notes?.Trim());
+        new(number, expenseDate, payeeName?.Trim(), cashAccountId, null, null,
+            currency.Trim().ToUpperInvariant(), reference?.Trim(), notes?.Trim());
+
+    /// <summary>A voucher recorded on account (unpaid): Cr Accounts Payable for the supplier.</summary>
+    public static ExpenseVoucher CreateOnAccount(
+        string number, DateOnly expenseDate, string? payeeName, Guid supplierId, DateOnly dueDate,
+        string currency, string? reference, string? notes) =>
+        new(number, expenseDate, payeeName?.Trim(), null, supplierId, dueDate,
+            currency.Trim().ToUpperInvariant(), reference?.Trim(), notes?.Trim());
 
     public void AddLine(Guid expenseCategoryId, string expenseRuleKey, string? description, decimal amount, decimal taxRate)
     {
@@ -72,6 +94,8 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
     }
 
     public void SetJournal(Guid journalEntryId) => JournalEntryId = journalEntryId;
+
+    public void SetApOpenItem(Guid apOpenItemId) => ApOpenItemId = apOpenItemId;
 
     private void Recalculate()
     {

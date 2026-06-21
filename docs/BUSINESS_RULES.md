@@ -116,7 +116,9 @@ configurable per company with the stated default.
 - **BR-EXP-2** Each expense category resolves to an expense GL account via the posting-rule engine
   (ADR-0024); no expense account is hardcoded.
 - **BR-EXP-3** Posting an expense is automatic and atomic: **Dr Expense (+ Dr VAT Input where
-  creditable) / Cr Cash-Bank** when paid, or **Cr AP** when unpaid (creating an AP open item).
+  creditable) / Cr Cash-Bank** when paid, or **Cr AP** when unpaid (on account — creating an AP open
+  item reconciled to the AP control account). A voucher specifies **exactly one** of a cash/bank
+  account (paid) or a supplier + due date (on account); on account is rejected for an unknown supplier.
 - **BR-EXP-4** A posted expense voucher is immutable; correct it by reversal (cf. BR-ACC-3, BR-X-8).
 - **BR-EXP-5 (config)** An expense over a configured threshold requires approval.
 - **BR-EXP-6** Payroll proper (employees, statutory deductions, PPh 21) is out of scope here

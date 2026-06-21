@@ -4,6 +4,7 @@ using Accountrack.Expenses.Application.Features;
 using Accountrack.Expenses.Domain;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Company;
+using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.Modules.Contracts.Transactions;
 using Accountrack.SharedKernel.Results;
 using FluentAssertions;
@@ -28,13 +29,15 @@ public class ExpenseVoucherTests
     private readonly IExpenseVoucherRepository _vouchers = Substitute.For<IExpenseVoucherRepository>();
     private readonly IGeneralLedgerPoster _ledger = Substitute.For<IGeneralLedgerPoster>();
     private readonly IPostingAccountResolver _accounts = Substitute.For<IPostingAccountResolver>();
+    private readonly ISubledgerPosting _subledger = Substitute.For<ISubledgerPosting>();
+    private readonly IMasterDataLookup _masterData = Substitute.For<IMasterDataLookup>();
     private readonly ICompanyDirectory _companies = Substitute.For<ICompanyDirectory>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
 
     private LedgerPostingRequest? _posted;
 
     private PostExpenseVoucherHandler Handler() =>
-        new(_categories, _vouchers, new DirectUnitOfWork(), _ledger, _accounts, _companies, _tenant);
+        new(_categories, _vouchers, new DirectUnitOfWork(), _ledger, _accounts, _subledger, _masterData, _companies, _tenant);
 
     private (Guid electricity, Guid transport, Guid elecAccount, Guid transAccount) Setup()
     {
@@ -66,13 +69,14 @@ public class ExpenseVoucherTests
     public void Voucher_totals_include_creditable_vat()
     {
         var elec = ExpenseCategory.Create("E", "E", "EXPENSE.E");
-        var v = ExpenseVoucher.Create("EXP/1", Date, "PLN", CashAccount, "IDR", null, null);
+        var v = ExpenseVoucher.CreatePaid("EXP/1", Date, "PLN", CashAccount, "IDR", null, null);
         v.AddLine(elec.Id, elec.PostingRuleKey, "electricity", 500_000m, 0m);
         v.AddLine(elec.Id, elec.PostingRuleKey, "transport", 100_000m, 0.11m);
 
         v.SubTotal.Should().Be(600_000m);
         v.TaxTotal.Should().Be(11_000m);
         v.GrandTotal.Should().Be(611_000m);
+        v.IsOnAccount.Should().BeFalse();
     }
 
     [Fact]
@@ -84,7 +88,7 @@ public class ExpenseVoucherTests
         _vouchers.When(r => r.Add(Arg.Any<ExpenseVoucher>())).Do(ci => captured = ci.Arg<ExpenseVoucher>());
 
         var result = await Handler().Handle(
-            new PostExpenseVoucherCommand(Date, "PLN & Grab", CashAccount, "JUN", null, new[]
+            new PostExpenseVoucherCommand(Date, "PLN & Grab", CashAccount, null, null, "JUN", null, new[]
             {
                 new ExpenseVoucherLineInput(elec, "electricity", 500_000m, 0m),
                 new ExpenseVoucherLineInput(trans, "transport", 100_000m, 0.11m),
@@ -104,12 +108,70 @@ public class ExpenseVoucherTests
     }
 
     [Fact]
+    public async Task On_account_voucher_credits_ap_and_opens_a_payable()
+    {
+        var (elec, _, elecAccount, _) = Setup();
+        var supplierId = Guid.NewGuid();
+        var apControl = Guid.NewGuid();
+        var dueDate = Date.AddDays(30);
+        _masterData.SupplierExistsAsync(supplierId, Arg.Any<CancellationToken>()).Returns(true);
+        _accounts.ResolveAsync("Expense", PostingKeys.ApControl, Arg.Any<PostingSelector>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(apControl));
+        _subledger.OpenPayableAsync(
+                supplierId, Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<DateOnly>(), Arg.Any<DateOnly>(),
+                Arg.Any<decimal>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(Guid.NewGuid()));
+
+        ExpenseVoucher? captured = null;
+        _vouchers.When(r => r.Add(Arg.Any<ExpenseVoucher>())).Do(ci => captured = ci.Arg<ExpenseVoucher>());
+
+        var result = await Handler().Handle(
+            new PostExpenseVoucherCommand(Date, "Office Rent", null, supplierId, dueDate, "RENT", null, new[]
+            {
+                new ExpenseVoucherLineInput(elec, "rent", 1_000_000m, 0m),
+            }),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        captured!.IsOnAccount.Should().BeTrue();
+        captured.ApOpenItemId.Should().NotBeNull();
+
+        // Dr Expense 1,000,000 / Cr AP 1,000,000 — credit carries the supplier as subledger party.
+        _posted!.Lines.Should().Contain(l => l.AccountId == elecAccount && l.Debit == 1_000_000m);
+        _posted.Lines.Should().Contain(l => l.AccountId == apControl && l.Credit == 1_000_000m && l.SubledgerPartyId == supplierId);
+        _posted.Lines.Should().NotContain(l => l.AccountId == CashAccount);
+
+        await _subledger.Received(1).OpenPayableAsync(
+            supplierId, Arg.Any<Guid>(), Arg.Any<string>(), Date, dueDate, 1_000_000m, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task On_account_voucher_with_unknown_supplier_is_rejected()
+    {
+        Setup();
+        var supplierId = Guid.NewGuid();
+        _masterData.SupplierExistsAsync(supplierId, Arg.Any<CancellationToken>()).Returns(false);
+
+        var (elec, _, _, _) = Setup();
+        var result = await Handler().Handle(
+            new PostExpenseVoucherCommand(Date, null, null, supplierId, Date.AddDays(30), null, null, new[]
+            {
+                new ExpenseVoucherLineInput(elec, "x", 100m, 0m),
+            }),
+            CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("EXPENSES.SUPPLIER_NOT_FOUND");
+        await _ledger.DidNotReceive().PostAsync(Arg.Any<LedgerPostingRequest>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Same_category_lines_collapse_into_one_debit()
     {
         var (elec, _, elecAccount, _) = Setup();
 
         var result = await Handler().Handle(
-            new PostExpenseVoucherCommand(Date, null, CashAccount, null, null, new[]
+            new PostExpenseVoucherCommand(Date, null, CashAccount, null, null, null, null, new[]
             {
                 new ExpenseVoucherLineInput(elec, "a", 300_000m, 0m),
                 new ExpenseVoucherLineInput(elec, "b", 200_000m, 0m),
@@ -131,7 +193,7 @@ public class ExpenseVoucherTests
         _categories.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((ExpenseCategory?)null);
 
         var result = await Handler().Handle(
-            new PostExpenseVoucherCommand(Date, null, CashAccount, null, null, new[]
+            new PostExpenseVoucherCommand(Date, null, CashAccount, null, null, null, null, new[]
             {
                 new ExpenseVoucherLineInput(Guid.NewGuid(), "x", 100m, 0m),
             }),

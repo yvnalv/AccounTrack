@@ -22,7 +22,7 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Purchasing | ✅ Procure-to-pay + returns | Purchase Orders (Approval + Process Tracker + Notification); **Goods Receipt** (atomic inventory + Dr Inventory/Cr GR-IR); **Purchase Invoice** (atomic Dr GR-IR + VAT Input / Cr AP + AP subledger, three-way-match lite clears GR-IR); **Supplier Payment** (atomic Dr AP / Cr Cash-Bank + AP allocation); **Purchase Return / debit note** (atomic de-stock at cost + reverse AP/VAT-Input + variance, reduce payable — CHG-0047); **cancel + edit draft/pending PO** (CHG-0061/0070). Debiting paid bills pending |
 | Sales | ✅ Order-to-cash + returns | Sales Orders (Approval + event-driven status); **Delivery Order** (atomic stock issue + Dr COGS/Cr Inventory); **Sales Invoice** (atomic Dr AR / Cr Revenue + VAT Output + AR subledger); **Customer Payment** (atomic Dr Cash-Bank / Cr AR + AR allocation); **Sales Return / credit note** (atomic restock at cost + reverse Revenue/VAT/AR, reduce receivable — CHG-0046); **cancel + edit draft/pending SO** (CHG-0061/0070). Crediting fully-paid invoices pending |
 | Reporting | ✅ Implemented | TB/P&L/BS/VAT/Cash Flow + AR/AP aging + **General Ledger / account detail (CHG-0058)** + **inventory valuation reconciling to the GL (CHG-0062)**, all with CSV/Excel/PDF export |
-| Expenses | ✅ Implemented | operating-expense vouchers paid from cash/bank; categories→GL via posting rules; atomic Dr Expense (+VAT Input) / Cr Cash-Bank (CHG-0048). On-account (AP) + approvals pending |
+| Expenses | ✅ Implemented | operating-expense vouchers paid from cash/bank **or on account (Cr AP, opens AP subledger item)**; categories→GL via posting rules (+ category edit/deactivate); atomic Dr Expense (+VAT Input) / Cr Cash-Bank\|AP (CHG-0048/0072). Approvals pending |
 | Data Import/Export | 🟡 Partial | Cross-cutting — CSV import for all master data (CHG-0049/0050); CSV+Excel export across all list menus (CHG-0051, ClosedXML); PDF documents — Invoice + Quotation (CHG-0052), PO + bill (CHG-0054, QuestPDF); report PDFs TB/P&L/BS/VAT (CHG-0053); brand logo embedded in all PDFs (CHG-0054). Excel import + async pending (ADR-0031) |
 | Manufacturing | ◻️ Planned | Phase 3 |
 
@@ -153,13 +153,15 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 
 ### Expenses (ADR-0030)
 - **Purpose:** capture day-to-day operating expenses without manual journals.
-- **Responsibilities:** expense vouchers (date, payee, lines), expense **categories** mastered and
-  mapped to expense GL accounts via posting rules; automatic atomic posting (Dr Expense [+ VAT Input]
-  / Cr Cash-Bank or AP); approvals + process tracker.
-- **Depends on:** Master Data (categories/payees), Accounting (posting/AP), Approval.
+- **Responsibilities:** expense vouchers (date, payee, lines), expense **categories** mastered
+  (create/edit/activate-deactivate) and mapped to expense GL accounts via posting rules; automatic
+  atomic posting (Dr Expense [+ VAT Input] / **Cr Cash-Bank when paid, or Cr AP + an AP subledger item
+  when on account**); approvals + process tracker.
+- **Depends on:** Master Data (categories/suppliers), Accounting (posting/AP subledger), Approval.
 - **Emits:** `ExpensePosted`.
-- **MVP:** create/list/edit (draft), post, pay-or-on-account; PPh withholding is Phase 3. Payroll is
-  out of scope (Phase 3) — salaries-as-cash use a category.
+- **MVP:** create/list, post **paid or on account** (supplier + due date); category edit/deactivate
+  (CHG-0072). PPh withholding is Phase 3. Payroll is out of scope (Phase 3) — salaries-as-cash use a
+  category.
 
 ## Cross-Cutting Capabilities
 
