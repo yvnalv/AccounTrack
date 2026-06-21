@@ -54,6 +54,94 @@ public sealed class CreateAccountCommandHandler : ICommandHandler<CreateAccountC
     }
 }
 
+// ---- Edit an account (ADR-0029) — Code/Type are immutable; name + postability are editable ----
+public sealed record UpdateAccountCommand(Guid Id, string Name, bool AllowPosting) : ICommand<Guid>;
+
+public sealed class UpdateAccountCommandValidator : AbstractValidator<UpdateAccountCommand>
+{
+    public UpdateAccountCommandValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+    }
+}
+
+public sealed class UpdateAccountCommandHandler : ICommandHandler<UpdateAccountCommand, Guid>
+{
+    private readonly IAccountRepository _accounts;
+    private readonly IAccountingUnitOfWork _uow;
+
+    public UpdateAccountCommandHandler(IAccountRepository accounts, IAccountingUnitOfWork uow)
+    {
+        _accounts = accounts;
+        _uow = uow;
+    }
+
+    public async Task<Result<Guid>> Handle(UpdateAccountCommand request, CancellationToken ct)
+    {
+        var account = await _accounts.GetByIdAsync(request.Id, ct);
+        if (account is null)
+        {
+            return AccountingErrors.AccountNotFound;
+        }
+
+        account.Rename(request.Name);
+        account.SetPostingAllowed(request.AllowPosting);
+        await _uow.SaveChangesAsync(ct);
+        return account.Id;
+    }
+}
+
+public sealed record SetAccountActiveCommand(Guid Id, bool IsActive) : ICommand<Guid>;
+
+public sealed class SetAccountActiveCommandHandler : ICommandHandler<SetAccountActiveCommand, Guid>
+{
+    private readonly IAccountRepository _accounts;
+    private readonly IAccountingReadStore _readStore;
+    private readonly IAccountingUnitOfWork _uow;
+
+    public SetAccountActiveCommandHandler(
+        IAccountRepository accounts, IAccountingReadStore readStore, IAccountingUnitOfWork uow)
+    {
+        _accounts = accounts;
+        _readStore = readStore;
+        _uow = uow;
+    }
+
+    public async Task<Result<Guid>> Handle(SetAccountActiveCommand request, CancellationToken ct)
+    {
+        var account = await _accounts.GetByIdAsync(request.Id, ct);
+        if (account is null)
+        {
+            return AccountingErrors.AccountNotFound;
+        }
+
+        if (request.IsActive)
+        {
+            account.Activate();
+        }
+        else
+        {
+            // Deactivation guards (ADR-0029): system accounts stay; an account with GL activity stays.
+            if (account.IsSystem)
+            {
+                return AccountingErrors.AccountIsSystem;
+            }
+
+            var movements = await _readStore.GetAccountMovementsAsync(new[] { account.Id }, null, null, ct);
+            if (movements.Any(m => m.Debit != 0m || m.Credit != 0m))
+            {
+                return AccountingErrors.AccountInUse;
+            }
+
+            account.Deactivate();
+        }
+
+        await _uow.SaveChangesAsync(ct);
+        return account.Id;
+    }
+}
+
 public sealed record GetAccountsQuery : IQuery<IReadOnlyList<AccountDto>>;
 
 public sealed class GetAccountsQueryHandler : IQueryHandler<GetAccountsQuery, IReadOnlyList<AccountDto>>

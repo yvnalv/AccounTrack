@@ -10,6 +10,12 @@ public static class AccountingErrors
     public static readonly Error AccountCodeExists =
         Error.Conflict("ACCOUNTING.ACCOUNT_CODE_EXISTS", "An account with this code already exists.");
 
+    public static readonly Error AccountIsSystem =
+        Error.Conflict("ACCOUNTING.ACCOUNT_IS_SYSTEM", "A system account is required by posting rules and cannot be deactivated.");
+
+    public static readonly Error AccountInUse =
+        Error.Conflict("ACCOUNTING.ACCOUNT_IN_USE", "This account has posted journal activity and cannot be deactivated.");
+
     public static Error AccountNotPostable(string code) =>
         Error.BusinessRule("BR-ACC-5", $"Account {code} is inactive or not postable.", "ACCOUNTING.ACCOUNT_NOT_POSTABLE");
 

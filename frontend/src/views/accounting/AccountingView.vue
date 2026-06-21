@@ -18,6 +18,7 @@ const tabs = computed(() => {
     { to: { name: 'accountingGeneralLedger' }, label: t('accounting.tabs.generalLedger') },
     // VAT report only matters for a VAT-registered (PKP) company.
     ...(company.vatRegistered ? [{ to: { name: 'accountingVat' }, label: t('accounting.tabs.vat') }] : []),
+    { to: { name: 'accountingAccounts' }, label: t('accounting.tabs.accounts') },
     { to: { name: 'accountingPeriods' }, label: t('accounting.tabs.periods') },
   ]
   return all

@@ -14,6 +14,12 @@ export const accountingApi = {
   apOpenItems: (partyId: string) =>
     unwrap<SubledgerOpenItem[]>(http.get('/ap/open-items', { params: { partyId } })),
   accounts: () => unwrap<AccountRef[]>(http.get('/accounts')),
+  createAccount: (body: { code: string; name: string; type: string; isControlAccount: boolean; controlType: string }) =>
+    unwrap<string>(http.post('/accounts', body)),
+  updateAccount: (id: string, body: { name: string; allowPosting: boolean }) =>
+    unwrap(http.put(`/accounts/${id}`, body)),
+  setAccountActive: (id: string, isActive: boolean) =>
+    unwrap(http.put(`/accounts/${id}/active`, { isActive })),
 
   // Fiscal years & periods
   fiscalYears: () => unwrap<FiscalYear[]>(http.get('/fiscal-years')),

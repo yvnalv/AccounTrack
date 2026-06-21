@@ -8,12 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0070**)
-- **Build:** green — backend `net8.0` (280 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **edit draft SO/PO** before submit (CHG-0070); **list search + full-width content + gated
-  VAT tab** (CHG-0069); **optional VAT (PKP) flag** — non-PKP defaults tax to 0 & hides tax UI
-  (CHG-0068); collapsible/responsive sidebar (CHG-0067); insight-rich dashboard + pagination +
-  per-menu cards (CHG-0063/0064).
+- **As of:** 2026-06-21 (last change **CHG-0071**)
+- **Build:** green — backend `net8.0` (284 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Chart-of-Accounts edit** + activate/deactivate, new Accounts tab (CHG-0071); edit draft
+  SO/PO (CHG-0070); list search + full-width content + gated VAT tab (CHG-0069); optional VAT (PKP)
+  flag (CHG-0068); collapsible/responsive sidebar (CHG-0067); insight-rich dashboard (CHG-0063/0064).
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
@@ -81,7 +80,7 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   list/landing screen (today returns are driven from the order detail).
 - **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
   suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**; **draft
-  SO/PO cancel (CHG-0061) + edit (CHG-0070)**. Remaining: CoA edit; distinct
+  SO/PO cancel (CHG-0061) + edit (CHG-0070); CoA edit + deactivate (CHG-0071)**. Remaining: distinct
   `*.Edit`/`*.Delete`/`*.Cancel` permissions. (BR-X-7/8.)
 - **Expenses module (ADR-0030):** 🟡 done (CHG-0048) — vouchers paid from cash/bank, category→GL via
   posting rules, atomic Dr Expense [+ VAT Input] / Cr Cash-Bank. Remaining: on-account (Cr AP),

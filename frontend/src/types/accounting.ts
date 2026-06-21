@@ -16,8 +16,12 @@ export interface AccountRef {
   code: string
   name: string
   type: string
+  normalBalance?: string
+  isControlAccount?: boolean
+  controlType?: string
   allowPosting: boolean
   isActive: boolean
+  isSystem?: boolean
 }
 
 export interface FiscalPeriod {

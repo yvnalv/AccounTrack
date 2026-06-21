@@ -18,6 +18,10 @@ public static class AccountingEndpoints
 
     public sealed record AllocateRequest(string PaymentReference, DateOnly Date, decimal Amount);
 
+    public sealed record UpdateAccountBody(string Name, bool AllowPosting);
+
+    public sealed record SetActiveBody(bool IsActive);
+
     public static IEndpointRouteBuilder MapAccountingEndpoints(this IEndpointRouteBuilder app)
     {
         // --- Chart of Accounts ---
@@ -30,6 +34,14 @@ public static class AccountingEndpoints
         accounts.MapPost("/", async (CreateAccountCommand cmd, ISender sender, CancellationToken ct) =>
             (await sender.Send(cmd, ct)).ToCreatedResult("/api/v1/accounts"))
             .RequireAuthorization("MasterData.Manage").WithName("CreateAccount");
+
+        accounts.MapPut("/{id:guid}", async (Guid id, UpdateAccountBody body, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new UpdateAccountCommand(id, body.Name, body.AllowPosting), ct)).ToHttpResult())
+            .RequireAuthorization("MasterData.Manage").WithName("UpdateAccount");
+
+        accounts.MapPut("/{id:guid}/active", async (Guid id, SetActiveBody body, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new SetAccountActiveCommand(id, body.IsActive), ct)).ToHttpResult())
+            .RequireAuthorization("MasterData.Manage").WithName("SetAccountActive");
 
         // --- Fiscal years & periods ---
         var fiscal = app.MapGroup("/api/v1/fiscal-years").WithTags("Fiscal Periods").RequireAuthorization();

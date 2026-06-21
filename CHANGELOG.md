@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-21 10:44:18 UTC]
+
+CHG-0071 — Chart-of-Accounts edit + activate/deactivate
+
+- A GL account can now be **edited** (rename + toggle direct postability) and **activated/
+  deactivated** (ADR-0029) — Code and Type stay immutable. `PUT /api/v1/accounts/{id}` and
+  `/accounts/{id}/active` (`MasterData.Manage`). Guards: a **system** account (seeded, required by
+  posting rules) can't be deactivated (`ACCOUNT_IS_SYSTEM`); an account with **posted GL activity**
+  can't be deactivated (`ACCOUNT_IN_USE`).
+- **Frontend:** a new **Accounts** tab in Accounting — a searchable, paginated Chart-of-Accounts list
+  (code, name with Control/System chips, type, postable, status) with create, edit (name +
+  allow-posting), and activate/deactivate (hidden for system accounts). EN/ID.
+- **Tests:** +4 (rename + posting toggle; deactivate unused; system + in-use deactivation rejected).
+  Full suite **284** green; frontend builds.
+- **Verified (e2e):** created/renamed an account and toggled posting; deactivating a system account
+  (1200/5000) returns `ACCOUNT_IS_SYSTEM`.
+- **Remaining (CRUD completion):** distinct `*.Edit`/`*.Delete`/`*.Cancel` permissions (today CoA
+  edit reuses `MasterData.Manage`).
+
+---
+
 ## [2026-06-21 10:02:55 UTC]
 
 CHG-0070 — Edit draft Sales / Purchase Orders before submit
