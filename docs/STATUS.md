@@ -8,11 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0062**)
+- **As of:** 2026-06-21 (last change **CHG-0064**)
 - **Build:** green — backend `net8.0` (275 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Inventory valuation report** — value by product, reconciles to the GL Inventory account,
-  with PDF (CHG-0062). Cancel draft SO/PO (CHG-0061); master-data CRUD completion (CHG-0060);
-  year-end close + Fiscal-periods (CHG-0059); General Ledger report (CHG-0058).
+  Latest: **insight-rich dashboard** (6-month trend, AR/AP aging, expense donut, top debtors/creditors,
+  MoM deltas — ECharts, color-coded) + **table pagination** (CHG-0063) and **per-menu insight cards**
+  (CHG-0064). Inventory valuation report (CHG-0062); cancel draft SO/PO (CHG-0061); master-data CRUD
+  completion (CHG-0060). **⏸ Paused for review.**
 - **MVP transactional backend complete** (procure-to-pay + order-to-cash). **Frontend** is now
   demo-complete: app shell + light/dark + login + dashboard; **Sales** (submit→deliver→invoice→
   receive payment); **Purchasing** (submit→receive→bill→pay supplier); **Accounting reports**
