@@ -25,8 +25,8 @@ configurable per company with the stated default.
 - **BR-X-8** Transactional documents are status-gated: a **Draft** may be edited or cancelled; once
   **Posted/Approved** it is immutable and corrected only by reversal/cancellation/return-credit-note
   (cf. BR-ACC-3). Edit, Delete/Deactivate, and Cancel are distinct, audited, permissioned actions.
-  Implemented for **Sales/Purchase Order cancel** (Draft or PendingApproval only — CHG-0061);
-  draft line-edit and CoA edit remain.
+  Implemented for **Sales/Purchase Order cancel** (Draft or PendingApproval only — CHG-0061) and
+  **draft line-edit** (still-Draft header + lines — CHG-0070). CoA edit remains.
 
 ## Accounting
 

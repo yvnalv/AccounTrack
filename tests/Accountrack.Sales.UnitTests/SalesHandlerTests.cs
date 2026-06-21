@@ -140,4 +140,37 @@ public class SalesHandlerTests
         result.Error.Code.Should().Be("SALES.NOT_CANCELLABLE");
         so.Status.Should().Be(SalesOrderStatus.Approved);
     }
+
+    [Fact]
+    public async Task Update_edits_a_draft_orders_lines()
+    {
+        var so = DraftWithLine();
+        _orders.GetByIdAsync(so.Id, Arg.Any<CancellationToken>()).Returns(so);
+
+        var cmd = new UpdateSalesOrderCommand(
+            so.Id, Guid.NewGuid(), Guid.NewGuid(), Date, "edited",
+            new[] { new CreateSoLine(Guid.NewGuid(), 3m, 1000m, 0.11m, null) });
+        var result = await new UpdateSalesOrderHandler(_orders, _masterData, _uow).Handle(cmd, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        so.Notes.Should().Be("edited");
+        so.Lines.Should().ContainSingle(l => l.Quantity == 3m && l.UnitPrice == 1000m);
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Update_is_rejected_for_a_submitted_order()
+    {
+        var so = DraftWithLine();
+        so.MarkAutoApproved(Guid.NewGuid());
+        _orders.GetByIdAsync(so.Id, Arg.Any<CancellationToken>()).Returns(so);
+
+        var cmd = new UpdateSalesOrderCommand(
+            so.Id, Guid.NewGuid(), Guid.NewGuid(), Date, null,
+            new[] { new CreateSoLine(Guid.NewGuid(), 1m, 1m, 0m, null) });
+        var result = await new UpdateSalesOrderHandler(_orders, _masterData, _uow).Handle(cmd, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("SALES.NOT_DRAFT");
+    }
 }

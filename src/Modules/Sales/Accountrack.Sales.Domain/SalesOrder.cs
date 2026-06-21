@@ -68,6 +68,30 @@ public sealed class SalesOrder : TenantOwnedEntity, IAggregateRoot
         Recalculate();
     }
 
+    /// <summary>Replaces the header and lines of a still-editable draft (ADR-0029, BR-X-8).</summary>
+    public void EditDraft(
+        Guid customerId, Guid warehouseId, DateOnly orderDate, string? notes,
+        IEnumerable<(Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate, string? Description)> lines)
+    {
+        if (Status != SalesOrderStatus.Draft)
+        {
+            throw new InvalidOperationException("Only a draft sales order can be edited.");
+        }
+
+        CustomerId = customerId;
+        WarehouseId = warehouseId;
+        OrderDate = orderDate;
+        Notes = notes?.Trim();
+
+        _lines.Clear();
+        foreach (var l in lines)
+        {
+            _lines.Add(SalesOrderLine.Create(l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.Description));
+        }
+
+        Recalculate();
+    }
+
     public void MarkPendingApproval(Guid approvalRequestId)
     {
         EnsureDraftWithLines();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
@@ -25,8 +25,10 @@ interface LineForm {
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const company = useCompanyStore()
 
+const editId = route.query.edit ? String(route.query.edit) : null
 const defaultTaxPct = computed(() => (company.vatRegistered ? 11 : 0))
 
 const today = new Date().toISOString().slice(0, 10)
@@ -49,7 +51,23 @@ onMounted(async () => {
   suppliers.value = s
   warehouses.value = w
   products.value = p.filter((x) => x.isActive)
-  lines.forEach((l) => (l.taxPct = defaultTaxPct.value))
+
+  if (editId) {
+    const o = await purchasingApi.get(editId)
+    form.supplierId = o.supplierId
+    form.warehouseId = o.warehouseId
+    form.orderDate = o.orderDate
+    form.notes = o.notes ?? ''
+    lines.splice(0, lines.length, ...o.lines.map((l) => ({
+      productId: l.productId,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      taxPct: l.taxRate * 100,
+      description: l.description ?? '',
+    })))
+  } else {
+    lines.forEach((l) => (l.taxPct = defaultTaxPct.value))
+  }
 })
 
 const supplierOptions = computed(() => suppliers.value.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` })))
@@ -87,7 +105,7 @@ async function submit() {
         description: l.description || null,
       })),
     }
-    const id = await purchasingApi.create(payload)
+    const id = editId ? await purchasingApi.update(editId, payload) : await purchasingApi.create(payload)
     await router.push({ name: 'purchaseOrderDetail', params: { id } })
   } catch {
     error.value = t('purchasing.form.failed')
@@ -179,7 +197,7 @@ async function submit() {
     <div class="flex items-center justify-end gap-3">
       <p v-if="error" class="text-sm text-negative">{{ error }}</p>
       <AppButton :disabled="!canSubmit || submitting" @click="submit">
-        {{ submitting ? t('purchasing.form.saving') : t('purchasing.form.save') }}
+        {{ submitting ? t('purchasing.form.saving') : (editId ? t('purchasing.form.update') : t('purchasing.form.save')) }}
       </AppButton>
     </div>
   </div>

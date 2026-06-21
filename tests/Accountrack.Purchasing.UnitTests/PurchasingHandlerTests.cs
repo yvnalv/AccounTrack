@@ -1,5 +1,6 @@
 using Accountrack.Modules.Contracts.Approval;
 using Accountrack.Modules.Contracts.Events;
+using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.Purchasing.Application;
 using Accountrack.Purchasing.Application.Abstractions;
 using Accountrack.Purchasing.Application.Features;
@@ -15,6 +16,7 @@ public class PurchasingHandlerTests
     private static readonly DateOnly Date = new(2026, 6, 14);
     private readonly IPurchaseOrderRepository _orders = Substitute.For<IPurchaseOrderRepository>();
     private readonly IApprovalService _approval = Substitute.For<IApprovalService>();
+    private readonly IMasterDataLookup _masterData = Substitute.For<IMasterDataLookup>();
     private readonly IPurchasingUnitOfWork _uow = Substitute.For<IPurchasingUnitOfWork>();
 
     private static PurchaseOrder DraftWithLine()
@@ -121,5 +123,24 @@ public class PurchasingHandlerTests
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("PURCHASING.NOT_CANCELLABLE");
+    }
+
+    [Fact]
+    public async Task Update_edits_a_draft_orders_lines()
+    {
+        var po = DraftWithLine();
+        _orders.GetByIdAsync(po.Id, Arg.Any<CancellationToken>()).Returns(po);
+        _masterData.SupplierExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        _masterData.WarehouseExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        _masterData.ProductExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+
+        var cmd = new UpdatePurchaseOrderCommand(
+            po.Id, Guid.NewGuid(), Guid.NewGuid(), Date, "edited",
+            new[] { new CreatePoLine(Guid.NewGuid(), 4m, 250m, 0.11m, null) });
+        var result = await new UpdatePurchaseOrderHandler(_orders, _masterData, _uow).Handle(cmd, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        po.Notes.Should().Be("edited");
+        po.Lines.Should().ContainSingle(l => l.Quantity == 4m && l.UnitPrice == 250m);
     }
 }

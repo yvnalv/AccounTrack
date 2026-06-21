@@ -65,6 +65,30 @@ public sealed class PurchaseOrder : TenantOwnedEntity, IAggregateRoot
         Recalculate();
     }
 
+    /// <summary>Replaces the header and lines of a still-editable draft (ADR-0029, BR-X-8).</summary>
+    public void EditDraft(
+        Guid supplierId, Guid warehouseId, DateOnly orderDate, string? notes,
+        IEnumerable<(Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate, string? Description)> lines)
+    {
+        if (Status != PurchaseOrderStatus.Draft)
+        {
+            throw new InvalidOperationException("Only a draft purchase order can be edited.");
+        }
+
+        SupplierId = supplierId;
+        WarehouseId = warehouseId;
+        OrderDate = orderDate;
+        Notes = notes?.Trim();
+
+        _lines.Clear();
+        foreach (var l in lines)
+        {
+            _lines.Add(PurchaseOrderLine.Create(l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.Description));
+        }
+
+        Recalculate();
+    }
+
     /// <summary>Submitted, waiting on approval.</summary>
     public void MarkPendingApproval(Guid approvalRequestId)
     {

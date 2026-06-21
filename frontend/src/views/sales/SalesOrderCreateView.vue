@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
@@ -25,8 +25,10 @@ interface LineForm {
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const company = useCompanyStore()
 
+const editId = route.query.edit ? String(route.query.edit) : null
 const defaultTaxPct = computed(() => (company.vatRegistered ? 11 : 0))
 
 const today = new Date().toISOString().slice(0, 10)
@@ -50,8 +52,25 @@ onMounted(async () => {
   warehouses.value = w
   // Active products (the backend doesn't restrict by "is sold"; show all sellable/active stock).
   products.value = p.filter((x) => x.isActive)
-  // Default tax once we know whether the company is VAT-registered (PKP).
-  lines.forEach((l) => (l.taxPct = defaultTaxPct.value))
+
+  if (editId) {
+    // Editing an existing draft — prefill the header + lines.
+    const o = await salesApi.get(editId)
+    form.customerId = o.customerId
+    form.warehouseId = o.warehouseId
+    form.orderDate = o.orderDate
+    form.notes = o.notes ?? ''
+    lines.splice(0, lines.length, ...o.lines.map((l) => ({
+      productId: l.productId,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      taxPct: l.taxRate * 100,
+      description: l.description ?? '',
+    })))
+  } else {
+    // Default tax once we know whether the company is VAT-registered (PKP).
+    lines.forEach((l) => (l.taxPct = defaultTaxPct.value))
+  }
 })
 
 const customerOptions = computed(() => customers.value.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })))
@@ -93,7 +112,7 @@ async function submit() {
         description: l.description || null,
       })),
     }
-    const id = await salesApi.create(payload)
+    const id = editId ? await salesApi.update(editId, payload) : await salesApi.create(payload)
     await router.push({ name: 'salesOrderDetail', params: { id } })
   } catch {
     error.value = t('sales.form.failed')
@@ -205,7 +224,7 @@ async function submit() {
     <div class="flex items-center justify-end gap-3">
       <p v-if="error" class="text-sm text-negative">{{ error }}</p>
       <AppButton :disabled="!canSubmit || submitting" @click="submit">
-        {{ submitting ? t('sales.form.saving') : t('sales.form.save') }}
+        {{ submitting ? t('sales.form.saving') : (editId ? t('sales.form.update') : t('sales.form.save')) }}
       </AppButton>
     </div>
   </div>

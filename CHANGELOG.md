@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-06-21 10:02:55 UTC]
+
+CHG-0070 — Edit draft Sales / Purchase Orders before submit
+
+- Completes the **BR-X-8** "draft may be edited or cancelled" half: a **still-draft** Sales or
+  Purchase Order can now have its header **and lines** edited before submission.
+  `PUT /api/v1/sales-orders/{id}` and `PUT /api/v1/purchase-orders/{id}` (`Sales.Create` /
+  `Purchasing.Create`); a new `EditDraft` aggregate method replaces lines and recalculates totals.
+  Editing an approved/decided order is rejected with `NOT_DRAFT` (corrections go via returns).
+- **Frontend:** an **Edit** button on a draft order's detail opens the order form in edit mode
+  (prefilled header + lines; "Save changes" → `PUT`, then back to the detail). Reuses the create
+  view via an `?edit=<id>` query. EN/ID strings.
+- **Tests:** +5 (domain edit replaces header/lines & recalculates, rejected once submitted; Sales &
+  Purchasing update handlers edit a draft / reject a submitted order). Full suite **280** green;
+  frontend builds.
+- **Verified (e2e):** editing a draft replaced 1 line with 2 and recalculated the grand total
+  (111,000 → 666,000); editing after submit returns `SALES.NOT_DRAFT`.
+
+---
+
 ## [2026-06-21 09:18:40 UTC]
 
 CHG-0069 — List search, full-width content, VAT tab gated

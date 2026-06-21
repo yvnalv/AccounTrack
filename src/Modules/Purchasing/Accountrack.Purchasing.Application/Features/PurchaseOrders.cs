@@ -107,6 +107,82 @@ public sealed class CreatePurchaseOrderHandler : ICommandHandler<CreatePurchaseO
     }
 }
 
+public sealed record UpdatePurchaseOrderCommand(
+    Guid Id, Guid SupplierId, Guid WarehouseId, DateOnly OrderDate, string? Notes,
+    IReadOnlyList<CreatePoLine> Lines) : ICommand<Guid>;
+
+public sealed class UpdatePurchaseOrderValidator : AbstractValidator<UpdatePurchaseOrderCommand>
+{
+    public UpdatePurchaseOrderValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.SupplierId).NotEmpty();
+        RuleFor(x => x.WarehouseId).NotEmpty();
+        RuleFor(x => x.Lines).NotEmpty().WithMessage("A purchase order requires at least one line.");
+        RuleForEach(x => x.Lines).ChildRules(l =>
+        {
+            l.RuleFor(x => x.ProductId).NotEmpty();
+            l.RuleFor(x => x.Quantity).GreaterThan(0);
+            l.RuleFor(x => x.UnitPrice).GreaterThanOrEqualTo(0);
+            l.RuleFor(x => x.TaxRate).InclusiveBetween(0m, 1m);
+        });
+    }
+}
+
+/// <summary>Edits a still-draft purchase order's header + lines before submission (ADR-0029, BR-X-8).</summary>
+public sealed class UpdatePurchaseOrderHandler : ICommandHandler<UpdatePurchaseOrderCommand, Guid>
+{
+    private readonly IPurchaseOrderRepository _orders;
+    private readonly IMasterDataLookup _masterData;
+    private readonly IPurchasingUnitOfWork _uow;
+
+    public UpdatePurchaseOrderHandler(IPurchaseOrderRepository orders, IMasterDataLookup masterData, IPurchasingUnitOfWork uow)
+    {
+        _orders = orders;
+        _masterData = masterData;
+        _uow = uow;
+    }
+
+    public async Task<Result<Guid>> Handle(UpdatePurchaseOrderCommand request, CancellationToken ct)
+    {
+        var order = await _orders.GetByIdAsync(request.Id, ct);
+        if (order is null)
+        {
+            return PurchasingErrors.NotFound;
+        }
+
+        if (order.Status != PurchaseOrderStatus.Draft)
+        {
+            return PurchasingErrors.NotDraft;
+        }
+
+        if (!await _masterData.SupplierExistsAsync(request.SupplierId, ct))
+        {
+            return PurchasingErrors.SupplierNotFound;
+        }
+
+        if (!await _masterData.WarehouseExistsAsync(request.WarehouseId, ct))
+        {
+            return PurchasingErrors.WarehouseNotFound;
+        }
+
+        foreach (var line in request.Lines)
+        {
+            if (!await _masterData.ProductExistsAsync(line.ProductId, ct))
+            {
+                return PurchasingErrors.ProductNotFound(line.ProductId);
+            }
+        }
+
+        order.EditDraft(
+            request.SupplierId, request.WarehouseId, request.OrderDate, request.Notes,
+            request.Lines.Select(l => (l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.Description)));
+
+        await _uow.SaveChangesAsync(ct);
+        return order.Id;
+    }
+}
+
 public sealed record SubmitPurchaseOrderCommand(Guid Id) : ICommand<string>;
 
 public sealed class SubmitPurchaseOrderHandler : ICommandHandler<SubmitPurchaseOrderCommand, string>

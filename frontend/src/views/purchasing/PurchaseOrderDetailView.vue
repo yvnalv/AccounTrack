@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, Undo2, FileText } from 'lucide-vue-next'
+import { ArrowLeft, Undo2, FileText, Pencil } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
 import { downloadFile } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
@@ -192,6 +192,14 @@ onMounted(load)
             @click="downloadFile(`/purchase-orders/${order.id}/pdf`, `purchase-order-${order.number}.pdf`)"
           >
             <FileText :size="16" /> {{ t('purchasing.detail.pdf') }}
+          </AppButton>
+          <AppButton
+            v-if="order.status === 'Draft'"
+            variant="secondary"
+            :disabled="busy !== ''"
+            @click="router.push({ name: 'purchaseOrderCreate', query: { edit: order.id } })"
+          >
+            <Pencil :size="16" /> {{ t('purchasing.detail.edit') }}
           </AppButton>
           <AppButton v-if="order.status === 'Draft'" :disabled="busy !== ''" @click="submit">
             {{ busy === 'submit' ? t('purchasing.detail.submitting') : t('purchasing.detail.submit') }}
