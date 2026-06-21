@@ -23,6 +23,8 @@ public static class IdentityEndpoints
         Guid[] CompanyIds);
 
     public sealed record SaveRoleRequest(string Name, string? Description, string[] Permissions);
+    public sealed record UpdateUserRequest(string FullName, Guid[] RoleIds, Guid[] CompanyIds);
+    public sealed record SetActiveRequest(bool IsActive);
 
     /// <summary>Maps the Identity module's HTTP endpoints under /api/v1.</summary>
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder app)
@@ -80,6 +82,18 @@ public static class IdentityEndpoints
         })
         .RequireAuthorization(PermissionCatalog.AdminUsers)
         .WithName("CreateUser");
+
+        users.MapGet("/", async (ISender sender, CancellationToken ct) =>
+                (await sender.Send(new GetUsersQuery(), ct)).ToHttpResult())
+            .RequireAuthorization(PermissionCatalog.AdminUsers).WithName("GetUsers");
+
+        users.MapPut("/{id:guid}", async (Guid id, UpdateUserRequest body, ISender sender, CancellationToken ct) =>
+                (await sender.Send(new UpdateUserCommand(id, body.FullName, body.RoleIds, body.CompanyIds), ct)).ToHttpResult())
+            .RequireAuthorization(PermissionCatalog.AdminUsers).WithName("UpdateUser");
+
+        users.MapPut("/{id:guid}/active", async (Guid id, SetActiveRequest body, ISender sender, CancellationToken ct) =>
+                (await sender.Send(new SetUserActiveCommand(id, body.IsActive), ct)).ToHttpResult())
+            .RequireAuthorization(PermissionCatalog.AdminUsers).WithName("SetUserActive");
 
         // --- Roles & permissions (Admin.Roles) ---
         var roles = app.MapGroup("/api/v1/roles").WithTags("Roles").RequireAuthorization();

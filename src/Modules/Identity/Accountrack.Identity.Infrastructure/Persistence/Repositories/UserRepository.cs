@@ -25,6 +25,19 @@ public sealed class UserRepository : IUserRepository
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted, ct);
 
+    public async Task<IReadOnlyList<User>> ListAsync(CancellationToken ct) =>
+        await _db.Users
+            .Include(u => u.Roles)
+            .Include(u => u.Companies)
+            .OrderBy(u => u.FullName)
+            .ToListAsync(ct);
+
+    public Task<User?> GetWithDetailsAsync(Guid id, CancellationToken ct) =>
+        _db.Users
+            .Include(u => u.Roles)
+            .Include(u => u.Companies)
+            .FirstOrDefaultAsync(u => u.Id == id, ct);
+
     public Task<bool> EmailExistsAsync(string email, CancellationToken ct) =>
         _db.Users
             .IgnoreQueryFilters()

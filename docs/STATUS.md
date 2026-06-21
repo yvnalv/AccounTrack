@@ -8,10 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0076**)
-- **Build:** green — backend `net8.0` (298 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **dynamic roles & access management** — 6 seeded standard roles, editable permission matrix
-  in Settings (CHG-0076); **distinct Edit/Cancel permissions for Sales & Purchasing documents** (CHG-0075);
+- **As of:** 2026-06-21 (last change **CHG-0077**)
+- **Build:** green — backend `net8.0` (301 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **user management** — list/create/edit users, assign roles + company access (CHG-0077);
+  **dynamic roles & access management** — 6 seeded standard roles, editable permission matrix in
+  Settings (CHG-0076); **distinct Edit/Cancel permissions for Sales & Purchasing documents** (CHG-0075);
   **returns against settled invoices (refund) + returns list screens** (CHG-0074); per-company
   negative-stock policy (CHG-0073); Expenses on-account (Cr AP) + category edit/deactivate (CHG-0072);
   Chart-of-Accounts edit + activate/deactivate, new Accounts tab (CHG-0071); edit draft SO/PO
@@ -41,8 +42,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ### Phase 1 — Foundation
 - ✅ **Identity** — auth (JWT + rotating refresh), RBAC + SoD, users, company grants (CHG-0003);
-  **6 seeded standard roles + dynamic role/permission management in Settings (CHG-0076)**. Pending:
-  user-management UI (assign roles/companies) and public organization sign-up.
+  **6 seeded standard roles + dynamic role/permission management (CHG-0076); user-management UI —
+  list/create/edit, assign roles + company access (CHG-0077)**. Pending: public organization sign-up.
 - ✅ **Company Management** — tenants, companies, settings; tenant context (CHG-0005)
 - ✅ **Audit Log** — automatic atomic before/after capture (CHG-0006)
 - ✅ **Approval Workflow** — generic engine: conditional/multi-level, SoD, auto-approve (CHG-0012)

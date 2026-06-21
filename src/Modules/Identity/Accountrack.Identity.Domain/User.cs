@@ -49,6 +49,8 @@ public sealed class User : TenantScopedEntity, IAggregateRoot
 
     public void RecordLogin(DateTime nowUtc) => LastLoginAtUtc = nowUtc;
 
+    public void Rename(string fullName) => FullName = fullName.Trim();
+
     public void AssignRole(Guid roleId)
     {
         if (_roles.All(r => r.RoleId != roleId))
@@ -57,11 +59,33 @@ public sealed class User : TenantScopedEntity, IAggregateRoot
         }
     }
 
+    /// <summary>Replaces the user's role assignments with exactly the given role ids.</summary>
+    public void ReplaceRoles(IEnumerable<Guid> roleIds)
+    {
+        var target = roleIds.Distinct().ToList();
+        _roles.RemoveAll(r => !target.Contains(r.RoleId));
+        foreach (var id in target)
+        {
+            AssignRole(id);
+        }
+    }
+
     public void GrantCompany(Guid companyId)
     {
         if (_companies.All(c => c.CompanyId != companyId))
         {
             _companies.Add(new UserCompany(Id, companyId));
+        }
+    }
+
+    /// <summary>Replaces the user's company grants with exactly the given company ids.</summary>
+    public void ReplaceCompanies(IEnumerable<Guid> companyIds)
+    {
+        var target = companyIds.Distinct().ToList();
+        _companies.RemoveAll(c => !target.Contains(c.CompanyId));
+        foreach (var id in target)
+        {
+            GrantCompany(id);
         }
     }
 

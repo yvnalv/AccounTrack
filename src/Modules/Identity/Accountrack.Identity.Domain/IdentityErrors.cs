@@ -34,4 +34,7 @@ public static class IdentityErrors
 
     public static readonly Error RoleInUse =
         Error.Conflict("IDENTITY.ROLE_IN_USE", "This role is assigned to one or more users and cannot be deleted.");
+
+    public static readonly Error UserNotFound =
+        Error.NotFound("IDENTITY.USER_NOT_FOUND", "User not found.");
 }

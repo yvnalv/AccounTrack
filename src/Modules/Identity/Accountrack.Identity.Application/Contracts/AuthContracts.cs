@@ -20,3 +20,8 @@ public sealed record RoleDto(
 
 /// <summary>A catalog permission with its module group, for the permission matrix.</summary>
 public sealed record PermissionDto(string Code, string Name, string Module);
+
+/// <summary>A user with role + company grants, for the Settings user manager.</summary>
+public sealed record UserDto(
+    Guid Id, string Email, string FullName, bool IsActive, DateTime? LastLoginAtUtc,
+    IReadOnlyList<Guid> RoleIds, IReadOnlyList<Guid> CompanyIds);

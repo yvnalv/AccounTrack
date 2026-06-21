@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-21 15:10:53 UTC]
+
+CHG-0077 — User management (Settings → Users)
+
+- Admins can now **manage users** end to end (`Admin.Users`): `GET /api/v1/users` (list with role +
+  company grants), `PUT /api/v1/users/{id}` (rename + **replace roles and company access**), and
+  `PUT /api/v1/users/{id}/active` (enable/disable). Create already existed (`POST /users`). Domain
+  gains `User.Rename` / `ReplaceRoles` / `ReplaceCompanies`.
+- **Frontend:** Settings → **Users** (visible with `Admin.Users`) — a user list (role chips, active
+  state) with a create/edit modal that assigns **roles** (checkboxes) and **company access**, plus an
+  enable/disable toggle. EN/ID.
+- **Tests:** +3 (update renames & replaces roles/companies; unknown user → `USER_NOT_FOUND`; disable a
+  user). Full suite **301** green; frontend builds.
+- **Verified (e2e):** created a Sales user → their token carries exactly the Sales permissions (8) and
+  not `Accounting.Post`; that user is **forbidden (403)** from `GET /roles` (role-based enforcement
+  proven on the negative path); changing the role to Accountant grants `Accounting.Post` on next login;
+  disabling the user blocks login (403).
+- **Next:** public organization sign-up.
+
+---
+
 ## [2026-06-21 15:02:52 UTC]
 
 CHG-0076 — Dynamic roles & access management (Settings → Roles)

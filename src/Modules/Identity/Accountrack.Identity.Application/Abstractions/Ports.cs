@@ -46,6 +46,12 @@ public interface IUserRepository
 
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct);
 
+    /// <summary>All users in the current tenant, with roles and company grants loaded.</summary>
+    Task<IReadOnlyList<User>> ListAsync(CancellationToken ct);
+
+    /// <summary>A single user in the current tenant, with roles and company grants loaded.</summary>
+    Task<User?> GetWithDetailsAsync(Guid id, CancellationToken ct);
+
     Task<bool> EmailExistsAsync(string email, CancellationToken ct);
 
     Task<UserAuthData> GetAuthDataAsync(Guid userId, CancellationToken ct);
