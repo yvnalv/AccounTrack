@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -92,6 +92,13 @@ async function submit() {
             {{ submitting ? t('login.signingIn') : t('login.submit') }}
           </AppButton>
         </form>
+
+        <p class="mt-5 text-center text-sm text-text-muted">
+          {{ t('login.noAccount') }}
+          <RouterLink :to="{ name: 'register' }" class="font-medium text-accent hover:underline">
+            {{ t('login.createOrg') }}
+          </RouterLink>
+        </p>
       </div>
     </div>
   </div>

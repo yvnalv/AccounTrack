@@ -1,5 +1,33 @@
 # Accountrack Changelog
 
+## [2026-06-21 15:35:20 UTC]
+
+CHG-0078 — Public organization sign-up
+
+- A public, anonymous **`POST /api/v1/auth/register`** lets a new business onboard itself: it
+  provisions a **brand-new tenant + first company**, seeds the **6 standard roles** for it (via the
+  shared `StandardRoleDefinitions.BuildSystemRoles`), creates the registrant as the tenant's
+  **Administrator**, and returns an auth token pair (**auto sign-in**). Cross-module by contract: a
+  new `ICompanyProvisioning` (implemented in Company Management) creates the tenant/company; Identity
+  seeds roles + the admin user. Email is checked up-front so a tenant is never provisioned without its
+  administrator.
+- **Frontend:** a public **Sign-up page** (`/register`) — organization + company + currency, then the
+  admin's name/email/password — linked both ways with the login page; on success it stores the session
+  and lands on the dashboard.
+- **Tests:** +2 (register provisions a tenant, seeds all 6 roles, makes the registrant Administrator;
+  a taken email is rejected without provisioning anything). Full suite **303** green; frontend builds;
+  architecture-fitness still green (Identity.Application → Modules.Contracts only).
+- **Verified (e2e):** registering a new org returns an Administrator token with all 34 permissions and
+  exactly one company; the new tenant sees **only its own company and zero of the demo tenant's data**
+  (multi-tenant isolation); 6 roles are seeded for it; a duplicate email returns 409 `EMAIL_EXISTS`;
+  the new admin can sign in again.
+- **Known limitation:** the company and the admin/roles are saved in two steps (Identity and Company
+  contexts aren't enlisted in the cross-module transaction), so a rare failure between them could
+  leave an empty tenant; the up-front email check covers the common case. Atomic provisioning is a
+  future hardening.
+
+---
+
 ## [2026-06-21 15:10:53 UTC]
 
 CHG-0077 — User management (Settings → Users)

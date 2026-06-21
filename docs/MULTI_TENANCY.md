@@ -20,6 +20,15 @@ Tenant (Yovan Account)
 
 Every business row carries both `TenantId` and `CompanyId`.
 
+### Tenant provisioning
+
+- **Seeding** creates the well-known development tenant/company at startup.
+- **Public sign-up** (CHG-0078, `POST /api/v1/auth/register`) provisions a **new tenant + first
+  company** for a self-onboarding business: Company Management creates the tenant/company
+  (`ICompanyProvisioning`), then Identity seeds the 6 standard roles and the registrant as that
+  tenant's Administrator. This is the only anonymous write path that creates a tenant; every other
+  write is tenant-scoped by the ambient context.
+
 ## 2. Strategy
 
 Single database, single shared schema (ADR-0004). Isolation is enforced by **four

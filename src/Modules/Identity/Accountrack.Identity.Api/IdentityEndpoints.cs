@@ -13,6 +13,9 @@ namespace Accountrack.Identity.Api;
 public static class IdentityEndpoints
 {
     public sealed record LoginRequest(string Email, string Password);
+    public sealed record RegisterRequest(
+        string OrganizationName, string CompanyName, string FunctionalCurrency,
+        string FullName, string Email, string Password);
     public sealed record RefreshRequest(string RefreshToken);
     public sealed record LogoutRequest(string RefreshToken);
     public sealed record CreateUserRequest(
@@ -38,6 +41,16 @@ public static class IdentityEndpoints
         })
         .AllowAnonymous()
         .WithName("Login");
+
+        auth.MapPost("/register", async (RegisterRequest body, ISender sender, CancellationToken ct) =>
+        {
+            var result = await sender.Send(new RegisterOrganizationCommand(
+                body.OrganizationName, body.CompanyName, body.FunctionalCurrency,
+                body.FullName, body.Email, body.Password), ct);
+            return result.ToHttpResult();
+        })
+        .AllowAnonymous()
+        .WithName("RegisterOrganization");
 
         auth.MapPost("/refresh", async (RefreshRequest body, ISender sender, CancellationToken ct) =>
         {

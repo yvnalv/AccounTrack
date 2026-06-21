@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Accountrack.Identity.Domain\Accountrack.Identity.Domain.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.Application.Abstractions\Accountrack.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\Modules.Contracts\Accountrack.Modules.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

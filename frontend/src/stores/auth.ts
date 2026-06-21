@@ -42,6 +42,18 @@ export const useAuthStore = defineStore('auth', () => {
     setSession(auth)
   }
 
+  async function register(payload: {
+    organizationName: string
+    companyName: string
+    functionalCurrency: string
+    fullName: string
+    email: string
+    password: string
+  }) {
+    const auth = await unwrap<AuthResponse>(http.post('/auth/register', payload))
+    setSession(auth)
+  }
+
   function clear() {
     user.value = null
     setAuthToken(null)
@@ -52,5 +64,5 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.permissions.includes(permission) ?? false
   }
 
-  return { user, isAuthenticated, login, clear, has }
+  return { user, isAuthenticated, login, register, clear, has }
 })
