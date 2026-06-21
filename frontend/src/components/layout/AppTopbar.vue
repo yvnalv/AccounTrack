@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Bell, LogOut } from 'lucide-vue-next'
+import { Bell, LogOut, Menu } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useLayoutStore } from '@/stores/layout'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import LanguageToggle from '@/components/ui/LanguageToggle.vue'
 
 defineProps<{ title: string; subtitle?: string }>()
 
 const auth = useAuthStore()
+const layout = useLayoutStore()
 const router = useRouter()
 const { t } = useI18n()
 
@@ -30,9 +32,19 @@ function signOut() {
 
 <template>
   <header class="flex items-center justify-between gap-4 px-6 lg:px-8 py-4">
-    <div>
-      <h1 class="text-xl font-semibold text-text">{{ title }}</h1>
-      <p v-if="subtitle" class="text-sm text-text-muted">{{ subtitle }}</p>
+    <div class="flex min-w-0 items-center gap-3">
+      <button
+        type="button"
+        class="grid h-9 w-9 shrink-0 place-items-center rounded-control border border-border bg-surface text-text-muted transition-colors hover:text-text hover:bg-surface-2 lg:hidden"
+        :aria-label="t('nav.menu')"
+        @click="layout.toggleMobile()"
+      >
+        <Menu :size="18" />
+      </button>
+      <div class="min-w-0">
+        <h1 class="truncate text-xl font-semibold text-text">{{ title }}</h1>
+        <p v-if="subtitle" class="truncate text-sm text-text-muted">{{ subtitle }}</p>
+      </div>
     </div>
 
     <div class="flex items-center gap-2">
@@ -47,7 +59,7 @@ function signOut() {
       </button>
 
       <div class="ml-1 flex items-center gap-3 border-l border-border pl-3">
-        <div class="text-right leading-tight">
+        <div class="hidden text-right leading-tight sm:block">
           <p class="text-sm font-medium text-text">{{ auth.user?.fullName }}</p>
           <p class="text-xs text-text-muted">{{ auth.user?.email }}</p>
         </div>

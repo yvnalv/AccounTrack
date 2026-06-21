@@ -3,12 +3,14 @@ import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useLayoutStore } from '@/stores/layout'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppTopbar from '@/components/layout/AppTopbar.vue'
 import CommandPalette from '@/components/CommandPalette.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
+const layout = useLayoutStore()
 const { t } = useI18n()
 
 const firstName = computed(() => (auth.user?.fullName || '').split(/\s+/)[0] || '')
@@ -28,6 +30,20 @@ const subtitle = computed(() =>
 
 <template>
   <div class="flex h-full bg-bg">
+    <!-- Mobile drawer backdrop -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      leave-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="layout.mobileOpen"
+        class="fixed inset-0 z-40 bg-black/40 lg:hidden"
+        @click="layout.closeMobile()"
+      />
+    </Transition>
+
     <AppSidebar />
     <div class="flex min-w-0 flex-1 flex-col">
       <AppTopbar :title="title" :subtitle="subtitle" />

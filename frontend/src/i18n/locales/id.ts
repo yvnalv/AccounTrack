@@ -12,6 +12,9 @@ export default {
     masterData: 'Data master',
     approvals: 'Persetujuan',
     settings: 'Pengaturan',
+    collapse: 'Ciutkan bilah sisi',
+    expand: 'Perluas bilah sisi',
+    menu: 'Buka menu',
   },
   common: {
     search: 'Cari…',

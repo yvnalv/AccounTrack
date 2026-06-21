@@ -11,6 +11,9 @@ export default {
     masterData: 'Master data',
     approvals: 'Approvals',
     settings: 'Settings',
+    collapse: 'Collapse sidebar',
+    expand: 'Expand sidebar',
+    menu: 'Open menu',
   },
   common: {
     search: 'Search…',

@@ -1,5 +1,21 @@
 # Accountrack Changelog
 
+## [2026-06-21 07:52:18 UTC]
+
+CHG-0067 — Collapsible + responsive sidebar (desktop rail + mobile drawer)
+
+- The sidebar can now be **collapsed to an icon-only rail** on desktop via a toggle (state persisted
+  in localStorage); labels, group headers, brand text and the ⌘K search text hide, leaving centered
+  icons with hover tooltips, and an expand button at the foot of the rail.
+- **Responsive for phones/tablets:** below `lg` the sidebar becomes an **off-canvas drawer** opened
+  by a new hamburger button in the top bar, with a tap-to-dismiss backdrop; it auto-closes on
+  navigation. The top bar title truncates and the user name/email hide on the smallest screens so the
+  header never overflows.
+- New `layout` Pinia store (`collapsed` + `mobileOpen`); `nav.collapse/expand/menu` strings (EN/ID).
+  Frontend builds.
+
+---
+
 ## [2026-06-21 07:14:33 UTC]
 
 CHG-0065 — Compact money on dashboard/insight cards (overflow fix)
