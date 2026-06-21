@@ -27,6 +27,18 @@ export default {
     showingRange: 'Menampilkan {from}–{to} dari {total}',
     prev: 'Sebelumnya',
     next: 'Berikutnya',
+    insights: {
+      orders: 'Pesanan',
+      value: 'Total nilai',
+      drafts: 'Draf',
+      active: 'Aktif',
+      inactive: 'Nonaktif',
+      items: 'Item berstok',
+      vouchers: 'Voucher',
+      delivered: 'Terkirim',
+      received: 'Diterima',
+      outstanding: 'Tertunggak',
+    },
   },
   theme: { toggle: 'Ganti tema', light: 'Terang', dark: 'Gelap' },
   command: {

@@ -26,6 +26,18 @@ export default {
     showingRange: 'Showing {from}–{to} of {total}',
     prev: 'Previous',
     next: 'Next',
+    insights: {
+      orders: 'Orders',
+      value: 'Total value',
+      drafts: 'Drafts',
+      active: 'Active',
+      inactive: 'Inactive',
+      items: 'Stocked items',
+      vouchers: 'Vouchers',
+      delivered: 'Delivered',
+      received: 'Received',
+      outstanding: 'Outstanding',
+    },
   },
   theme: { toggle: 'Toggle theme', light: 'Light', dark: 'Dark' },
   command: {

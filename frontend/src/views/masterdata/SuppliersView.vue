@@ -12,12 +12,23 @@ import CsvImportModal from '@/components/ui/CsvImportModal.vue'
 import ExportMenu from '@/components/ui/ExportMenu.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import FormField from '@/components/ui/FormField.vue'
+import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import RowActions from '@/components/ui/RowActions.vue'
 import type { Column } from '@/components/ui/types'
 
 const { t } = useI18n()
 const rows = ref<Supplier[]>([])
+
+const insights = computed<Insight[]>(() => {
+  const total = rows.value.length
+  const active = rows.value.filter((r) => r.isActive).length
+  return [
+    { label: t('masterData.tabs.suppliers'), value: String(total) },
+    { label: t('common.insights.active'), value: String(active), tone: 'positive' },
+    { label: t('common.insights.inactive'), value: String(total - active), tone: total - active > 0 ? 'negative' : 'neutral' },
+  ]
+})
 
 const io = masterData.supplierImport
 const { fileInput, open: importOpen, preview: importPreview, busy: importBusy, error: importError, canCommit, pick, onFileChosen, commit: commitImport } =
@@ -97,6 +108,7 @@ async function toggleActive(row: Supplier) {
 
 <template>
   <div class="space-y-4">
+    <InsightCards :items="insights" />
     <div class="flex flex-wrap items-center justify-end gap-2">
       <input ref="fileInput" type="file" accept=".csv,text/csv" class="hidden" @change="onFileChosen" />
       <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.template()">

@@ -15,12 +15,21 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import ExportMenu from '@/components/ui/ExportMenu.vue'
 import FormField from '@/components/ui/FormField.vue'
+import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { Column } from '@/components/ui/types'
 
 const { t } = useI18n()
 
 const rows = ref<ExpenseVoucherSummary[]>([])
+
+const insights = computed<Insight[]>(() => {
+  const total = rows.value.reduce((s, v) => s + v.grandTotal, 0)
+  return [
+    { label: t('common.insights.vouchers'), value: String(rows.value.length) },
+    { label: t('common.insights.value'), value: formatMoney(total), tone: 'accent' },
+  ]
+})
 const categories = ref<ExpenseCategory[]>([])
 const accounts = ref<AccountRef[]>([])
 const loading = ref(true)
@@ -133,6 +142,7 @@ async function save() {
 
 <template>
   <div class="space-y-4">
+    <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
       <ExportMenu :download="(f) => downloadExport('/expense-vouchers/export', 'expense-vouchers', f)" />
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('expenses.new') }}</AppButton>

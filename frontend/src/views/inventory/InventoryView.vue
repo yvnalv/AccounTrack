@@ -10,6 +10,7 @@ import { formatMoney, formatNumber } from '@/lib/format'
 import type { StockOnHand } from '@/types/inventory'
 import DataTable from '@/components/ui/DataTable.vue'
 import ExportMenu from '@/components/ui/ExportMenu.vue'
+import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -40,6 +41,15 @@ const rows = computed(() =>
     warehouse: warehouses.value.get(s.warehouseId) ?? '—',
   })),
 )
+
+const insights = computed<Insight[]>(() => {
+  const inStock = stock.value.filter((s) => s.onHandQty > 0)
+  const totalValue = stock.value.reduce((sum, s) => sum + s.value, 0)
+  return [
+    { label: t('common.insights.items'), value: String(inStock.length) },
+    { label: t('common.insights.value'), value: formatMoney(totalValue), tone: 'accent' },
+  ]
+})
 
 async function reload() {
   stock.value = await inventoryApi.onHand()
@@ -129,6 +139,7 @@ async function submit() {
 
 <template>
   <div class="space-y-4">
+    <InsightCards :items="insights" />
     <div class="flex items-center justify-end gap-2">
       <RouterLink
         :to="{ name: 'inventoryValuation' }"

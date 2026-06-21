@@ -1,5 +1,20 @@
 # Accountrack Changelog
 
+## [2026-06-21 06:58:10 UTC]
+
+CHG-0064 — Per-menu insight cards above lists
+
+- A reusable compact **`InsightCards`** strip now sits above the main list screens, summarising the
+  list at a glance (computed client-side from the loaded rows, no extra calls):
+  - **Sales orders / Purchase orders:** count, total value, drafts, delivered/received.
+  - **Inventory on-hand:** stocked items, total value.
+  - **Products / Customers / Suppliers:** total, active, inactive.
+  - **Expenses:** vouchers, total value.
+- Color-toned values (accent for money, positive/negative for active/inactive) for quick scanning.
+  EN/ID. Frontend builds.
+
+---
+
 ## [2026-06-21 06:30:44 UTC]
 
 CHG-0063 — Insight-rich dashboard + table pagination

@@ -11,6 +11,7 @@ import type { SalesOrderSummary } from '@/types/sales'
 import AppButton from '@/components/ui/AppButton.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import ExportMenu from '@/components/ui/ExportMenu.vue'
+import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import type { Column } from '@/components/ui/types'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
@@ -33,6 +34,19 @@ const rows = computed(() =>
   orders.value.map((o) => ({ ...o, customer: customers.value.get(o.customerId) ?? '—' })),
 )
 
+const insights = computed<Insight[]>(() => {
+  const list = orders.value
+  const value = list.reduce((s, o) => s + o.grandTotal, 0)
+  const drafts = list.filter((o) => o.status === 'Draft').length
+  const delivered = list.filter((o) => o.status === 'Delivered').length
+  return [
+    { label: t('common.insights.orders'), value: String(list.length) },
+    { label: t('common.insights.value'), value: formatMoney(value), tone: 'accent' },
+    { label: t('common.insights.drafts'), value: String(drafts) },
+    { label: t('common.insights.delivered'), value: String(delivered), tone: 'positive' },
+  ]
+})
+
 onMounted(async () => {
   try {
     const [list, custs] = await Promise.all([salesApi.list(), masterData.customers()])
@@ -50,6 +64,7 @@ function openOrder(row: Record<string, unknown>) {
 
 <template>
   <div class="space-y-4">
+    <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
       <ExportMenu :download="(f) => downloadExport('/sales-orders/export', 'sales-orders', f)" />
       <AppButton variant="secondary" @click="router.push({ name: 'salesReceivePayment' })">
