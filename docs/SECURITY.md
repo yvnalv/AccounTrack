@@ -30,6 +30,13 @@ Related: MULTI_TENANCY.md (isolation), ADR-0019/0020.
   `Accounting.PeriodClose`.
 - Roles aggregate permissions; users get roles (and optionally direct permissions). Permission
   checks happen in the **authorization pipeline behavior**, not scattered in handlers.
+- **Standard roles** are seeded per tenant (CHG-0076): **Administrator** (full access),
+  **Accountant**, **Sales**, **Purchasing**, **Warehouse**, **Viewer** — see
+  `StandardRoleDefinitions` for the default permission matrix. Roles are **dynamic and editable** in
+  Settings → Roles & access (`Admin.Roles`): an admin can edit any role's permissions and
+  create/rename/delete custom roles. Two guards prevent lock-out and tampering: the **Administrator**
+  role is always full-access and immutable, and **built-in roles** cannot be renamed or deleted (only
+  their permissions are editable); a role still assigned to users cannot be deleted.
 - **Company scope**: every authorized action is checked against the active `CompanyId` ∈ the
   user's granted companies (see MULTI_TENANCY.md).
 

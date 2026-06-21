@@ -22,6 +22,8 @@ public static class IdentityEndpoints
         Guid[] RoleIds,
         Guid[] CompanyIds);
 
+    public sealed record SaveRoleRequest(string Name, string? Description, string[] Permissions);
+
     /// <summary>Maps the Identity module's HTTP endpoints under /api/v1.</summary>
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder app)
     {
@@ -78,6 +80,30 @@ public static class IdentityEndpoints
         })
         .RequireAuthorization(PermissionCatalog.AdminUsers)
         .WithName("CreateUser");
+
+        // --- Roles & permissions (Admin.Roles) ---
+        var roles = app.MapGroup("/api/v1/roles").WithTags("Roles").RequireAuthorization();
+
+        roles.MapGet("/", async (ISender sender, CancellationToken ct) =>
+                (await sender.Send(new GetRolesQuery(), ct)).ToHttpResult())
+            .RequireAuthorization(PermissionCatalog.AdminRoles).WithName("GetRoles");
+
+        roles.MapPost("/", async (SaveRoleRequest body, ISender sender, CancellationToken ct) =>
+                (await sender.Send(new CreateRoleCommand(body.Name, body.Description, body.Permissions), ct))
+                    .ToCreatedResult("/api/v1/roles"))
+            .RequireAuthorization(PermissionCatalog.AdminRoles).WithName("CreateRole");
+
+        roles.MapPut("/{id:guid}", async (Guid id, SaveRoleRequest body, ISender sender, CancellationToken ct) =>
+                (await sender.Send(new UpdateRoleCommand(id, body.Name, body.Description, body.Permissions), ct)).ToHttpResult())
+            .RequireAuthorization(PermissionCatalog.AdminRoles).WithName("UpdateRole");
+
+        roles.MapDelete("/{id:guid}", async (Guid id, ISender sender, CancellationToken ct) =>
+                (await sender.Send(new DeleteRoleCommand(id), ct)).ToHttpResult())
+            .RequireAuthorization(PermissionCatalog.AdminRoles).WithName("DeleteRole");
+
+        app.MapGet("/api/v1/permissions", async (ISender sender, CancellationToken ct) =>
+                (await sender.Send(new GetPermissionsQuery(), ct)).ToHttpResult())
+            .RequireAuthorization(PermissionCatalog.AdminRoles).WithName("GetPermissions");
 
         return app;
     }

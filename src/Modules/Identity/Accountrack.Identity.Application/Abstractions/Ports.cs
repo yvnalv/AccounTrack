@@ -53,6 +53,28 @@ public interface IUserRepository
     void Add(User user);
 }
 
+public interface IRoleRepository
+{
+    Task<IReadOnlyList<Role>> ListAsync(CancellationToken ct);
+
+    Task<Role?> GetByIdAsync(Guid id, CancellationToken ct);
+
+    Task<bool> NameExistsAsync(string name, Guid? excludingRoleId, CancellationToken ct);
+
+    /// <summary>How many users in the tenant are assigned this role (for the delete guard).</summary>
+    Task<int> CountUsersAsync(Guid roleId, CancellationToken ct);
+
+    /// <summary>All catalog permissions (code → row id), tenant-independent.</summary>
+    Task<IReadOnlyDictionary<string, Guid>> GetPermissionIdByCodeAsync(CancellationToken ct);
+
+    /// <summary>All catalog permissions as (id, code, name) for display.</summary>
+    Task<IReadOnlyList<Permission>> ListPermissionsAsync(CancellationToken ct);
+
+    void Add(Role role);
+
+    void Remove(Role role);
+}
+
 public interface IRefreshTokenRepository
 {
     /// <summary>Looks up a refresh token by its hash (reviewed auth path; bypasses the tenant filter).</summary>

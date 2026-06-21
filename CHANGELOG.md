@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-06-21 15:02:52 UTC]
+
+CHG-0076 — Dynamic roles & access management (Settings → Roles)
+
+- **Standard roles seeded per tenant** with a researched permission matrix (`StandardRoleDefinitions`):
+  **Administrator** (full), **Accountant**, **Sales**, **Purchasing**, **Warehouse**, **Viewer**.
+  Previously only Administrator existed. A shared `BuildSystemRoles` provisions the same set, ready for
+  the upcoming organization sign-up.
+- **Roles CRUD API** (`Admin.Roles`): `GET/POST/PUT/DELETE /api/v1/roles` and `GET /api/v1/permissions`
+  (the catalog, grouped by module). Domain gains `Role.Rename` + `Role.ReplacePermissions`. Guards:
+  the **Administrator** role is immutable (always full access — prevents lock-out); **built-in roles**
+  keep their name and can't be deleted (only their permissions are editable); a role assigned to
+  users can't be deleted (`ROLE_IN_USE`).
+- **Frontend:** Settings → **Roles & access** (visible with `Admin.Roles`) — a role list (built-in
+  badge, user/permission counts) with an editor modal whose **permission matrix is grouped by module**
+  with per-group select-all, plus create/rename/delete for custom roles. EN/ID.
+- **Tests:** +7 (create with permission filtering; duplicate-name; Administrator edit blocked; system
+  role keeps name but swaps permissions; delete system/in-use blocked; delete unused custom). Full
+  suite **298** green; frontend builds.
+- **Verified (e2e):** 6 roles seed with correct permission sets; created/updated/deleted a custom role;
+  edited a built-in role's permissions (name preserved); editing Administrator → 409
+  `ROLE_IS_ADMINISTRATOR`; deleting a built-in role → 409 `ROLE_IS_SYSTEM`.
+- **Next:** user management (assign roles + company access) and public organization sign-up.
+
+---
+
 ## [2026-06-21 14:42:01 UTC]
 
 CHG-0075 — Distinct Edit / Cancel permissions for Sales & Purchasing documents

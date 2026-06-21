@@ -41,7 +41,44 @@ public static class IdentityDataSeeder
             await SeedDevAdminAsync(db, passwordHasher, settings, ct);
             // Keep the system Administrator role current as new permissions are added to the catalog.
             await EnsureAdminHasAllPermissionsAsync(db, ct);
+            // Seed the standard non-admin roles for the dev tenant (idempotent).
+            await EnsureStandardRolesAsync(db, DevTenantId, ct);
         }
+    }
+
+    /// <summary>Creates any missing standard non-admin roles (Accountant, Sales, …) for a tenant.</summary>
+    private static async Task EnsureStandardRolesAsync(IdentityDbContext db, Guid tenantId, CancellationToken ct)
+    {
+        var existingNames = await db.Roles
+            .IgnoreQueryFilters()
+            .Where(r => r.TenantId == tenantId && !r.IsDeleted)
+            .Select(r => r.Name)
+            .ToListAsync(ct);
+
+        var permissionIdByCode = await db.Permissions
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(p => p.Code, p => p.Id, ct);
+
+        foreach (var template in StandardRoleDefinitions.NonAdminTemplates)
+        {
+            if (existingNames.Contains(template.Name))
+            {
+                continue;
+            }
+
+            var role = new Role(tenantId, template.Name, template.Description, isSystem: true);
+            foreach (var code in template.Permissions)
+            {
+                if (permissionIdByCode.TryGetValue(code, out var pid))
+                {
+                    role.GrantPermission(pid);
+                }
+            }
+
+            db.Roles.Add(role);
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>

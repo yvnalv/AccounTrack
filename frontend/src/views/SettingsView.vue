@@ -13,6 +13,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
+import RolesManager from '@/components/settings/RolesManager.vue'
 
 const { t, locale } = useI18n()
 const auth = useAuthStore()
@@ -20,6 +21,7 @@ const theme = useThemeStore()
 const companyStore = useCompanyStore()
 
 const canEditCompany = computed(() => auth.has('Admin.Companies'))
+const canManageRoles = computed(() => auth.has('Admin.Roles'))
 
 // --- Company ---
 const companies = ref<Company[]>([])
@@ -193,6 +195,11 @@ function setLocale(next: string | undefined) {
           </AppButton>
         </div>
       </div>
+    </AppCard>
+
+    <!-- Roles & access -->
+    <AppCard v-if="canManageRoles" :title="t('settings.roles.title')">
+      <RolesManager />
     </AppCard>
 
     <!-- Profile -->

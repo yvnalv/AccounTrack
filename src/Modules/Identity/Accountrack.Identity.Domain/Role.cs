@@ -38,6 +38,23 @@ public sealed class Role : TenantScopedEntity, IAggregateRoot
 
     public void RevokePermission(Guid permissionId) =>
         _permissions.RemoveAll(p => p.PermissionId == permissionId);
+
+    public void Rename(string name, string? description)
+    {
+        Name = name.Trim();
+        Description = description?.Trim();
+    }
+
+    /// <summary>Replaces the role's permission set with exactly the given permission ids.</summary>
+    public void ReplacePermissions(IEnumerable<Guid> permissionIds)
+    {
+        var target = permissionIds.Distinct().ToList();
+        _permissions.RemoveAll(p => !target.Contains(p.PermissionId));
+        foreach (var id in target)
+        {
+            GrantPermission(id);
+        }
+    }
 }
 
 /// <summary>Join entity linking a <see cref="Role"/> to a <see cref="Permission"/>.</summary>
