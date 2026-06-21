@@ -43,7 +43,7 @@ export default {
         card: 'var(--shadow)',
       },
       fontSize: {
-        kpi: ['2.25rem', { lineHeight: '1.1', fontWeight: '600' }],
+        kpi: ['1.75rem', { lineHeight: '1.15', fontWeight: '600' }],
       },
     },
   },
