@@ -9,6 +9,7 @@ public static class PermissionCatalog
     public const string SalesView = "Sales.View";
     public const string SalesCreate = "Sales.Create";
     public const string SalesEdit = "Sales.Edit";
+    public const string SalesCancel = "Sales.Cancel";
     public const string SalesDelete = "Sales.Delete";
     public const string SalesApprove = "Sales.Approve";
     public const string SalesPost = "Sales.Post";
@@ -16,6 +17,8 @@ public static class PermissionCatalog
     public const string PurchasingView = "Purchasing.View";
     public const string PurchasingCreate = "Purchasing.Create";
     public const string PurchasingEdit = "Purchasing.Edit";
+    public const string PurchasingCancel = "Purchasing.Cancel";
+    public const string PurchasingDelete = "Purchasing.Delete";
     public const string PurchasingApprove = "Purchasing.Approve";
     public const string PurchasingPost = "Purchasing.Post";
 
@@ -52,12 +55,15 @@ public static class PermissionCatalog
         (SalesView, "View Sales"),
         (SalesCreate, "Create Sales"),
         (SalesEdit, "Edit Sales"),
+        (SalesCancel, "Cancel Sales"),
         (SalesDelete, "Delete Sales"),
         (SalesApprove, "Approve Sales"),
         (SalesPost, "Post Sales"),
         (PurchasingView, "View Purchasing"),
         (PurchasingCreate, "Create Purchasing"),
         (PurchasingEdit, "Edit Purchasing"),
+        (PurchasingCancel, "Cancel Purchasing"),
+        (PurchasingDelete, "Delete Purchasing"),
         (PurchasingApprove, "Approve Purchasing"),
         (PurchasingPost, "Post Purchasing"),
         (InventoryView, "View Inventory"),

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Undo2, FileText, Pencil } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
+import { useAuthStore } from '@/stores/auth'
 import { downloadFile } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
@@ -25,6 +26,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const order = ref<SalesOrder | null>(null)
 const deliveries = ref<DeliverySummary[]>([])
@@ -132,8 +134,11 @@ const hasUninvoiced = computed(
   () => order.value?.lines.some((l) => l.deliveredQuantity - l.invoicedQuantity > 0) ?? false,
 )
 
+const canEdit = computed(() => order.value?.status === 'Draft' && auth.has('Sales.Edit'))
 const canCancel = computed(
-  () => order.value?.status === 'Draft' || order.value?.status === 'PendingApproval',
+  () =>
+    (order.value?.status === 'Draft' || order.value?.status === 'PendingApproval') &&
+    auth.has('Sales.Cancel'),
 )
 
 async function run(kind: 'submit' | 'deliver' | 'invoice' | 'cancel', fn: () => Promise<unknown>) {
@@ -214,7 +219,7 @@ onMounted(load)
             <FileText :size="16" /> {{ t('sales.detail.quotationPdf') }}
           </button>
           <AppButton
-            v-if="order.status === 'Draft'"
+            v-if="canEdit"
             variant="secondary"
             :disabled="busy !== ''"
             @click="router.push({ name: 'salesOrderCreate', query: { edit: order.id } })"

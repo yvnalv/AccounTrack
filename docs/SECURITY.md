@@ -34,7 +34,10 @@ Related: MULTI_TENANCY.md (isolation), ADR-0019/0020.
   user's granted companies (see MULTI_TENANCY.md).
 
 ### Segregation of Duties (SoD)
-- Sensitive verbs are **distinct permissions**: Create vs Approve vs Post vs Pay.
+- Sensitive verbs are **distinct permissions**: Create vs **Edit** vs **Cancel** vs Approve vs Post
+  vs Pay. For transactional documents, editing a draft requires `Sales.Edit` / `Purchasing.Edit` and
+  cancelling requires `Sales.Cancel` / `Purchasing.Cancel` — separate from `*.Create` (CHG-0075), so
+  the creator of an order need not be the one allowed to amend or cancel it (BR-X-8).
 - Business rule (BUSINESS_RULES.md): the user who **created/submitted** a financial document
   may not be the **sole approver**; approval/posting by the same user is blocked unless an admin
   explicitly grants a "self-approve" exception (audited).

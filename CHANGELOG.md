@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-06-21 14:42:01 UTC]
+
+CHG-0075 — Distinct Edit / Cancel permissions for Sales & Purchasing documents
+
+- Editing and cancelling a draft order are now **separate permissions** from creating one (ADR-0019,
+  BR-X-8, segregation of duties). `PUT /sales-orders/{id}` now requires **`Sales.Edit`** and
+  `POST /sales-orders/{id}/cancel` requires **`Sales.Cancel`** (previously both reused `Sales.Create`);
+  the Purchasing equivalents require **`Purchasing.Edit`** / **`Purchasing.Cancel`**. New catalog
+  entries `Sales.Cancel`, `Purchasing.Cancel`, `Purchasing.Delete` (the system Administrator role
+  auto-grants them on startup).
+- **Frontend:** the **Edit** button on a draft order is gated by `*.Edit` and the **Cancel** button by
+  `*.Cancel` (in addition to status), so a user without the right is not shown the action.
+- **Tests:** full suite **291** green; frontend builds.
+- **Verified (e2e):** after seeding, the admin token carries `Sales.Cancel` / `Purchasing.Cancel` /
+  `Purchasing.Delete`; cancelling a draft sales order through the now `Sales.Cancel`-gated endpoint
+  succeeds (status → Cancelled).
+- **Remaining (CRUD governance):** split master-data `MasterData.Manage` into distinct Create/Edit/
+  Delete (deactivate) permissions, and give Chart-of-Accounts edit its own permission (today it reuses
+  `MasterData.Manage`).
+
+---
+
 ## [2026-06-21 14:30:03 UTC]
 
 CHG-0074 — Returns: credit/refund a settled invoice + returns list screens

@@ -41,11 +41,11 @@ public static class SalesEndpoints
         so.MapPut("/{id:guid}", (Guid id, UpdateSalesOrderBody body, ISender s, CancellationToken ct) =>
                 Send(s.Send(new UpdateSalesOrderCommand(
                     id, body.CustomerId, body.WarehouseId, body.OrderDate, body.Notes, body.Lines), ct)))
-            .RequireAuthorization("Sales.Create").WithName("UpdateSalesOrder");
+            .RequireAuthorization("Sales.Edit").WithName("UpdateSalesOrder");
 
         so.MapPost("/{id:guid}/cancel", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new CancelSalesOrderCommand(id), ct)))
-            .RequireAuthorization("Sales.Create").WithName("CancelSalesOrder");
+            .RequireAuthorization("Sales.Cancel").WithName("CancelSalesOrder");
 
         // --- Delivery orders (against a sales order) ---
         so.MapGet("/{id:guid}/deliveries", (Guid id, ISender s, CancellationToken ct) =>

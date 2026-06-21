@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Undo2, FileText, Pencil } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
+import { useAuthStore } from '@/stores/auth'
 import { downloadFile } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
@@ -25,6 +26,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const order = ref<PurchaseOrder | null>(null)
 const receipts = ref<GoodsReceiptSummary[]>([])
@@ -131,8 +133,11 @@ const hasUninvoiced = computed(
   () => order.value?.lines.some((l) => l.receivedQuantity - l.invoicedQuantity > 0) ?? false,
 )
 
+const canEdit = computed(() => order.value?.status === 'Draft' && auth.has('Purchasing.Edit'))
 const canCancel = computed(
-  () => order.value?.status === 'Draft' || order.value?.status === 'PendingApproval',
+  () =>
+    (order.value?.status === 'Draft' || order.value?.status === 'PendingApproval') &&
+    auth.has('Purchasing.Cancel'),
 )
 
 async function run(kind: 'submit' | 'receive' | 'invoice' | 'cancel', fn: () => Promise<unknown>) {
@@ -213,7 +218,7 @@ onMounted(load)
             <FileText :size="16" /> {{ t('purchasing.detail.pdf') }}
           </AppButton>
           <AppButton
-            v-if="order.status === 'Draft'"
+            v-if="canEdit"
             variant="secondary"
             :disabled="busy !== ''"
             @click="router.push({ name: 'purchaseOrderCreate', query: { edit: order.id } })"

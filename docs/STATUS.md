@@ -8,9 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-21 (last change **CHG-0074**)
+- **As of:** 2026-06-21 (last change **CHG-0075**)
 - **Build:** green — backend `net8.0` (291 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **returns against settled invoices (refund) + returns list screens** (CHG-0074); per-company
+  Latest: **distinct Edit/Cancel permissions for Sales & Purchasing documents** (CHG-0075);
+  **returns against settled invoices (refund) + returns list screens** (CHG-0074); per-company
   negative-stock policy (CHG-0073); Expenses on-account (Cr AP) + category edit/deactivate (CHG-0072);
   Chart-of-Accounts edit + activate/deactivate, new Accounts tab (CHG-0071); edit draft SO/PO
   (CHG-0070); list search + full-width content + gated VAT tab (CHG-0069); optional VAT (PKP) flag
@@ -83,8 +84,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   Remaining: a standalone return-detail page.
 - **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
   suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**; **draft
-  SO/PO cancel (CHG-0061) + edit (CHG-0070); CoA edit + deactivate (CHG-0071)**. Remaining: distinct
-  `*.Edit`/`*.Delete`/`*.Cancel` permissions. (BR-X-7/8.)
+  SO/PO cancel (CHG-0061) + edit (CHG-0070); CoA edit + deactivate (CHG-0071)**; **distinct
+  `Sales/Purchasing.Edit` + `.Cancel` permissions for documents (CHG-0075)**. Remaining: split
+  master-data `MasterData.Manage` into Create/Edit/Delete; a dedicated permission for CoA edit. (BR-X-7/8.)
 - **Expenses module (ADR-0030):** 🟡 done (CHG-0048/0072) — vouchers paid from cash/bank **or on
   account (Cr AP, opens an AP subledger item)**; category→GL via posting rules; atomic Dr Expense
   [+ VAT Input] / Cr Cash-Bank|AP; **category edit + activate/deactivate (CHG-0072)**. Remaining:

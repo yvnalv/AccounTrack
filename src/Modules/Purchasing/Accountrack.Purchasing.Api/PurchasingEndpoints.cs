@@ -39,11 +39,11 @@ public static class PurchasingEndpoints
         po.MapPut("/{id:guid}", (Guid id, UpdatePurchaseOrderBody body, ISender s, CancellationToken ct) =>
                 Send(s.Send(new UpdatePurchaseOrderCommand(
                     id, body.SupplierId, body.WarehouseId, body.OrderDate, body.Notes, body.Lines), ct)))
-            .RequireAuthorization("Purchasing.Create").WithName("UpdatePurchaseOrder");
+            .RequireAuthorization("Purchasing.Edit").WithName("UpdatePurchaseOrder");
 
         po.MapPost("/{id:guid}/cancel", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new CancelPurchaseOrderCommand(id), ct)))
-            .RequireAuthorization("Purchasing.Create").WithName("CancelPurchaseOrder");
+            .RequireAuthorization("Purchasing.Cancel").WithName("CancelPurchaseOrder");
 
         // --- Goods receipts (against a purchase order) ---
         po.MapGet("/{id:guid}/goods-receipts", (Guid id, ISender s, CancellationToken ct) =>
