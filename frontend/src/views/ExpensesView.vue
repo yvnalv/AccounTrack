@@ -151,7 +151,7 @@ async function save() {
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('expenses.new') }}</AppButton>
     </div>
 
-    <DataTable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('expenses.empty')">
+    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('expenses.empty')">
       <template #cell-payeeName="{ value }">{{ value || '—' }}</template>
       <template #cell-grandTotal="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-journalEntryId="{ value }">

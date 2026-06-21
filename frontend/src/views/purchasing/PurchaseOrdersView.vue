@@ -76,6 +76,7 @@ function open(row: Record<string, unknown>) {
     </div>
 
     <DataTable
+      searchable
       :columns="columns"
       :rows="rows"
       :loading="loading"

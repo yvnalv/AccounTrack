@@ -29,6 +29,7 @@ export default {
     showingRange: 'Showing {from}–{to} of {total}',
     prev: 'Previous',
     next: 'Next',
+    noResults: 'No matches.',
     insights: {
       orders: 'Orders',
       value: 'Total value',

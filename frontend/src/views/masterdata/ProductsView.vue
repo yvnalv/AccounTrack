@@ -167,7 +167,7 @@ async function toggleActive(row: Product) {
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.products.new') }}</AppButton>
     </div>
 
-    <DataTable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
       <template #cell-isStockTracked="{ value }">
         <Check v-if="value" :size="16" class="text-positive" /><Minus v-else :size="16" class="text-text-muted" />
       </template>

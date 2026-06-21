@@ -121,7 +121,7 @@ async function toggleActive(row: Supplier) {
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.suppliers.new') }}</AppButton>
     </div>
 
-    <DataTable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
       <template #cell-isActive="{ value }">
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />

@@ -1,23 +1,32 @@
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useCompanyStore } from '@/stores/company'
 
 const { t } = useI18n()
+const company = useCompanyStore()
 
-const tabs = [
-  { to: { name: 'accountingTrialBalance' }, label: t('accounting.tabs.trialBalance') },
-  { to: { name: 'accountingProfitLoss' }, label: t('accounting.tabs.profitLoss') },
-  { to: { name: 'accountingBalanceSheet' }, label: t('accounting.tabs.balanceSheet') },
-  { to: { name: 'accountingCashFlow' }, label: t('accounting.tabs.cashFlow') },
-  { to: { name: 'accountingGeneralLedger' }, label: t('accounting.tabs.generalLedger') },
-  { to: { name: 'accountingVat' }, label: t('accounting.tabs.vat') },
-  { to: { name: 'accountingPeriods' }, label: t('accounting.tabs.periods') },
-]
+onMounted(() => company.ensure())
+
+const tabs = computed(() => {
+  const all = [
+    { to: { name: 'accountingTrialBalance' }, label: t('accounting.tabs.trialBalance') },
+    { to: { name: 'accountingProfitLoss' }, label: t('accounting.tabs.profitLoss') },
+    { to: { name: 'accountingBalanceSheet' }, label: t('accounting.tabs.balanceSheet') },
+    { to: { name: 'accountingCashFlow' }, label: t('accounting.tabs.cashFlow') },
+    { to: { name: 'accountingGeneralLedger' }, label: t('accounting.tabs.generalLedger') },
+    // VAT report only matters for a VAT-registered (PKP) company.
+    ...(company.vatRegistered ? [{ to: { name: 'accountingVat' }, label: t('accounting.tabs.vat') }] : []),
+    { to: { name: 'accountingPeriods' }, label: t('accounting.tabs.periods') },
+  ]
+  return all
+})
 </script>
 
 <template>
   <div class="space-y-5">
-    <nav class="flex gap-1 border-b border-border">
+    <nav class="flex flex-wrap gap-1 border-b border-border">
       <RouterLink
         v-for="tab in tabs"
         :key="tab.label"

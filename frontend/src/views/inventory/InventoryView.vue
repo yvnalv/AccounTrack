@@ -150,6 +150,7 @@ async function submit() {
       <ExportMenu :download="(f) => downloadExport('/stock/on-hand/export', 'stock-on-hand', f)" />
     </div>
     <DataTable
+      searchable
       :columns="columns"
       :rows="rows"
       :loading="loading"

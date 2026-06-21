@@ -1,5 +1,22 @@
 # Accountrack Changelog
 
+## [2026-06-21 09:18:40 UTC]
+
+CHG-0069 — List search, full-width content, VAT tab gated
+
+- **Search on every list.** The shared `DataTable` gained an optional `searchable` box that filters
+  across the visible columns (case-insensitive) before pagination, with a "no matches" state and
+  page reset on query change. Enabled on Sales orders, Purchase orders, Inventory, Products,
+  Customers, Suppliers, Tax codes, Units, Categories, Warehouses, Expenses, and Approvals — so users
+  can find a row instead of scrolling. (Pagination — 12/page — applies to the filtered results.)
+- **Full-width content.** The main container no longer caps at 1600px left-aligned; it now fills the
+  area (centered, max 1920px) and **reflows as the sidebar collapses/expands**, so the screen is used.
+- **VAT report tab is hidden for non-PKP companies** (Accounting tabs now read the company VAT flag);
+  the tab row also wraps on narrow screens.
+- EN/ID (`common.noResults`). Frontend builds; backend unchanged.
+
+---
+
 ## [2026-06-21 08:41:05 UTC]
 
 CHG-0068 — Optional VAT: company VAT-registration (PKP) flag

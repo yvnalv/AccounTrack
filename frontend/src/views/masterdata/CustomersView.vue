@@ -132,7 +132,7 @@ async function toggleActive(row: Customer) {
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.customers.new') }}</AppButton>
     </div>
 
-    <DataTable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
       <template #cell-creditLimit="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-isActive="{ value }">

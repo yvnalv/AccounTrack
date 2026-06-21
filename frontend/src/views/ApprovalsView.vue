@@ -78,7 +78,7 @@ async function confirm() {
 </script>
 
 <template>
-  <DataTable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('approvals.empty')">
+  <DataTable searchable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('approvals.empty')">
     <template #cell-actions="{ row }">
       <div class="flex justify-end gap-2">
         <AppButton variant="secondary" @click="openDecision(row as unknown as ApprovalRequest, 'approve')">

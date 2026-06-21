@@ -80,7 +80,7 @@ async function toggleActive(row: UnitOfMeasure) {
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.unitsOfMeasure.new') }}</AppButton>
     </div>
 
-    <DataTable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
       <template #cell-isActive="{ value }">
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
       </template>

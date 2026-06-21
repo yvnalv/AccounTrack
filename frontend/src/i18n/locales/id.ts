@@ -30,6 +30,7 @@ export default {
     showingRange: 'Menampilkan {from}–{to} dari {total}',
     prev: 'Sebelumnya',
     next: 'Berikutnya',
+    noResults: 'Tidak ada yang cocok.',
     insights: {
       orders: 'Pesanan',
       value: 'Total nilai',

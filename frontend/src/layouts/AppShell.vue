@@ -48,9 +48,8 @@ const subtitle = computed(() =>
     <div class="flex min-w-0 flex-1 flex-col">
       <AppTopbar :title="title" :subtitle="subtitle" />
       <main class="flex-1 overflow-y-auto px-6 lg:px-8 pb-8">
-        <!-- Left-aligned cap: content hugs the sidebar at the same gutter as the top bar; any
-             extra width on very wide screens falls to the right, not as a left gap. -->
-        <div class="max-w-[1600px]">
+        <!-- Full-width: content fills the main area and reflows as the sidebar collapses/expands. -->
+        <div class="mx-auto w-full max-w-[1920px]">
           <RouterView />
         </div>
       </main>

@@ -83,7 +83,7 @@ async function toggleActive(row: TaxCode) {
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.taxCodes.new') }}</AppButton>
     </div>
 
-    <DataTable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
       <template #cell-rate="{ value }">{{ formatPercent(Number(value) * 100) }}</template>
       <template #cell-isActive="{ value }">
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
