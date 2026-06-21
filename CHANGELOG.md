@@ -1,5 +1,17 @@
 # Accountrack Changelog
 
+## [2026-06-21 07:14:33 UTC]
+
+CHG-0065 — Compact money on dashboard/insight cards (overflow fix)
+
+- Added `formatMoneyShort` (K / M / B / T suffixes, id-ID decimals, negatives in parentheses) and
+  applied it to the dashboard KPI tiles, the top-debtor/creditor amounts, and the per-menu insight
+  "total value" cards, so large IDR figures no longer overflow the cards — e.g. `IDR 5,9B` instead
+  of `IDR 5.895.334.250`, `(IDR 34,7M)` for a loss. Full-precision values remain in tables, tooltips,
+  and reports.
+
+---
+
 ## [2026-06-21 06:58:10 UTC]
 
 CHG-0064 — Per-menu insight cards above lists
