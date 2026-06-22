@@ -68,6 +68,14 @@ public static class AccountingEndpoints
             (await sender.Send(new ReopenFiscalPeriodCommand(id), ct)).ToHttpResult())
             .RequireAuthorization("Accounting.PeriodReopen").WithName("ReopenFiscalPeriod");
 
+        periods.MapGet("/{id:guid}/balances", async (Guid id, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetPeriodBalancesQuery(id), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.View").WithName("GetPeriodBalances");
+
+        periods.MapPost("/{id:guid}/balances/rebuild", async (Guid id, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new RebuildPeriodBalancesCommand(id), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.PeriodClose").WithName("RebuildPeriodBalances");
+
         // --- Journals ---
         var journals = app.MapGroup("/api/v1/journal-entries").WithTags("Journals").RequireAuthorization();
 

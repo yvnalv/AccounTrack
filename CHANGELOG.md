@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-06-22 16:07:02 UTC]
+
+CHG-0079 — Period-close balance snapshots (rebuildable)
+
+- Closing a fiscal period now writes a **`PeriodBalances`** snapshot — each account's cumulative
+  debit/credit as of the period end — so month-end positions and opening balances are available
+  without re-summing the whole ledger (ADR-0022). The snapshot is **always re-derivable from the GL**:
+  `POST /api/v1/fiscal-periods/{id}/balances/rebuild` recomputes it (`Accounting.PeriodClose`), and
+  reopening a period **drops** it, so it can never drift. `GET /api/v1/fiscal-periods/{id}/balances`
+  reads it (`Accounting.View`). New `PeriodBalance` entity (migration `AddPeriodBalances`) with the
+  account code/name denormalized for a stable point-in-time record.
+- **Frontend:** the Fiscal Periods screen gains a **Balances** action on closed/locked periods — a
+  modal listing the snapshot (account, debit, credit, totals) with a **Rebuild** button. EN/ID.
+- **Tests:** +4 (close snapshots non-zero mapped rows & clears any prior; reopen clears; rebuild
+  recomputes; unknown period rejected). Full suite **307** green; frontend builds.
+- **Verified (e2e):** closing Feb-2026 captured an **11-account, balanced** snapshot
+  (Dr = Cr = 12,005,131,064.29); reopening cleared it to 0 rows; rebuilding recomputed a balanced
+  snapshot.
+
+---
+
 ## [2026-06-21 15:35:20 UTC]
 
 CHG-0078 — Public organization sign-up

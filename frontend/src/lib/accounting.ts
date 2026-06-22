@@ -3,6 +3,7 @@ import type {
   AccountRef,
   CloseFiscalYearResult,
   FiscalYear,
+  PeriodBalance,
   SubledgerOpenItem,
 } from '@/types/accounting'
 
@@ -27,6 +28,8 @@ export const accountingApi = {
     unwrap<string>(http.post('/fiscal-years', { year, startMonth })),
   closePeriod: (id: string) => unwrap(http.post(`/fiscal-periods/${id}/close`, {})),
   reopenPeriod: (id: string) => unwrap(http.post(`/fiscal-periods/${id}/reopen`, {})),
+  periodBalances: (id: string) => unwrap<PeriodBalance[]>(http.get(`/fiscal-periods/${id}/balances`)),
+  rebuildPeriodBalances: (id: string) => unwrap(http.post(`/fiscal-periods/${id}/balances/rebuild`, {})),
   closeFiscalYear: (id: string) =>
     unwrap<CloseFiscalYearResult>(http.post(`/fiscal-years/${id}/close`, {})),
 }

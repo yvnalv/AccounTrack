@@ -25,6 +25,7 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
     public DbSet<PostingRule> PostingRules => Set<PostingRule>();
     public DbSet<SubledgerOpenItem> SubledgerOpenItems => Set<SubledgerOpenItem>();
     public DbSet<SubledgerAllocation> SubledgerAllocations => Set<SubledgerAllocation>();
+    public DbSet<PeriodBalance> PeriodBalances => Set<PeriodBalance>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,16 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
             b.ToTable("FiscalPeriods");
             b.Property(p => p.Status).HasConversion<int>();
             b.HasIndex(p => new { p.TenantId, p.CompanyId, p.StartDate, p.EndDate });
+        });
+
+        modelBuilder.Entity<PeriodBalance>(b =>
+        {
+            b.ToTable("PeriodBalances");
+            b.Property(x => x.AccountCode).IsRequired().HasMaxLength(32);
+            b.Property(x => x.AccountName).IsRequired().HasMaxLength(200);
+            b.Property(x => x.Debit).HasColumnType("decimal(19,4)");
+            b.Property(x => x.Credit).HasColumnType("decimal(19,4)");
+            b.HasIndex(x => new { x.TenantId, x.CompanyId, x.FiscalPeriodId });
         });
 
         modelBuilder.Entity<JournalEntry>(b =>

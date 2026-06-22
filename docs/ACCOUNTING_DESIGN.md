@@ -89,9 +89,12 @@ Invariants enforced before `Post`:
 - States: **Open** (posting allowed) → **Closed** (no posting; reopenable with
   `Accounting.PeriodReopen` permission, audited) → **Locked** (hard, e.g. after statutory
   filing; not reopenable without admin override).
-- **Period close** runs validations (e.g. no unposted documents flagged), writes
-  `AccountBalanceSnapshots`, and carries balances forward. Year-end close rolls P&L (Revenue −
-  Expense) into **Retained Earnings** and opens the next year.
+- **Period close** writes a **`PeriodBalances`** snapshot — each account's cumulative debit/credit as
+  of the period end — so reports can show month-end positions and opening balances without re-summing
+  the whole ledger. The snapshot is **rebuildable** from the GL at any time (`POST
+  /fiscal-periods/{id}/balances/rebuild`) and is dropped when a period is reopened, so it can never
+  drift from the ledger (ADR-0022; CHG-0079). Year-end close rolls P&L (Revenue − Expense) into
+  **Retained Earnings** and opens the next year.
 
 ## 7. Money, Rounding & Currency
 

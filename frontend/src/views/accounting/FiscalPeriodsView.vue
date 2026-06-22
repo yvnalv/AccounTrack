@@ -3,9 +3,10 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { accountingApi } from '@/lib/accounting'
 import { formatMoney } from '@/lib/format'
-import type { FiscalYear } from '@/types/accounting'
+import type { FiscalYear, PeriodBalance } from '@/types/accounting'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppCard from '@/components/ui/AppCard.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 const { t } = useI18n()
@@ -49,6 +50,38 @@ async function run(key: string, fn: () => Promise<unknown>) {
 const createYear = () => run('create', () => accountingApi.createFiscalYear(newYear.value))
 const closePeriod = (id: string) => run(`cp-${id}`, () => accountingApi.closePeriod(id))
 const reopenPeriod = (id: string) => run(`rp-${id}`, () => accountingApi.reopenPeriod(id))
+
+// --- Period balance snapshot ---
+const balancesOpen = ref(false)
+const balancesLoading = ref(false)
+const balancesPeriodId = ref('')
+const balancesTitle = ref('')
+const balances = ref<PeriodBalance[]>([])
+
+const totalDebit = () => balances.value.reduce((s, b) => s + b.debit, 0)
+const totalCredit = () => balances.value.reduce((s, b) => s + b.credit, 0)
+
+async function openBalances(year: number, periodNo: number, id: string) {
+  balancesPeriodId.value = id
+  balancesTitle.value = t('accounting.periods.balancesTitle', { year, period: periodNo })
+  balancesOpen.value = true
+  balancesLoading.value = true
+  try {
+    balances.value = await accountingApi.periodBalances(id)
+  } finally {
+    balancesLoading.value = false
+  }
+}
+
+async function rebuildBalances() {
+  balancesLoading.value = true
+  try {
+    await accountingApi.rebuildPeriodBalances(balancesPeriodId.value)
+    balances.value = await accountingApi.periodBalances(balancesPeriodId.value)
+  } finally {
+    balancesLoading.value = false
+  }
+}
 
 function closeYear(y: FiscalYear) {
   if (!window.confirm(t('accounting.periods.confirmCloseYear', { year: y.year }))) return
@@ -108,6 +141,13 @@ function closeYear(y: FiscalYear) {
             <td class="px-3 py-2"><StatusBadge :tone="tone(p.status)" :label="p.status" /></td>
             <td class="px-4 py-2 text-right">
               <button
+                v-if="p.status !== 'Open'"
+                class="rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                @click="openBalances(y.year, p.periodNo, p.id)"
+              >
+                {{ t('accounting.periods.balances') }}
+              </button>
+              <button
                 v-if="p.status === 'Open'"
                 class="rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
                 :disabled="busy === `cp-${p.id}`"
@@ -128,5 +168,48 @@ function closeYear(y: FiscalYear) {
         </tbody>
       </table>
     </AppCard>
+
+    <AppModal v-model="balancesOpen" :title="balancesTitle">
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-text-muted">{{ t('accounting.periods.balancesHint') }}</p>
+          <AppButton variant="ghost" :disabled="balancesLoading" @click="rebuildBalances">
+            {{ t('accounting.periods.rebuild') }}
+          </AppButton>
+        </div>
+        <p v-if="balancesLoading" class="text-sm text-text-muted">{{ t('common.loading') }}</p>
+        <p v-else-if="balances.length === 0" class="py-6 text-center text-sm text-text-muted">
+          {{ t('accounting.periods.balancesEmpty') }}
+        </p>
+        <div v-else class="overflow-hidden rounded-lg border border-border">
+          <table class="w-full text-sm">
+            <thead class="bg-surface-2 text-left text-xs text-text-muted">
+              <tr>
+                <th class="px-3 py-2 font-medium">{{ t('accounting.periods.account') }}</th>
+                <th class="px-3 py-2 text-right font-medium">{{ t('accounting.periods.debit') }}</th>
+                <th class="px-3 py-2 text-right font-medium">{{ t('accounting.periods.credit') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="b in balances" :key="b.accountCode" class="border-t border-border">
+                <td class="px-3 py-2"><span class="font-mono text-xs text-text-muted">{{ b.accountCode }}</span> {{ b.accountName }}</td>
+                <td class="px-3 py-2 text-right tnum">{{ b.debit ? formatMoney(b.debit) : '—' }}</td>
+                <td class="px-3 py-2 text-right tnum">{{ b.credit ? formatMoney(b.credit) : '—' }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="border-t-2 border-border font-semibold">
+                <td class="px-3 py-2 text-right">{{ t('accounting.periods.total') }}</td>
+                <td class="px-3 py-2 text-right tnum">{{ formatMoney(totalDebit()) }}</td>
+                <td class="px-3 py-2 text-right tnum">{{ formatMoney(totalCredit()) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <template #footer>
+        <AppButton variant="ghost" @click="balancesOpen = false">{{ t('masterData.close') }}</AppButton>
+      </template>
+    </AppModal>
   </div>
 </template>

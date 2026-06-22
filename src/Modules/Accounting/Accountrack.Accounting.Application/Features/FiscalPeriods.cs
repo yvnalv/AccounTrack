@@ -50,11 +50,17 @@ public sealed record CloseFiscalPeriodCommand(Guid PeriodId) : ICommand;
 public sealed class CloseFiscalPeriodCommandHandler : ICommandHandler<CloseFiscalPeriodCommand>
 {
     private readonly IFiscalPeriodRepository _periods;
+    private readonly IAccountingReadStore _store;
+    private readonly IAccountRepository _accounts;
     private readonly IAccountingUnitOfWork _uow;
 
-    public CloseFiscalPeriodCommandHandler(IFiscalPeriodRepository periods, IAccountingUnitOfWork uow)
+    public CloseFiscalPeriodCommandHandler(
+        IFiscalPeriodRepository periods, IAccountingReadStore store, IAccountRepository accounts,
+        IAccountingUnitOfWork uow)
     {
         _periods = periods;
+        _store = store;
+        _accounts = accounts;
         _uow = uow;
     }
 
@@ -67,8 +73,40 @@ public sealed class CloseFiscalPeriodCommandHandler : ICommandHandler<CloseFisca
         }
 
         period.Close();
+        // Snapshot the cumulative closing balances as of the period end (ADR-0022).
+        await PeriodBalanceSnapshot.RebuildAsync(period, _periods, _store, _accounts, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         return Result.Success();
+    }
+}
+
+/// <summary>Recomputes a period's closing-balance snapshot from the GL (rebuildable — ADR-0022).</summary>
+internal static class PeriodBalanceSnapshot
+{
+    public static async Task RebuildAsync(
+        FiscalPeriod period, IFiscalPeriodRepository periods, IAccountingReadStore store,
+        IAccountRepository accounts, CancellationToken ct)
+    {
+        await periods.ClearPeriodBalancesAsync(period.Id, ct);
+
+        var rows = await store.GetTrialBalanceAsync(null, period.EndDate, ct);
+        var idByCode = (await accounts.ListAsync(ct)).ToDictionary(a => a.Code, a => a.Id);
+
+        foreach (var row in rows)
+        {
+            if (row.Debit == 0m && row.Credit == 0m)
+            {
+                continue;
+            }
+
+            if (!idByCode.TryGetValue(row.AccountCode, out var accountId))
+            {
+                continue;
+            }
+
+            periods.AddPeriodBalance(new PeriodBalance(
+                period.Id, accountId, row.AccountCode, row.AccountName, row.Debit, row.Credit));
+        }
     }
 }
 
@@ -94,8 +132,59 @@ public sealed class ReopenFiscalPeriodCommandHandler : ICommandHandler<ReopenFis
         }
 
         period.Reopen();
+        // The snapshot is stale once the period reopens for posting; drop it (rebuilt on next close).
+        await _periods.ClearPeriodBalancesAsync(period.Id, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         return Result.Success();
+    }
+}
+
+public sealed record RebuildPeriodBalancesCommand(Guid PeriodId) : ICommand;
+
+public sealed class RebuildPeriodBalancesCommandHandler : ICommandHandler<RebuildPeriodBalancesCommand>
+{
+    private readonly IFiscalPeriodRepository _periods;
+    private readonly IAccountingReadStore _store;
+    private readonly IAccountRepository _accounts;
+    private readonly IAccountingUnitOfWork _uow;
+
+    public RebuildPeriodBalancesCommandHandler(
+        IFiscalPeriodRepository periods, IAccountingReadStore store, IAccountRepository accounts,
+        IAccountingUnitOfWork uow)
+    {
+        _periods = periods;
+        _store = store;
+        _accounts = accounts;
+        _uow = uow;
+    }
+
+    public async Task<Result> Handle(RebuildPeriodBalancesCommand request, CancellationToken ct)
+    {
+        var period = await _periods.GetPeriodByIdAsync(request.PeriodId, ct);
+        if (period is null)
+        {
+            return AccountingErrors.PeriodNotFound;
+        }
+
+        await PeriodBalanceSnapshot.RebuildAsync(period, _periods, _store, _accounts, ct);
+        await _uow.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+}
+
+public sealed record GetPeriodBalancesQuery(Guid PeriodId) : IQuery<IReadOnlyList<PeriodBalanceDto>>;
+
+public sealed class GetPeriodBalancesQueryHandler : IQueryHandler<GetPeriodBalancesQuery, IReadOnlyList<PeriodBalanceDto>>
+{
+    private readonly IFiscalPeriodRepository _periods;
+    public GetPeriodBalancesQueryHandler(IFiscalPeriodRepository periods) => _periods = periods;
+
+    public async Task<Result<IReadOnlyList<PeriodBalanceDto>>> Handle(GetPeriodBalancesQuery request, CancellationToken ct)
+    {
+        var balances = await _periods.GetPeriodBalancesAsync(request.PeriodId, ct);
+        return Result.Success<IReadOnlyList<PeriodBalanceDto>>(balances
+            .Select(b => new PeriodBalanceDto(b.AccountCode, b.AccountName, b.Debit, b.Credit))
+            .ToList());
     }
 }
 

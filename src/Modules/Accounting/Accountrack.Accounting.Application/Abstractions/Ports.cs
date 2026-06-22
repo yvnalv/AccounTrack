@@ -21,6 +21,11 @@ public interface IFiscalPeriodRepository
     Task<FiscalPeriod?> GetPeriodByIdAsync(Guid id, CancellationToken ct);
     Task<FiscalYear?> GetFiscalYearByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<FiscalYear>> ListYearsWithPeriodsAsync(CancellationToken ct);
+
+    // Period-close balance snapshots (ADR-0022).
+    void AddPeriodBalance(PeriodBalance balance);
+    Task ClearPeriodBalancesAsync(Guid fiscalPeriodId, CancellationToken ct);
+    Task<IReadOnlyList<PeriodBalance>> GetPeriodBalancesAsync(Guid fiscalPeriodId, CancellationToken ct);
 }
 
 public interface IJournalRepository

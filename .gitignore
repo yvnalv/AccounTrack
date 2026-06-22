@@ -198,3 +198,5 @@ $RECYCLE.BIN/
 # Local e2e API logs
 api-out.log
 api-err.log
+vite-out.log
+vite-err.log

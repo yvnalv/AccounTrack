@@ -48,6 +48,18 @@ public sealed class FiscalPeriodRepository : IFiscalPeriodRepository
 
     public async Task<IReadOnlyList<FiscalYear>> ListYearsWithPeriodsAsync(CancellationToken ct) =>
         await _db.FiscalYears.Include(fy => fy.Periods).OrderBy(fy => fy.Year).ToListAsync(ct);
+
+    public void AddPeriodBalance(PeriodBalance balance) => _db.PeriodBalances.Add(balance);
+
+    public async Task ClearPeriodBalancesAsync(Guid fiscalPeriodId, CancellationToken ct)
+    {
+        var existing = await _db.PeriodBalances.Where(b => b.FiscalPeriodId == fiscalPeriodId).ToListAsync(ct);
+        _db.PeriodBalances.RemoveRange(existing);
+    }
+
+    public async Task<IReadOnlyList<PeriodBalance>> GetPeriodBalancesAsync(Guid fiscalPeriodId, CancellationToken ct) =>
+        await _db.PeriodBalances.Where(b => b.FiscalPeriodId == fiscalPeriodId)
+            .OrderBy(b => b.AccountCode).ToListAsync(ct);
 }
 
 public sealed class JournalRepository : IJournalRepository

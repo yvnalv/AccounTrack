@@ -45,3 +45,10 @@ export interface CloseFiscalYearResult {
   journalEntryId: string | null
   netIncome: number
 }
+
+export interface PeriodBalance {
+  accountCode: string
+  accountName: string
+  debit: number
+  credit: number
+}
