@@ -138,8 +138,19 @@ public static class MasterDataEndpoints
     public sealed record UpdateWarehouseBody(string Name, string? Address);
     public sealed record UpdateProductBody(string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased);
 
+    /// <summary>Reads an uploaded import file as CSV text, converting an .xlsx upload on the fly so
+    /// the CSV import pipeline ingests both formats unchanged (ADR-0031).</summary>
     private static async Task<string> ReadAsync(IFormFile file, CancellationToken ct)
     {
+        var isXlsx = file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)
+            || (file.ContentType?.Contains("spreadsheetml", StringComparison.OrdinalIgnoreCase) ?? false);
+
+        if (isXlsx)
+        {
+            await using var xlsx = file.OpenReadStream();
+            return Accountrack.Web.Common.Import.ExcelReader.ToCsv(xlsx);
+        }
+
         using var reader = new StreamReader(file.OpenReadStream());
         return await reader.ReadToEndAsync(ct);
     }

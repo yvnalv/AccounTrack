@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-06-22 16:18:25 UTC]
+
+CHG-0080 — Excel (.xlsx) master-data import
+
+- The two-step master-data import (dry-run preview → commit) now accepts **Excel `.xlsx`** files in
+  addition to CSV, for all four entities (products, customers, suppliers, warehouses) — handy for a
+  freshly signed-up org loading data straight from a spreadsheet (ADR-0031). A new `ExcelReader`
+  (Web.Common, ClosedXML) converts the first worksheet to CSV at the API boundary, so the entire
+  existing parse/validate/preview/commit pipeline is reused unchanged. Numbers, booleans and dates are
+  emitted in an invariant, parser-friendly form; the upload is detected by extension/content-type.
+- **Frontend:** the Import picker on each master-data list now accepts `.xlsx` as well as `.csv`
+  (messaging is already format-neutral; the CSV template opens directly in Excel).
+- **Tests:** +3 (`ExcelReader` converts typed cells — number `0.11`, boolean `true`, integers;
+  comma-containing values round-trip via quoting; a blank sheet yields empty). Full suite **310**
+  green; frontend builds.
+- **Verified (e2e):** exported 12 products to a real `.xlsx`, then re-imported it — preview parsed all
+  12 rows with 0 errors and commit updated 12.
+
+---
+
 ## [2026-06-22 16:07:02 UTC]
 
 CHG-0079 — Period-close balance snapshots (rebuildable)

@@ -110,7 +110,7 @@ async function toggleActive(row: Supplier) {
   <div class="space-y-4">
     <InsightCards :items="insights" />
     <div class="flex flex-wrap items-center justify-end gap-2">
-      <input ref="fileInput" type="file" accept=".csv,text/csv" class="hidden" @change="onFileChosen" />
+      <input ref="fileInput" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden" @change="onFileChosen" />
       <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.template()">
         <FileDown :size="16" /> {{ t('masterData.import.template') }}
       </button>

@@ -8,10 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-22 (last change **CHG-0079**)
-- **Build:** green — backend `net8.0` (307 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **period-close balance snapshots** (rebuildable, ADR-0022) with a Balances modal on the
-  Periods screen (CHG-0079); **public organization sign-up** — self-serve tenant+company+admin
+- **As of:** 2026-06-22 (last change **CHG-0080**)
+- **Build:** green — backend `net8.0` (310 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Excel (.xlsx) master-data import** (CHG-0080); **period-close balance snapshots**
+  (rebuildable, ADR-0022) with a Balances modal on the Periods screen (CHG-0079); **public
+  organization sign-up** — self-serve tenant+company+admin
   provisioning with a /register page (CHG-0078); **user management** — list/create/edit users, assign
   roles + company access (CHG-0077);
   **dynamic roles & access management** — 6 seeded standard roles, editable permission matrix in
@@ -99,13 +100,13 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   account (Cr AP, opens an AP subledger item)**; category→GL via posting rules; atomic Dr Expense
   [+ VAT Input] / Cr Cash-Bank|AP; **category edit + activate/deactivate (CHG-0072)**. Remaining:
   approvals. (BR-EXP-*.)
-- **Data Import/Export (ADR-0031):** 🟡 CSV **import** for all four master-data entities
-  (CHG-0049/0050); **CSV + Excel export** across all list menus — master data, sales orders, purchase
-  orders, inventory on-hand, expenses (CHG-0051, ClosedXML/MIT); **PDF** documents — Invoice +
-  Quotation (CHG-0052), **purchase-document PDFs** PO + bill (CHG-0054) — and **report PDFs**
-  TB/P&L/BS/VAT (CHG-0053), all QuestPDF, with the **brand logo** embedded as vector SVG (CHG-0054).
-  Remaining: optional Plus Jakarta Sans font embedding, list-export-with-active-filters, Excel
-  *import*, async large files. (BR-IMP-*.)
+- **Data Import/Export (ADR-0031):** 🟡 **CSV + Excel (.xlsx) import** for all four master-data
+  entities (CHG-0049/0050; **Excel import — CHG-0080**); **CSV + Excel export** across all list menus —
+  master data, sales orders, purchase orders, inventory on-hand, expenses (CHG-0051, ClosedXML/MIT);
+  **PDF** documents — Invoice + Quotation (CHG-0052), **purchase-document PDFs** PO + bill (CHG-0054) —
+  and **report PDFs** TB/P&L/BS/VAT (CHG-0053), all QuestPDF, with the **brand logo** embedded as
+  vector SVG (CHG-0054). Remaining: optional Plus Jakarta Sans font embedding,
+  list-export-with-active-filters, async large files. (BR-IMP-*.)
 - **Accounting slice 2:** ✅ complete — **period-close balance snapshots (rebuildable, ADR-0022 —
   CHG-0079)**. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017; AR/AP subledgers —
   CHG-0018; **Cash Flow — CHG-0056**; **year-end close to retained earnings — CHG-0059**.)
