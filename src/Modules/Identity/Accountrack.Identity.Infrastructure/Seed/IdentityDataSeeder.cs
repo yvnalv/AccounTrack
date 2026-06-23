@@ -87,9 +87,11 @@ public static class IdentityDataSeeder
     /// </summary>
     private static async Task EnsureAdminHasAllPermissionsAsync(IdentityDbContext db, CancellationToken ct)
     {
+        // Scope to the dev tenant: with public sign-up, other tenants also have an Administrator role,
+        // so an unfiltered FirstOrDefault could grant new permissions to the wrong tenant's admin.
         var adminRoleId = await db.Roles
             .IgnoreQueryFilters()
-            .Where(r => r.Name == SystemRoles.Administrator && r.IsSystem && !r.IsDeleted)
+            .Where(r => r.TenantId == DevTenantId && r.Name == SystemRoles.Administrator && r.IsSystem && !r.IsDeleted)
             .Select(r => r.Id)
             .FirstOrDefaultAsync(ct);
         if (adminRoleId == Guid.Empty)

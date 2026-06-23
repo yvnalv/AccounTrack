@@ -12,8 +12,10 @@ import DataTable from '@/components/ui/DataTable.vue'
 import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { Column } from '@/components/ui/types'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 const rows = ref<AccountRef[]>([])
 const loading = ref(true)
 const modalOpen = ref(false)
@@ -96,7 +98,7 @@ async function toggleActive(row: AccountRef) {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-end">
-      <AppButton @click="openNew"><Plus :size="16" /> {{ t('accounting.coa.new') }}</AppButton>
+      <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('accounting.coa.new') }}</AppButton>
     </div>
 
     <p v-if="error" class="text-sm text-negative">{{ error }}</p>
@@ -120,13 +122,14 @@ async function toggleActive(row: AccountRef) {
       <template #cell-actions="{ row }">
         <div class="flex items-center justify-end gap-1">
           <button
+            v-if="auth.has('MasterData.Edit')"
             class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
             @click="openEdit(row as unknown as AccountRef)"
           >
             <Pencil :size="14" /> {{ t('masterData.edit') }}
           </button>
           <button
-            v-if="!(row as unknown as AccountRef).isSystem"
+            v-if="auth.has('MasterData.Delete') && !(row as unknown as AccountRef).isSystem"
             class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:bg-surface-2"
             :class="(row as unknown as AccountRef).isActive ? 'text-negative' : 'text-positive'"
             @click="toggleActive(row as unknown as AccountRef)"

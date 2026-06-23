@@ -1,5 +1,30 @@
 # Accountrack Changelog
 
+## [2026-06-23 14:08:29 UTC]
+
+CHG-0081 — Split master-data permissions into Create / Edit / Delete (+ seeding fix)
+
+- The coarse **`MasterData.Manage`** permission is replaced by distinct **`MasterData.Create`**,
+  **`MasterData.Edit`**, **`MasterData.Delete`** (deactivate) across all master-data endpoints
+  (products, customers, suppliers, warehouses, units, categories, tax codes) **and the Chart of
+  Accounts** — closing the CHG-0071 gap where CoA reused `MasterData.Manage` (ADR-0029, BR-X-7/8,
+  segregation of duties). Create→`POST`, Edit→`PUT`, Delete→`PUT …/active`.
+- **Frontend:** the shared `RowActions` (edit/deactivate) is gated by `MasterData.Edit` /
+  `MasterData.Delete`, and every master-data + CoA **New** button by `MasterData.Create`, so users see
+  only the actions they hold.
+- **Seeding fix:** `EnsureAdminHasAllPermissions` now scopes to the **dev tenant's** Administrator
+  role. With public sign-up, other tenants also have an Administrator role, and the previous
+  unfiltered `FirstOrDefault` could grant newly-added catalog permissions to the wrong tenant's admin
+  (which is exactly what hid the new master-data permissions from the dev admin until fixed).
+- **Tests:** full suite **310** green (incl. integration after the seeder change); frontend builds.
+- **Verified (e2e):** a custom **CreatorOnly** role (only `MasterData.Create`) can create a supplier
+  but is **403** on edit and on deactivate; the Administrator (after re-seed) holds Create/Edit/Delete
+  and can do all three.
+- **Note:** the legacy `MasterData.Manage` permission row may persist in existing databases; it is no
+  longer referenced by any endpoint and is harmless (the Administrator role shows as “full access”).
+
+---
+
 ## [2026-06-22 16:18:25 UTC]
 
 CHG-0080 — Excel (.xlsx) master-data import

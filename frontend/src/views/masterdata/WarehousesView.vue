@@ -15,8 +15,10 @@ import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import RowActions from '@/components/ui/RowActions.vue'
 import type { Column } from '@/components/ui/types'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 const rows = ref<Warehouse[]>([])
 
 const io = masterData.warehouseImport
@@ -96,7 +98,7 @@ async function toggleActive(row: Warehouse) {
       <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="pick">
         <Upload :size="16" /> {{ t('masterData.import.import') }}
       </button>
-      <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.warehouses.new') }}</AppButton>
+      <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.warehouses.new') }}</AppButton>
     </div>
 
     <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">

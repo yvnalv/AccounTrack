@@ -8,9 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-22 (last change **CHG-0080**)
+- **As of:** 2026-06-23 (last change **CHG-0081**)
 - **Build:** green — backend `net8.0` (310 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Excel (.xlsx) master-data import** (CHG-0080); **period-close balance snapshots**
+  Latest: **granular master-data + CoA permissions** (Create/Edit/Delete, replacing MasterData.Manage;
+  CHG-0081); **Excel (.xlsx) master-data import** (CHG-0080); **period-close balance snapshots**
   (rebuildable, ADR-0022) with a Balances modal on the Periods screen (CHG-0079); **public
   organization sign-up** — self-serve tenant+company+admin
   provisioning with a /register page (CHG-0078); **user management** — list/create/edit users, assign
@@ -91,11 +92,11 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   subledger; ✅ **settled-invoice refund + returns list screens (CHG-0074)** — returning a paid
   invoice refunds the excess to a chosen cash/bank account; dedicated sales/purchase returns lists.
   Remaining: a standalone return-detail page.
-- **CRUD completion (ADR-0029):** 🟡 master data Edit + activate/deactivate done for customers/
+- **CRUD completion (ADR-0029):** ✅ master data Edit + activate/deactivate for customers/
   suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**; **draft
   SO/PO cancel (CHG-0061) + edit (CHG-0070); CoA edit + deactivate (CHG-0071)**; **distinct
-  `Sales/Purchasing.Edit` + `.Cancel` permissions for documents (CHG-0075)**. Remaining: split
-  master-data `MasterData.Manage` into Create/Edit/Delete; a dedicated permission for CoA edit. (BR-X-7/8.)
+  `Sales/Purchasing.Edit` + `.Cancel` permissions (CHG-0075)**; **master-data + CoA `Create`/`Edit`/
+  `Delete` permissions, replacing `MasterData.Manage` (CHG-0081)**. (BR-X-7/8.)
 - **Expenses module (ADR-0030):** 🟡 done (CHG-0048/0072) — vouchers paid from cash/bank **or on
   account (Cr AP, opens an AP subledger item)**; category→GL via posting rules; atomic Dr Expense
   [+ VAT Input] / Cr Cash-Bank|AP; **category edit + activate/deactivate (CHG-0072)**. Remaining:

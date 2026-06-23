@@ -33,15 +33,15 @@ public static class AccountingEndpoints
 
         accounts.MapPost("/", async (CreateAccountCommand cmd, ISender sender, CancellationToken ct) =>
             (await sender.Send(cmd, ct)).ToCreatedResult("/api/v1/accounts"))
-            .RequireAuthorization("MasterData.Manage").WithName("CreateAccount");
+            .RequireAuthorization("MasterData.Create").WithName("CreateAccount");
 
         accounts.MapPut("/{id:guid}", async (Guid id, UpdateAccountBody body, ISender sender, CancellationToken ct) =>
             (await sender.Send(new UpdateAccountCommand(id, body.Name, body.AllowPosting), ct)).ToHttpResult())
-            .RequireAuthorization("MasterData.Manage").WithName("UpdateAccount");
+            .RequireAuthorization("MasterData.Edit").WithName("UpdateAccount");
 
         accounts.MapPut("/{id:guid}/active", async (Guid id, SetActiveBody body, ISender sender, CancellationToken ct) =>
             (await sender.Send(new SetAccountActiveCommand(id, body.IsActive), ct)).ToHttpResult())
-            .RequireAuthorization("MasterData.Manage").WithName("SetAccountActive");
+            .RequireAuthorization("MasterData.Delete").WithName("SetAccountActive");
 
         // --- Fiscal years & periods ---
         var fiscal = app.MapGroup("/api/v1/fiscal-years").WithTags("Fiscal Periods").RequireAuthorization();

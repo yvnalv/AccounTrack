@@ -16,8 +16,10 @@ import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import RowActions from '@/components/ui/RowActions.vue'
 import type { Column } from '@/components/ui/types'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 const rows = ref<Supplier[]>([])
 
 const insights = computed<Insight[]>(() => {
@@ -118,7 +120,7 @@ async function toggleActive(row: Supplier) {
       <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="pick">
         <Upload :size="16" /> {{ t('masterData.import.import') }}
       </button>
-      <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.suppliers.new') }}</AppButton>
+      <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.suppliers.new') }}</AppButton>
     </div>
 
     <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">

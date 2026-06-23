@@ -33,7 +33,9 @@ public static class PermissionCatalog
     public const string AccountingPeriodReopen = "Accounting.PeriodReopen";
 
     public const string MasterDataView = "MasterData.View";
-    public const string MasterDataManage = "MasterData.Manage";
+    public const string MasterDataCreate = "MasterData.Create";
+    public const string MasterDataEdit = "MasterData.Edit";
+    public const string MasterDataDelete = "MasterData.Delete";
     public const string MasterDataImport = "MasterData.Import";
     public const string MasterDataExport = "MasterData.Export";
 
@@ -75,7 +77,9 @@ public static class PermissionCatalog
         (AccountingPeriodClose, "Close Fiscal Period"),
         (AccountingPeriodReopen, "Reopen Fiscal Period"),
         (MasterDataView, "View Master Data"),
-        (MasterDataManage, "Manage Master Data"),
+        (MasterDataCreate, "Create Master Data"),
+        (MasterDataEdit, "Edit Master Data"),
+        (MasterDataDelete, "Deactivate Master Data"),
         (MasterDataImport, "Import Master Data"),
         (MasterDataExport, "Export Master Data"),
         (ExpensesView, "View Expenses"),

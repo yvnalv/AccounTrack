@@ -13,8 +13,10 @@ import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import RowActions from '@/components/ui/RowActions.vue'
 import type { Column } from '@/components/ui/types'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 const rows = ref<TaxCode[]>([])
 const loading = ref(true)
 const modalOpen = ref(false)
@@ -80,7 +82,7 @@ async function toggleActive(row: TaxCode) {
 <template>
   <div class="space-y-4">
     <div class="flex justify-end">
-      <AppButton @click="openNew"><Plus :size="16" /> {{ t('masterData.taxCodes.new') }}</AppButton>
+      <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.taxCodes.new') }}</AppButton>
     </div>
 
     <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
