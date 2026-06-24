@@ -18,7 +18,7 @@ public class ApprovalHandlerTests
     private readonly ICurrentUser _user = Substitute.For<ICurrentUser>();
     private readonly IClock _clock = Substitute.For<IClock>();
     private readonly IApprovalUnitOfWork _uow = Substitute.For<IApprovalUnitOfWork>();
-    private readonly IIntegrationEventPublisher _events = Substitute.For<IIntegrationEventPublisher>();
+    private readonly IOutbox _outbox = Substitute.For<IOutbox>();
 
     public ApprovalHandlerTests() => _clock.UtcNow.Returns(Now);
 
@@ -30,8 +30,8 @@ public class ApprovalHandlerTests
         return def;
     }
 
-    private SubmitForApprovalHandler SubmitHandler() => new(_defs, _reqs, _user, _uow, _events);
-    private DecideApprovalHandler DecideHandler() => new(_reqs, _user, _clock, _uow, _events);
+    private SubmitForApprovalHandler SubmitHandler() => new(_defs, _reqs, _user, _uow, _outbox);
+    private DecideApprovalHandler DecideHandler() => new(_reqs, _user, _clock, _uow, _outbox);
 
     [Fact]
     public async Task Submit_creates_a_pending_request_when_a_definition_matches()
@@ -110,5 +110,8 @@ public class ApprovalHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be("Approved");
         await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        // The decision event is staged in the outbox (committed with the request, delivered async).
+        _outbox.Received(1).Enqueue(Arg.Is<Accountrack.Modules.Contracts.Events.ApprovalDecided>(
+            e => e.RequestId == request.Id && e.Approved));
     }
 }

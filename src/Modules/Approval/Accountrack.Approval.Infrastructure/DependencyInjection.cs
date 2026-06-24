@@ -35,6 +35,12 @@ public static class DependencyInjection
         services.AddScoped<IApprovalRequestRepository, ApprovalRequestRepository>();
         services.AddScoped<Modules.Contracts.Approval.IApprovalService, ApprovalService>();
 
+        // Transactional outbox: events raised by approval decisions commit with the Approval context,
+        // then the background dispatcher delivers them (ADR-0007).
+        services.AddScoped<OutboxStore>();
+        services.AddScoped<Accountrack.Application.Abstractions.Integration.IOutbox>(sp => sp.GetRequiredService<OutboxStore>());
+        services.AddScoped<Accountrack.Application.Abstractions.Integration.IOutboxStore>(sp => sp.GetRequiredService<OutboxStore>());
+
         var applicationAssembly = typeof(SubmitForApprovalCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));
         services.AddValidatorsFromAssembly(applicationAssembly);

@@ -61,16 +61,27 @@ public sealed class HttpContextTenantContext : ITenantContext
     public const string CompanyHeader = "X-Company-Id";
 
     private readonly IHttpContextAccessor _accessor;
+    private readonly Accountrack.Application.Abstractions.Integration.IAmbientTenant _ambient;
 
-    public HttpContextTenantContext(IHttpContextAccessor accessor) => _accessor = accessor;
+    public HttpContextTenantContext(
+        IHttpContextAccessor accessor, Accountrack.Application.Abstractions.Integration.IAmbientTenant ambient)
+    {
+        _accessor = accessor;
+        _ambient = ambient;
+    }
 
     private ClaimsPrincipal? Principal => _accessor.HttpContext?.User;
 
+    /// <summary>True when there is no HTTP request and a background scope (the outbox dispatcher) set the tenant.</summary>
+    private bool UseAmbient => _accessor.HttpContext is null && _ambient.IsSet;
+
     public Guid TenantId =>
-        Guid.TryParse(Principal?.FindFirstValue(AccountrackClaims.TenantId), out var id) ? id : Guid.Empty;
+        UseAmbient ? _ambient.TenantId
+        : Guid.TryParse(Principal?.FindFirstValue(AccountrackClaims.TenantId), out var id) ? id : Guid.Empty;
 
     public IReadOnlyCollection<Guid> GrantedCompanyIds =>
-        Principal?.FindAll(AccountrackClaims.Company)
+        UseAmbient ? new[] { _ambient.CompanyId }
+        : Principal?.FindAll(AccountrackClaims.Company)
             .Select(c => Guid.TryParse(c.Value, out var g) ? g : Guid.Empty)
             .Where(g => g != Guid.Empty)
             .ToArray() ?? Array.Empty<Guid>();
@@ -79,6 +90,11 @@ public sealed class HttpContextTenantContext : ITenantContext
     {
         get
         {
+            if (UseAmbient)
+            {
+                return _ambient.CompanyId;
+            }
+
             var granted = GrantedCompanyIds;
             var header = _accessor.HttpContext?.Request.Headers[CompanyHeader].ToString();
 
@@ -92,7 +108,7 @@ public sealed class HttpContextTenantContext : ITenantContext
         }
     }
 
-    public bool IsSet => IsAuthenticatedTenant();
+    public bool IsSet => UseAmbient || IsAuthenticatedTenant();
 
     private bool IsAuthenticatedTenant() =>
         (Principal?.Identity?.IsAuthenticated ?? false) && TenantId != Guid.Empty;

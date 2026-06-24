@@ -8,9 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-24 (last change **CHG-0082**)
-- **Build:** green — backend `net8.0` (315 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **expense voucher approvals** — threshold-gated, posts on approval (CHG-0082); **granular
+- **As of:** 2026-06-24 (last change **CHG-0083**)
+- **Build:** green — backend `net8.0` (320 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **durable transactional outbox** for approval events — staged in the approval txn, delivered
+  async by a background dispatcher, exactly-once per handler via a `platform.InboxState` de-dup
+  (CHG-0083); **expense voucher approvals** — threshold-gated, posts on approval (CHG-0082); **granular
   master-data + CoA permissions** (Create/Edit/Delete, replacing MasterData.Manage; CHG-0081);
   **Excel (.xlsx) master-data import** (CHG-0080); **period-close balance snapshots**
   (rebuildable, ADR-0022) with a Balances modal on the Periods screen (CHG-0079); **public
@@ -32,8 +34,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
   Bahasa Indonesia**, and a **⌘K command palette**, plus **Settings** — company/profile/preferences
   (CHG-0041). Every nav item now has a real UI; no placeholders remain. Reusable
   DataTable/StatusBadge/form/modal kit. **Idempotency** for posting/create commands landed
-  (CHG-0040); the **cross-tenant isolation suite** landed (CHG-0042). Next: backend debts
-  (period-close snapshots, durable outbox); returns. (VAT report — done, CHG-0043.)
+  (CHG-0040); the **cross-tenant isolation suite** landed (CHG-0042). Backend debts cleared:
+  **period-close snapshots** (CHG-0079) and **durable outbox** (CHG-0083) done. (VAT report — done, CHG-0043.)
 - **Phase 1 foundation complete.** Phase 2: Accounting(s1), Master Data, Inventory(s1), Purchasing(s1) done.
 - **Backend only.** No frontend yet (pending a UI/UX design discussion — see Deferred).
 - **Dev login:** `admin@accountrack.local` / `ChangeMe!123` · Swagger: `http://localhost:5080/swagger`
@@ -118,6 +120,11 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
   `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
   flows will reuse it.
+- **Durable transactional outbox (ADR-0007):** ✅ live for the **Approval** module (CHG-0083) —
+  `ApprovalSubmitted`/`ApprovalDecided` staged in `approval.OutboxMessages` in the same txn, delivered
+  by a background `OutboxDispatcherService`, exactly-once per handler via `platform.InboxState`,
+  tenant restored per message via `IAmbientTenant`. Remaining: migrate the remaining in-process
+  producers onto the outbox; dead-letter surfacing for messages past the attempt cap.
 - **Idempotency for atomic flows:** ✅ command-level idempotency done (CHG-0040) —
   `IdempotencyBehavior` keyed off the `Idempotency-Key` header dedupes replays of the posting/create
   commands (ADR-0021). Remaining hardening: write the key in the same transaction (exactly-once) +

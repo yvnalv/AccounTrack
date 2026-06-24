@@ -18,6 +18,18 @@ The contract catalog for inter-module communication. Modules never read each oth
   `TenantId`/`CompanyId` travel on the envelope so async handlers can reconstruct tenant context
   (MULTI_TENANCY.md §3).
 
+**Implementation (CHG-0083).** The durable outbox is live for the **Approval** module (first
+producer). `ApprovalSubmitted`/`ApprovalDecided` are enqueued via `IOutbox` into
+`approval.OutboxMessages` in the *same* `SaveChanges` as the request/decision. A hosted
+`OutboxDispatcherService` polls pending rows (batch 50, 2s interval, 10-attempt cap) and delivers
+each in its own DI scope. The de-dup "inbox" is `platform.InboxState`, keyed by `(Handler, EventId)`
+and checked before each handler runs, so at-least-once redelivery is effectively **exactly-once per
+handler** (no consumer change needed for the append-only ProcessTracker/Notification consumers). A
+settable `IAmbientTenant` restores the originating tenant/company per message (the request-time
+`ITenantContext` falls back to it when there is no HTTP request). Both platform/module stores use
+their own connection — never the cross-module transaction. Other producers still use the in-process
+publisher until migrated onto the outbox.
+
 ## 2. Consistency Policy — Atomic vs Eventual
 
 | Effect | Mode | Why |

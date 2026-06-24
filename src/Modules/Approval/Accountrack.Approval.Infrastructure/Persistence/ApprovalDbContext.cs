@@ -1,6 +1,7 @@
 using Accountrack.Application.Abstractions.Context;
 using Accountrack.Approval.Application.Abstractions;
 using Accountrack.Approval.Domain;
+using Accountrack.Infrastructure.Common.Outbox;
 using Accountrack.Infrastructure.Common.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,9 @@ public sealed class ApprovalDbContext : BaseDbContext, IApprovalUnitOfWork
 
     public DbSet<ApprovalDefinition> Definitions => Set<ApprovalDefinition>();
     public DbSet<ApprovalRequest> Requests => Set<ApprovalRequest>();
+
+    /// <summary>Transactional outbox for integration events raised by approval decisions (ADR-0007).</summary>
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -75,6 +79,15 @@ public sealed class ApprovalDbContext : BaseDbContext, IApprovalUnitOfWork
             b.ToTable("ApprovalActions");
             b.Property(a => a.Decision).HasConversion<int>();
             b.Property(a => a.Comment).HasMaxLength(512);
+        });
+
+        modelBuilder.Entity<OutboxMessage>(b =>
+        {
+            b.ToTable("OutboxMessages");
+            b.HasKey(m => m.Id);
+            b.Property(m => m.Type).IsRequired().HasMaxLength(512);
+            b.Property(m => m.Content).IsRequired();
+            b.HasIndex(m => m.ProcessedOnUtc);
         });
 
         base.OnModelCreating(modelBuilder);

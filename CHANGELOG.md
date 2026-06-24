@@ -1,5 +1,37 @@
 # Accountrack Changelog
 
+## [2026-06-24 15:50:02 UTC]
+
+CHG-0083 — Durable transactional outbox for approval events (ADR-0007)
+
+- Approval events (`ApprovalSubmitted`, `ApprovalDecided`) are no longer dispatched in-process,
+  best-effort. They are now **staged in a transactional outbox** that commits in the **same database
+  transaction** as the approval request/decision (`approval.OutboxMessages`), so an event can never be
+  lost if a downstream consumer or the process fails after the decision is saved. This closes the
+  "no outbox yet" caveat called out in CHG-0082 — expense posting-on-approval is now durable.
+- A background **`OutboxDispatcherService`** polls pending rows (batch 50, 2s interval, 10-attempt cap)
+  and delivers each message in its **own DI scope** so per-message tenant + module contexts stay
+  isolated. Delivery is **at-least-once**; a new platform de-dup store (`platform.InboxState`, keyed by
+  `(Handler, EventId)`) makes it **effectively exactly-once per handler** so retries never double-apply
+  the append-only ProcessTracker/Notification consumers (no consumer code changed).
+- Background delivery has no HTTP principal, so a settable **`IAmbientTenant`** restores the
+  originating tenant/company per message; the request-time `ITenantContext` now falls back to it when
+  there is no HTTP request, keeping tenant stamping/filtering correct off the request path.
+- Reflection-invoked handler failures are unwrapped (`TargetInvocationException` → inner) so the
+  recorded outbox error is the real cause, not the wrapper.
+- **Migration** `ApprovalOutbox` (creates `approval.OutboxMessages`); `platform.InboxState` is created
+  at startup like the idempotency store. Both use their own connection, never the cross-module tx.
+- **Tests:** +6 (`OutboxProcessor`: delivers + restores tenant + marks processed; skips a handler
+  already in the inbox; records failure without marking processed on a throwing handler; unknown event
+  type; multiple handlers each applied once; plus the Approval handler tests now assert the decision is
+  enqueued). Full suite **320** green.
+- **Verified (e2e):** submitting a document for approval returns immediately with an **empty timeline**
+  (delivery is async); ~1s later the dispatcher records exactly **one** "Auto-approved" milestone, and
+  it stays at one across subsequent 2s polls. The outbox row is marked `PROCESSED` (Attempts 0) and
+  `platform.InboxState` holds one row per consumer (ProcessTracker + Notification) for that event id.
+
+---
+
 ## [2026-06-24 15:03:19 UTC]
 
 CHG-0082 — Expense voucher approvals (threshold-gated posting)

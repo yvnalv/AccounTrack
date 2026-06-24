@@ -44,6 +44,10 @@ QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+// Settable tenant scope used by the outbox dispatcher; the request tenant context falls back to it
+// when there is no HTTP request (background delivery).
+builder.Services.AddScoped<Accountrack.Application.Abstractions.Integration.IAmbientTenant,
+    Accountrack.Infrastructure.Common.Outbox.AmbientTenant>();
 builder.Services.AddScoped<ITenantContext, HttpContextTenantContext>();
 
 // Idempotency for atomic posting flows (ADR-0021): key from the Idempotency-Key header; results are
@@ -58,6 +62,15 @@ builder.Services.AddSingleton<Accountrack.Application.Abstractions.Idempotency.I
 // In-process integration-event dispatch (ADR-0007). Scoped so handlers resolve from the request scope.
 builder.Services.AddScoped<Accountrack.Application.Abstractions.Integration.IIntegrationEventPublisher,
     Accountrack.Infrastructure.Common.Integration.IntegrationEventPublisher>();
+
+// Durable transactional outbox (ADR-0007, INTEGRATION_EVENTS.md §5): approval events are staged in
+// the Approval transaction and delivered by a background dispatcher with per-(handler,event) de-dup
+// so retries never double-apply a consumer. The inbox store uses its own connection.
+builder.Services.AddSingleton<Accountrack.Application.Abstractions.Integration.IInboxStore>(
+    new Accountrack.Infrastructure.Common.Outbox.InboxStore(builder.Configuration.GetConnectionString("Default")!));
+builder.Services.AddScoped<Accountrack.Application.Abstractions.Integration.IOutboxProcessor,
+    Accountrack.Infrastructure.Common.Outbox.OutboxProcessor>();
+builder.Services.AddHostedService<Accountrack.Infrastructure.Common.Outbox.OutboxDispatcherService>();
 
 // Cross-module atomic transactions (INTEGRATION_EVENTS.md §2): one shared connection + unit of work
 // so flows like Goods Receipt commit stock + journal together. Participating modules (Purchasing,
@@ -180,6 +193,10 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     // Platform-level idempotency key store (ADR-0021), independent of any module schema. Created
     // after the modules so the database exists (the audit migration creates it on a first run).
     await Accountrack.Infrastructure.Common.Idempotency.IdempotencyStore.EnsureTableAsync(
+        builder.Configuration.GetConnectionString("Default")!);
+
+    // Platform-level outbox inbox/de-dup store (ADR-0007), independent of any module schema.
+    await Accountrack.Infrastructure.Common.Outbox.InboxStore.EnsureTableAsync(
         builder.Configuration.GetConnectionString("Default")!);
 }
 
