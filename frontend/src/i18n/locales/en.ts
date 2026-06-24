@@ -577,6 +577,7 @@ export default {
     empty: 'No expense vouchers yet.',
     posted: 'Posted',
     unpaid: 'On account',
+    statusLabel: { Draft: 'Draft', PendingApproval: 'Pending approval', Posted: 'Posted', Rejected: 'Rejected' },
     failed: 'Could not post the expense. Check the cash account and category posting rules.',
     columns: { number: 'Number', date: 'Date', payee: 'Payee', total: 'Total', status: 'Status' },
     fields: {

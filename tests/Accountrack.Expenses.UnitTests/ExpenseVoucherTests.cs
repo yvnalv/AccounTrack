@@ -3,6 +3,7 @@ using Accountrack.Expenses.Application.Abstractions;
 using Accountrack.Expenses.Application.Features;
 using Accountrack.Expenses.Domain;
 using Accountrack.Modules.Contracts.Accounting;
+using Accountrack.Modules.Contracts.Approval;
 using Accountrack.Modules.Contracts.Company;
 using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.Modules.Contracts.Transactions;
@@ -33,11 +34,14 @@ public class ExpenseVoucherTests
     private readonly IMasterDataLookup _masterData = Substitute.For<IMasterDataLookup>();
     private readonly ICompanyDirectory _companies = Substitute.For<ICompanyDirectory>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
+    private readonly IExpensesUnitOfWork _expensesUow = Substitute.For<IExpensesUnitOfWork>();
+    private readonly IApprovalService _approval = Substitute.For<IApprovalService>();
 
     private LedgerPostingRequest? _posted;
 
     private PostExpenseVoucherHandler Handler() =>
-        new(_categories, _vouchers, new DirectUnitOfWork(), _ledger, _accounts, _subledger, _masterData, _companies, _tenant);
+        new(_categories, _vouchers, new DirectUnitOfWork(), _expensesUow,
+            new ExpenseVoucherPoster(_ledger, _accounts, _subledger), _approval, _masterData, _companies, _tenant);
 
     private (Guid electricity, Guid transport, Guid elecAccount, Guid transAccount) Setup()
     {
@@ -61,6 +65,10 @@ public class ExpenseVoucherTests
             .Returns(Result.Success(vatAccount));
         _ledger.PostAsync(Arg.Any<LedgerPostingRequest>(), Arg.Any<CancellationToken>())
             .Returns(ci => { _posted = ci.Arg<LedgerPostingRequest>(); return Result.Success(Guid.NewGuid()); });
+
+        // Default: no approval rule matches → auto-approved → posts immediately.
+        _approval.SubmitAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<IReadOnlyDictionary<string, decimal>>(), Arg.Any<CancellationToken>())
+            .Returns(new ApprovalSubmissionResult(Guid.NewGuid(), "AutoApproved"));
 
         return (elec.Id, trans.Id, elecAccount, transAccount);
     }
@@ -182,6 +190,33 @@ public class ExpenseVoucherTests
         _posted!.Lines.Count(l => l.AccountId == elecAccount).Should().Be(1);
         _posted.Lines.Single(l => l.AccountId == elecAccount).Debit.Should().Be(500_000m);
         _posted.Lines.Should().NotContain(l => l.Debit > 0 && l.AccountId != elecAccount); // no VAT line (0 tax)
+    }
+
+    [Fact]
+    public async Task A_voucher_that_matches_an_approval_rule_waits_pending_and_does_not_post()
+    {
+        var (elec, _, _, _) = Setup();
+        // A rule matches → engine returns Pending.
+        _approval.SubmitAsync(ExpenseDocumentTypes.ExpenseVoucher, Arg.Any<Guid>(),
+                Arg.Any<IReadOnlyDictionary<string, decimal>>(), Arg.Any<CancellationToken>())
+            .Returns(new ApprovalSubmissionResult(Guid.NewGuid(), "Pending"));
+
+        ExpenseVoucher? captured = null;
+        _vouchers.When(r => r.Add(Arg.Any<ExpenseVoucher>())).Do(ci => captured = ci.Arg<ExpenseVoucher>());
+
+        var result = await Handler().Handle(
+            new PostExpenseVoucherCommand(Date, "Big spend", CashAccount, null, null, null, null, new[]
+            {
+                new ExpenseVoucherLineInput(elec, "big", 9_000_000m, 0m),
+            }),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        captured!.Status.Should().Be(ExpenseVoucherStatus.PendingApproval);
+        captured.ApprovalRequestId.Should().NotBeNull();
+        captured.JournalEntryId.Should().BeNull();
+        await _expensesUow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _ledger.DidNotReceive().PostAsync(Arg.Any<LedgerPostingRequest>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

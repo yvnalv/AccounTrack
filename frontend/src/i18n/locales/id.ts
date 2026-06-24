@@ -578,6 +578,7 @@ export default {
     empty: 'Belum ada voucher beban.',
     posted: 'Diposting',
     unpaid: 'Terutang',
+    statusLabel: { Draft: 'Draf', PendingApproval: 'Menunggu persetujuan', Posted: 'Diposting', Rejected: 'Ditolak' },
     failed: 'Tidak dapat memposting beban. Periksa akun kas dan aturan posting kategori.',
     columns: { number: 'Nomor', date: 'Tanggal', payee: 'Penerima', total: 'Total', status: 'Status' },
     fields: {

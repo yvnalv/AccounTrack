@@ -1,9 +1,12 @@
+using Accountrack.Application.Abstractions.Integration;
+using Accountrack.Expenses.Application;
 using Accountrack.Expenses.Application.Abstractions;
 using Accountrack.Expenses.Application.Features;
 using Accountrack.Expenses.Infrastructure.Persistence;
 using Accountrack.Expenses.Infrastructure.Seed;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
 using Accountrack.Infrastructure.Common.Transactions;
+using Accountrack.Modules.Contracts.Events;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -36,6 +39,8 @@ public static class DependencyInjection
         services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<ExpensesDbContext>());
         services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository>();
         services.AddScoped<IExpenseVoucherRepository, ExpenseVoucherRepository>();
+        services.AddScoped<IExpenseVoucherPoster, ExpenseVoucherPoster>();
+        services.AddScoped<IIntegrationEventHandler<ApprovalDecided>, ApprovalDecidedConsumer>();
 
         var applicationAssembly = typeof(PostExpenseVoucherCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));

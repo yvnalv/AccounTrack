@@ -14,6 +14,7 @@ export interface ExpenseVoucherSummary {
   supplierId: string | null
   grandTotal: number
   journalEntryId: string | null
+  status: string
 }
 
 export interface ExpenseLineInput {

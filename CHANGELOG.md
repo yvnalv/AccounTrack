@@ -1,5 +1,33 @@
 # Accountrack Changelog
 
+## [2026-06-24 15:03:19 UTC]
+
+CHG-0082 — Expense voucher approvals (threshold-gated posting)
+
+- Expense vouchers now flow through the **approval engine** before posting (ADR-0030, BR-EXP-5). On
+  create, the voucher is submitted to the engine with its `Total`: when **no approval definition
+  matches** it is **auto-approved and posted immediately** (unchanged behaviour); when a definition
+  matches (e.g. a per-amount threshold) it is held as **PendingApproval** with no GL journal, and is
+  **posted only once approved**. Rejection marks it **Rejected** and it never posts.
+- Voucher gains a lifecycle: `ExpenseVoucherStatus` (Draft → PendingApproval → Posted/Rejected) +
+  `ApprovalRequestId`. The GL posting logic is extracted into a shared `IExpenseVoucherPoster` used by
+  both the auto-approve path and the new `ApprovalDecided` consumer, so the posting rules live in one
+  place. Reuses the existing definitions/conditions — no new threshold concept — so an admin configures
+  expense approval from **Approvals** like any other document type.
+- **Migration** `ExpenseApprovalStatus` (Status + ApprovalRequestId); existing vouchers backfilled to
+  `Posted`. DTOs and the Expenses list now expose **status** with a colour-coded badge (EN/ID).
+- **Caveat (no outbox yet):** posting-on-approval runs in the best-effort in-process event consumer; a
+  posting failure after approval leaves the voucher PendingApproval for retry rather than rolling back
+  the approval (consistent with the rest of the platform until a durable outbox lands).
+- **Tests:** +5 (auto-approve posts; a matching rule holds it pending without posting; consumer posts
+  on approval, marks rejected, is idempotent on an already-posted voucher, ignores other doc types).
+  Full suite **315** green; frontend builds.
+- **Verified (e2e):** with a rule "ExpenseVoucher Total ≥ 5,000,000 → Administrator", a 100k voucher
+  auto-posted; an 8M voucher stayed PendingApproval (no journal); after an admin (≠ submitter) approved
+  it, it posted. Segregation of duties held (clerk submitted, admin approved).
+
+---
+
 ## [2026-06-23 14:08:29 UTC]
 
 CHG-0081 — Split master-data permissions into Create / Edit / Delete (+ seeding fix)

@@ -71,8 +71,15 @@ const columns = computed<Column[]>(() => [
   { key: 'expenseDate', label: t('expenses.columns.date') },
   { key: 'payeeName', label: t('expenses.columns.payee') },
   { key: 'grandTotal', label: t('expenses.columns.total'), align: 'right', numeric: true },
-  { key: 'journalEntryId', label: t('expenses.columns.status'), align: 'right' },
+  { key: 'status', label: t('expenses.columns.status'), align: 'right' },
 ])
+
+function statusTone(status: string): 'positive' | 'warning' | 'negative' | 'neutral' {
+  if (status === 'Posted') return 'positive'
+  if (status === 'PendingApproval') return 'warning'
+  if (status === 'Rejected') return 'negative'
+  return 'neutral'
+}
 
 const categoryOptions = computed(() =>
   categories.value.filter((c) => c.isActive).map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
@@ -235,10 +242,10 @@ async function save() {
     <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('expenses.empty')">
       <template #cell-payeeName="{ value }">{{ value || '—' }}</template>
       <template #cell-grandTotal="{ value }">{{ formatMoney(Number(value)) }}</template>
-      <template #cell-journalEntryId="{ value, row }">
+      <template #cell-status="{ value, row }">
         <div class="flex items-center justify-end gap-1.5">
           <StatusBadge v-if="row.supplierId" tone="warning" :label="t('expenses.unpaid')" />
-          <StatusBadge v-if="value" tone="positive" :label="t('expenses.posted')" />
+          <StatusBadge :tone="statusTone(String(value))" :label="t(`expenses.statusLabel.${value}`)" />
         </div>
       </template>
     </DataTable>

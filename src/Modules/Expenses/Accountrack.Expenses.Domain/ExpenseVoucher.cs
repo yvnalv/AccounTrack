@@ -2,11 +2,26 @@ using Accountrack.SharedKernel.Domain;
 
 namespace Accountrack.Expenses.Domain;
 
+/// <summary>Lifecycle of an expense voucher (ADR-0030, BR-EXP-5).</summary>
+public enum ExpenseVoucherStatus
+{
+    /// <summary>Created in memory, not yet submitted/persisted.</summary>
+    Draft = 0,
+    /// <summary>Awaiting approval; no GL journal posted yet.</summary>
+    PendingApproval = 1,
+    /// <summary>Approved (or auto-approved) and posted to the GL.</summary>
+    Posted = 2,
+    /// <summary>Approval was rejected; never posted.</summary>
+    Rejected = 3,
+}
+
 /// <summary>
 /// An operating-expense voucher (ADR-0030). Posting it recognises the expense and pays it from a
 /// cash/bank account, atomically: Dr Expense per category (+ Dr VAT Input where creditable) /
-/// Cr Cash-Bank. Expense accounts are resolved per line via the posting-rule engine. Immutable once
-/// posted; corrections are by reversal (BR-EXP-4).
+/// Cr Cash-Bank. Expense accounts are resolved per line via the posting-rule engine. When an approval
+/// rule matches (BR-EXP-5) the voucher waits in <see cref="ExpenseVoucherStatus.PendingApproval"/> and
+/// posts only once approved; otherwise it posts immediately. Immutable once posted; corrections are by
+/// reversal (BR-EXP-4).
 /// </summary>
 public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
 {
@@ -52,11 +67,19 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
     public decimal TaxTotal { get; private set; }
     public decimal GrandTotal { get; private set; }
 
-    /// <summary>The GL journal posted for this voucher.</summary>
+    /// <summary>The GL journal posted for this voucher (null until posted).</summary>
     public Guid? JournalEntryId { get; private set; }
 
     /// <summary>The AP open item created for an on-account voucher (null when paid from cash/bank).</summary>
     public Guid? ApOpenItemId { get; private set; }
+
+    /// <summary>Where the voucher is in its approval/posting lifecycle.</summary>
+    public ExpenseVoucherStatus Status { get; private set; } = ExpenseVoucherStatus.Draft;
+
+    /// <summary>The approval request raised for this voucher (null when auto-approved).</summary>
+    public Guid? ApprovalRequestId { get; private set; }
+
+    public bool IsPendingApproval => Status == ExpenseVoucherStatus.PendingApproval;
 
     /// <summary>Whether this voucher is recorded on account (unpaid, Cr AP) rather than paid from cash/bank.</summary>
     public bool IsOnAccount => SupplierId is not null;
@@ -93,7 +116,21 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
         Recalculate();
     }
 
-    public void SetJournal(Guid journalEntryId) => JournalEntryId = journalEntryId;
+    /// <summary>Marks the voucher as awaiting approval (no GL posted yet).</summary>
+    public void MarkPendingApproval(Guid approvalRequestId)
+    {
+        Status = ExpenseVoucherStatus.PendingApproval;
+        ApprovalRequestId = approvalRequestId;
+    }
+
+    /// <summary>Records the posted GL journal and moves the voucher to Posted.</summary>
+    public void MarkPosted(Guid journalEntryId)
+    {
+        JournalEntryId = journalEntryId;
+        Status = ExpenseVoucherStatus.Posted;
+    }
+
+    public void MarkRejected() => Status = ExpenseVoucherStatus.Rejected;
 
     public void SetApOpenItem(Guid apOpenItemId) => ApOpenItemId = apOpenItemId;
 

@@ -45,6 +45,7 @@ public sealed class ExpensesDbContext : BaseDbContext, IExpensesUnitOfWork
             b.Property(v => v.SubTotal).HasColumnType("decimal(19,4)");
             b.Property(v => v.TaxTotal).HasColumnType("decimal(19,4)");
             b.Property(v => v.GrandTotal).HasColumnType("decimal(19,4)");
+            b.Property(v => v.Status).HasConversion<int>();
             b.HasMany(v => v.Lines).WithOne().HasForeignKey(l => l.ExpenseVoucherId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(v => v.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.HasIndex(v => new { v.TenantId, v.CompanyId, v.Number }).IsUnique().HasFilter("[IsDeleted] = 0");

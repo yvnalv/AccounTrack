@@ -127,7 +127,10 @@ configurable per company with the stated default.
   item reconciled to the AP control account). A voucher specifies **exactly one** of a cash/bank
   account (paid) or a supplier + due date (on account); on account is rejected for an unknown supplier.
 - **BR-EXP-4** A posted expense voucher is immutable; correct it by reversal (cf. BR-ACC-3, BR-X-8).
-- **BR-EXP-5 (config)** An expense over a configured threshold requires approval.
+- **BR-EXP-5 (config)** An expense over a configured threshold requires approval: the voucher is
+  submitted to the approval engine on create; if a definition matches (e.g. amount ≥ threshold) it
+  waits as PendingApproval and posts to the GL only once approved, else it auto-approves and posts
+  immediately. Rejection leaves it unposted (CHG-0082).
 - **BR-EXP-6** Payroll proper (employees, statutory deductions, PPh 21) is out of scope here
   (Phase 3); salaries paid as cash use a "Salaries & Wages" expense category.
 
