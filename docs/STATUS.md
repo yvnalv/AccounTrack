@@ -8,9 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-25 (last change **CHG-0084**)
+- **As of:** 2026-06-25 (last change **CHG-0085**)
 - **Build:** green — backend `net8.0` (323 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **outbox dead-letter visibility** — `Approval.Manage`-gated list + retry endpoints for events
+  Latest: **outbox dead-letter UI** — an "Event delivery" card in Settings (Approval.Manage) that lists
+  failed events with a Retry action (CHG-0085); **outbox dead-letter visibility** —
+  `Approval.Manage`-gated list + retry endpoints for events
   the dispatcher gave up on; retired the now-dead in-process publisher (CHG-0084); **durable
   transactional outbox** for approval events — staged in the approval txn, delivered async by a
   background dispatcher, exactly-once per handler via a `platform.InboxState` de-dup

@@ -15,6 +15,7 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 import RolesManager from '@/components/settings/RolesManager.vue'
 import UsersManager from '@/components/settings/UsersManager.vue'
+import OutboxDeadLetters from '@/components/settings/OutboxDeadLetters.vue'
 
 const { t, locale } = useI18n()
 const auth = useAuthStore()
@@ -24,6 +25,7 @@ const companyStore = useCompanyStore()
 const canEditCompany = computed(() => auth.has('Admin.Companies'))
 const canManageRoles = computed(() => auth.has('Admin.Roles'))
 const canManageUsers = computed(() => auth.has('Admin.Users'))
+const canManageApprovals = computed(() => auth.has('Approval.Manage'))
 
 // --- Company ---
 const companies = ref<Company[]>([])
@@ -207,6 +209,11 @@ function setLocale(next: string | undefined) {
     <!-- Roles & access -->
     <AppCard v-if="canManageRoles" :title="t('settings.roles.title')">
       <RolesManager />
+    </AppCard>
+
+    <!-- Event delivery (outbox dead-letters) -->
+    <AppCard v-if="canManageApprovals" :title="t('settings.outbox.title')">
+      <OutboxDeadLetters />
     </AppCard>
 
     <!-- Profile -->

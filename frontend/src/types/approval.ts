@@ -23,3 +23,12 @@ export interface ApprovalRequest {
   steps: ApprovalStep[]
   actions: ApprovalAction[]
 }
+
+/** A failed (dead-lettered) integration event the outbox dispatcher gave up on. */
+export interface DeadLetterEvent {
+  id: string
+  eventType: string
+  occurredOnUtc: string
+  attempts: number
+  error: string | null
+}

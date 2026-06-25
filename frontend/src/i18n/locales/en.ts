@@ -708,6 +708,20 @@ export default {
         Viewer: 'Viewer',
       },
     },
+    outbox: {
+      title: 'Event delivery',
+      subtitle:
+        'Background events the system gave up delivering after repeated failures. Fix the cause, then retry to re-send.',
+      refresh: 'Refresh',
+      empty: 'All events delivered — nothing failed.',
+      event: 'Event',
+      occurred: 'Occurred',
+      attempts: 'Tries',
+      retry: 'Retry',
+      retrying: 'Retrying…',
+      loadFailed: 'Could not load failed events.',
+      retryFailed: 'Could not retry that event.',
+    },
     profile: {
       title: 'Your profile',
       name: 'Name',

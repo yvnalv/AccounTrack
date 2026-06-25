@@ -1,5 +1,23 @@
 # Accountrack Changelog
 
+## [2026-06-25 14:36:33 UTC]
+
+CHG-0085 — Frontend: outbox dead-letter panel in Settings
+
+- Surfaced the dead-letter endpoints from CHG-0084 in the UI: a new **"Event delivery"** card in
+  **Settings** (shown only with `Approval.Manage`) lists integration events the dispatcher gave up on
+  — event name, when it occurred, attempt count, and the last error — with a **Retry** action per row
+  that requeues the event; on success the row drops out and the list refreshes after the dispatcher
+  has had time to redeliver (~2.5s). A healthy/empty state ("All events delivered — nothing failed")
+  is shown when there is nothing to triage.
+- New `OutboxDeadLetters.vue` (matching the existing `UsersManager`/`RolesManager` settings pattern),
+  `approvalApi.deadLetters()` + `retryDeadLetter()`, the `DeadLetterEvent` type, and EN/ID strings
+  under `settings.outbox.*`.
+- Frontend builds (vue-tsc + vite). Verified against the running API: a seeded dead-lettered
+  `ApprovalDecided` is returned by the list endpoint and clears after Retry.
+
+---
+
 ## [2026-06-25 11:53:44 UTC]
 
 CHG-0084 — Outbox dead-letter visibility + retire in-process publisher (ADR-0007)

@@ -709,6 +709,20 @@ export default {
         Viewer: 'Pembaca',
       },
     },
+    outbox: {
+      title: 'Pengiriman event',
+      subtitle:
+        'Event latar belakang yang gagal dikirim sistem setelah beberapa kali percobaan. Perbaiki penyebabnya, lalu coba kirim ulang.',
+      refresh: 'Muat ulang',
+      empty: 'Semua event terkirim — tidak ada yang gagal.',
+      event: 'Event',
+      occurred: 'Terjadi',
+      attempts: 'Percobaan',
+      retry: 'Coba lagi',
+      retrying: 'Mencoba…',
+      loadFailed: 'Tidak dapat memuat event yang gagal.',
+      retryFailed: 'Tidak dapat mencoba ulang event tersebut.',
+    },
     profile: {
       title: 'Profil Anda',
       name: 'Nama',
