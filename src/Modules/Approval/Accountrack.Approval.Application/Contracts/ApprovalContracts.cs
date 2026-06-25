@@ -14,3 +14,7 @@ public sealed record ApprovalRequestDto(
     Guid SubmittedBy, IReadOnlyList<StepDto> Steps, IReadOnlyList<ApprovalActionDto> Actions);
 
 public sealed record SubmitResult(Guid RequestId, string Status);
+
+/// <summary>A failed (dead-lettered) integration event surfaced for operator triage/retry.</summary>
+public sealed record DeadLetterEventDto(
+    Guid Id, string EventType, DateTime OccurredOnUtc, int Attempts, string? Error);

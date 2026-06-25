@@ -17,6 +17,18 @@ public interface IOutbox
 public sealed record OutboxRecord(Guid Id, Guid TenantId, Guid CompanyId, string Type, string Content);
 
 /// <summary>
+/// Shared delivery tuning for the outbox so the background dispatcher and the dead-letter admin view
+/// agree on the same attempt cap. A message at or beyond <see cref="MaxAttempts"/> is "dead-lettered":
+/// the dispatcher stops retrying it until an operator requeues it.
+/// </summary>
+public static class OutboxDefaults
+{
+    public const int BatchSize = 50;
+    public const int MaxAttempts = 10;
+    public const int PollIntervalSeconds = 2;
+}
+
+/// <summary>
 /// Persistence for the outbox, owned by the publishing module's context (so the enqueue is
 /// transactional with the change). The dispatcher reads pending rows and marks their outcome.
 /// </summary>

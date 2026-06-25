@@ -5,7 +5,9 @@ The contract catalog for inter-module communication. Modules never read each oth
 
 ## 1. Mechanics
 
-- **In-process mediator** dispatches events within the monolith.
+- **Transactional outbox is the only delivery path** (since CHG-0084). The earlier best-effort
+  in-process publisher (`IIntegrationEventPublisher`) has been removed now that every producer stages
+  events durably; consumers (`IIntegrationEventHandler<T>`) are resolved and invoked by the dispatcher.
 - **Transactional outbox**: an integration event is written to `OutboxMessages` in the *same
   DB transaction* as the source state change. A background dispatcher publishes it to handlers
   and marks it sent. Guarantees at-least-once delivery even across crashes.
@@ -147,8 +149,13 @@ Naming: past tense, `<Aggregate><Fact>`. All carry the envelope above.
 
 ## 5. Failure Handling
 
-- Outbox dispatch retries with backoff; after N failures an event is parked in a dead-letter
-  state and alerts.
+- Outbox dispatch retries each pass; after `OutboxDefaults.MaxAttempts` (10) failures a message is
+  **dead-lettered** — the dispatcher stops picking it up. **Implementation (CHG-0084):** dead-lettered
+  messages are surfaced and recovered through `Approval.Manage`-gated endpoints —
+  `GET /api/v1/approval/outbox/dead-letter` (per-tenant list: event name, occurred-at, attempts, last
+  error) and `POST /api/v1/approval/outbox/dead-letter/{id}/retry` (resets attempts + clears the error
+  so the dispatcher redelivers). The attempt cap is shared via `OutboxDefaults` so the dispatcher and
+  the dead-letter view agree on what "dead-lettered" means.
 - Atomic flows: if the consuming contract throws, the whole source transaction rolls back — the
   document is not posted. Surfaced to the user as a posting error (ERROR_HANDLING.md).
 - Idempotency keys guarantee replays never double-post.

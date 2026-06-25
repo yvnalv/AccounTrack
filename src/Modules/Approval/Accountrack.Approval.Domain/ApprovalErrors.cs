@@ -21,4 +21,7 @@ public static class ApprovalErrors
 
     public static readonly Error AlreadySubmitted =
         Error.Conflict("APPROVAL.ALREADY_SUBMITTED", "An approval request already exists for this document.");
+
+    public static readonly Error OutboxMessageNotFound =
+        Error.NotFound("APPROVAL.OUTBOX_MESSAGE_NOT_FOUND", "Dead-lettered event not found (or already redelivered).");
 }

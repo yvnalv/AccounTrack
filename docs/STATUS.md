@@ -8,10 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-24 (last change **CHG-0083**)
-- **Build:** green — backend `net8.0` (320 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **durable transactional outbox** for approval events — staged in the approval txn, delivered
-  async by a background dispatcher, exactly-once per handler via a `platform.InboxState` de-dup
+- **As of:** 2026-06-25 (last change **CHG-0084**)
+- **Build:** green — backend `net8.0` (323 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **outbox dead-letter visibility** — `Approval.Manage`-gated list + retry endpoints for events
+  the dispatcher gave up on; retired the now-dead in-process publisher (CHG-0084); **durable
+  transactional outbox** for approval events — staged in the approval txn, delivered async by a
+  background dispatcher, exactly-once per handler via a `platform.InboxState` de-dup
   (CHG-0083); **expense voucher approvals** — threshold-gated, posts on approval (CHG-0082); **granular
   master-data + CoA permissions** (Create/Edit/Delete, replacing MasterData.Manage; CHG-0081);
   **Excel (.xlsx) master-data import** (CHG-0080); **period-close balance snapshots**
@@ -123,8 +125,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Durable transactional outbox (ADR-0007):** ✅ live for the **Approval** module (CHG-0083) —
   `ApprovalSubmitted`/`ApprovalDecided` staged in `approval.OutboxMessages` in the same txn, delivered
   by a background `OutboxDispatcherService`, exactly-once per handler via `platform.InboxState`,
-  tenant restored per message via `IAmbientTenant`. Remaining: migrate the remaining in-process
-  producers onto the outbox; dead-letter surfacing for messages past the attempt cap.
+  tenant restored per message via `IAmbientTenant`. ✅ **dead-letter list + retry endpoints
+  (`Approval.Manage`) and the in-process publisher retired (CHG-0084)** — every event now flows
+  through the outbox. (Approval is currently the only producer; other modules only consume, so there
+  are no remaining in-process producers to migrate.)
 - **Idempotency for atomic flows:** ✅ command-level idempotency done (CHG-0040) —
   `IdempotencyBehavior` keyed off the `Idempotency-Key` header dedupes replays of the posting/create
   commands (ADR-0021). Remaining hardening: write the key in the same transaction (exactly-once) +

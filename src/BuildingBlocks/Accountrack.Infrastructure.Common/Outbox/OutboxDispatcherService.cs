@@ -12,9 +12,9 @@ namespace Accountrack.Infrastructure.Common.Outbox;
 /// </summary>
 public sealed class OutboxDispatcherService : BackgroundService
 {
-    private const int BatchSize = 50;
-    private const int MaxAttempts = 10;
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);
+    private const int BatchSize = OutboxDefaults.BatchSize;
+    private const int MaxAttempts = OutboxDefaults.MaxAttempts;
+    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(OutboxDefaults.PollIntervalSeconds);
 
     private readonly IServiceProvider _services;
     private readonly ILogger<OutboxDispatcherService> _logger;

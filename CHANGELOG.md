@@ -1,5 +1,33 @@
 # Accountrack Changelog
 
+## [2026-06-25 11:53:44 UTC]
+
+CHG-0084 — Outbox dead-letter visibility + retire in-process publisher (ADR-0007)
+
+- **Dead-letter triage for the outbox.** When the dispatcher exhausts its retry cap (10 attempts) a
+  message was silently stranded with no way to see or recover it. Two new **`Approval.Manage`-gated**
+  endpoints close that gap: `GET /api/v1/approval/outbox/dead-letter` lists stranded events for the
+  current tenant (friendly event name, occurred-at, attempts, last error), and
+  `POST /api/v1/approval/outbox/dead-letter/{id}/retry` requeues one (resets attempts, clears the
+  error) so the dispatcher redelivers it on the next pass. Both are tenant-scoped in the repository —
+  the outbox table itself stays unfiltered so the background dispatcher keeps draining every tenant.
+- **Retired the now-dead in-process publisher.** With CHG-0083 every integration event flows through
+  the durable outbox, so `IIntegrationEventPublisher`/`IntegrationEventPublisher` (and its DI
+  registration) had no callers and a stale "outbox is a later hardening" comment. Removed. The
+  consumer side (`IIntegrationEventHandler<T>`, resolved by the dispatcher) is unchanged.
+- **Shared attempt cap.** Extracted `OutboxDefaults` (BatchSize/MaxAttempts/PollInterval) into
+  `Application.Abstractions` so the dispatcher and the dead-letter view agree on one definition of
+  "dead-lettered" (`Attempts >= MaxAttempts`) instead of a private dispatcher constant.
+- **Tests:** +3 (`OutboxAdmin` handlers: list maps the assembly-qualified type to a bare event name and
+  passes the shared cap; retry succeeds when requeued; retry returns not-found otherwise). Full suite
+  **323** green; arch-fitness still green after the publisher removal.
+- **Verified (e2e):** seeded a dead-lettered `ApprovalDecided` (Attempts 10); the list endpoint
+  returned it as `ApprovalDecided` with its error; retry returned 200, and ~2s later the dispatcher
+  redelivered it (ProcessTracker recorded one "Approved" milestone), the row flipped to `PROCESSED`
+  (Attempts 0, Error cleared), and the dead-letter list went empty.
+
+---
+
 ## [2026-06-24 15:50:02 UTC]
 
 CHG-0083 — Durable transactional outbox for approval events (ADR-0007)

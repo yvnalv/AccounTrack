@@ -59,10 +59,6 @@ builder.Services.AddSingleton<Accountrack.Application.Abstractions.Idempotency.I
     new Accountrack.Infrastructure.Common.Idempotency.IdempotencyStore(
         builder.Configuration.GetConnectionString("Default")!));
 
-// In-process integration-event dispatch (ADR-0007). Scoped so handlers resolve from the request scope.
-builder.Services.AddScoped<Accountrack.Application.Abstractions.Integration.IIntegrationEventPublisher,
-    Accountrack.Infrastructure.Common.Integration.IntegrationEventPublisher>();
-
 // Durable transactional outbox (ADR-0007, INTEGRATION_EVENTS.md §5): approval events are staged in
 // the Approval transaction and delivered by a background dispatcher with per-(handler,event) de-dup
 // so retries never double-apply a consumer. The inbox store uses its own connection.

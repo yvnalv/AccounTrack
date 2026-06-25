@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<OutboxStore>();
         services.AddScoped<Accountrack.Application.Abstractions.Integration.IOutbox>(sp => sp.GetRequiredService<OutboxStore>());
         services.AddScoped<Accountrack.Application.Abstractions.Integration.IOutboxStore>(sp => sp.GetRequiredService<OutboxStore>());
+        services.AddScoped<IOutboxAdminRepository, OutboxAdminRepository>();
 
         var applicationAssembly = typeof(SubmitForApprovalCommand).Assembly;
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));
