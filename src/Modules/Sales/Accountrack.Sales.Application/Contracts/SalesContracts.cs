@@ -8,7 +8,7 @@ public sealed record SalesOrderLineDto(
 public sealed record SalesOrderDto(
     Guid Id, string Number, Guid CustomerId, Guid WarehouseId, string Currency, DateOnly OrderDate,
     string Status, Guid? ApprovalRequestId, decimal SubTotal, decimal TaxTotal, decimal GrandTotal,
-    string? Notes, IReadOnlyList<SalesOrderLineDto> Lines);
+    string? Notes, IReadOnlyList<SalesOrderLineDto> Lines, byte[]? RowVersion);
 
 public sealed record SalesOrderSummaryDto(
     Guid Id, string Number, Guid CustomerId, string Status, decimal GrandTotal, DateOnly OrderDate);

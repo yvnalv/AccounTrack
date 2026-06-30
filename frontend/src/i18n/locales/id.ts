@@ -183,6 +183,7 @@ export default {
       saving: 'Membuat…',
       needLine: 'Tambahkan minimal satu baris dengan produk dan jumlah.',
       failed: 'Tidak dapat membuat pesanan penjualan.',
+      conflict: 'Pesanan ini diubah oleh orang lain. Muat ulang halaman dan terapkan kembali perubahan Anda.',
     },
     status: {
       Draft: 'Draf',
@@ -287,6 +288,7 @@ export default {
       saving: 'Membuat…',
       needLine: 'Tambahkan minimal satu baris dengan produk dan jumlah.',
       failed: 'Tidak dapat membuat pesanan pembelian.',
+      conflict: 'Pesanan ini diubah oleh orang lain. Muat ulang halaman dan terapkan kembali perubahan Anda.',
     },
     status: {
       Draft: 'Draf',

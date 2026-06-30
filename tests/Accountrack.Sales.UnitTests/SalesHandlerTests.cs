@@ -59,6 +59,38 @@ public class SalesHandlerTests
     }
 
     [Fact]
+    public async Task Update_sets_expected_version_when_row_version_supplied()
+    {
+        var order = DraftWithLine();
+        _orders.GetByIdAsync(order.Id, Arg.Any<CancellationToken>()).Returns(order);
+        var version = new byte[] { 1, 2, 3, 4 };
+
+        var handler = new UpdateSalesOrderHandler(_orders, _masterData, _uow);
+        var result = await handler.Handle(
+            new UpdateSalesOrderCommand(order.Id, Guid.NewGuid(), Guid.NewGuid(), Date, null,
+                new[] { new CreateSoLine(Guid.NewGuid(), 1m, 50m, 0m, null) }, version), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _orders.Received(1).SetExpectedVersion(order, version);
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Update_skips_version_check_when_none_supplied()
+    {
+        var order = DraftWithLine();
+        _orders.GetByIdAsync(order.Id, Arg.Any<CancellationToken>()).Returns(order);
+
+        var handler = new UpdateSalesOrderHandler(_orders, _masterData, _uow);
+        var result = await handler.Handle(
+            new UpdateSalesOrderCommand(order.Id, Guid.NewGuid(), Guid.NewGuid(), Date, null,
+                new[] { new CreateSoLine(Guid.NewGuid(), 1m, 50m, 0m, null) }), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _orders.DidNotReceive().SetExpectedVersion(Arg.Any<SalesOrder>(), Arg.Any<byte[]>());
+    }
+
+    [Fact]
     public async Task Create_rejects_unknown_customer()
     {
         _masterData.CustomerExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(false);

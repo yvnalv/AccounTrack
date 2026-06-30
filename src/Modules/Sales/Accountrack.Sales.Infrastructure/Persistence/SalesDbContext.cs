@@ -220,6 +220,9 @@ public sealed class SalesOrderRepository : ISalesOrderRepository
         _db.NumberSequences.FirstOrDefaultAsync(ct);
 
     public void AddSequence(SalesOrderNumberSequence sequence) => _db.NumberSequences.Add(sequence);
+
+    public void SetExpectedVersion(SalesOrder order, byte[] expectedVersion) =>
+        _db.Entry(order).Property(o => o.RowVersion).OriginalValue = expectedVersion;
 }
 
 public sealed class DeliveryOrderRepository : IDeliveryOrderRepository

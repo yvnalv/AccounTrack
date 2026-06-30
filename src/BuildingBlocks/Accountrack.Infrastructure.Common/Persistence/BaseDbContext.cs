@@ -31,6 +31,24 @@ public abstract class BaseDbContext : DbContext, ITransactionalDbContext
     /// <summary>Lets the cross-module unit of work enlist and persist this context (ADR-0007).</summary>
     public DbContext DbContext => this;
 
+    /// <summary>
+    /// Translates EF Core's optimistic-concurrency failure into a provider-agnostic
+    /// <see cref="ConcurrencyConflictException"/> (ADR-0021) so callers and the web layer can react to
+    /// a stale write without depending on EF. Raised when a tracked row's rowversion no longer matches.
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ConcurrencyConflictException(
+                "The record was modified or removed by someone else since it was loaded.", ex);
+        }
+    }
+
     protected void ApplyAccountrackConventions(ModelBuilder modelBuilder)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

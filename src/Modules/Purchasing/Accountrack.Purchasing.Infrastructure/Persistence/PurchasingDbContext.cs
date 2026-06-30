@@ -224,6 +224,9 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         _db.NumberSequences.FirstOrDefaultAsync(ct);
 
     public void AddSequence(PurchaseOrderNumberSequence sequence) => _db.NumberSequences.Add(sequence);
+
+    public void SetExpectedVersion(PurchaseOrder order, byte[] expectedVersion) =>
+        _db.Entry(order).Property(o => o.RowVersion).OriginalValue = expectedVersion;
 }
 
 public sealed class GoodsReceiptRepository : IGoodsReceiptRepository

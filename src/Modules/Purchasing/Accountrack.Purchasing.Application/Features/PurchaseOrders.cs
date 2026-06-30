@@ -109,7 +109,7 @@ public sealed class CreatePurchaseOrderHandler : ICommandHandler<CreatePurchaseO
 
 public sealed record UpdatePurchaseOrderCommand(
     Guid Id, Guid SupplierId, Guid WarehouseId, DateOnly OrderDate, string? Notes,
-    IReadOnlyList<CreatePoLine> Lines) : ICommand<Guid>;
+    IReadOnlyList<CreatePoLine> Lines, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdatePurchaseOrderValidator : AbstractValidator<UpdatePurchaseOrderCommand>
 {
@@ -172,6 +172,13 @@ public sealed class UpdatePurchaseOrderHandler : ICommandHandler<UpdatePurchaseO
             {
                 return PurchasingErrors.ProductNotFound(line.ProductId);
             }
+        }
+
+        // Optimistic concurrency (ADR-0021): if the client sent the version it loaded, fail the save
+        // when the draft was changed by someone else in the meantime.
+        if (request.RowVersion is not null)
+        {
+            _orders.SetExpectedVersion(order, request.RowVersion);
         }
 
         order.EditDraft(

@@ -137,6 +137,8 @@ export interface SalesOrder {
   grandTotal: number
   notes: string | null
   lines: SalesOrderLine[]
+  /** Optimistic-concurrency token (base64); echo it back on update to detect stale edits. */
+  rowVersion: string | null
 }
 
 export interface CreateSalesOrderLine {

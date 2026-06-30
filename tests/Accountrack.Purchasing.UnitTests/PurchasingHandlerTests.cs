@@ -27,6 +27,44 @@ public class PurchasingHandlerTests
     }
 
     [Fact]
+    public async Task Update_sets_expected_version_when_row_version_supplied()
+    {
+        var po = DraftWithLine();
+        _orders.GetByIdAsync(po.Id, Arg.Any<CancellationToken>()).Returns(po);
+        _masterData.SupplierExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        _masterData.WarehouseExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        _masterData.ProductExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        var version = new byte[] { 9, 8, 7 };
+
+        var handler = new UpdatePurchaseOrderHandler(_orders, _masterData, _uow);
+        var result = await handler.Handle(
+            new UpdatePurchaseOrderCommand(po.Id, Guid.NewGuid(), Guid.NewGuid(), Date, null,
+                new[] { new CreatePoLine(Guid.NewGuid(), 1m, 50m, 0m, null) }, version), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _orders.Received(1).SetExpectedVersion(po, version);
+        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Update_skips_version_check_when_none_supplied()
+    {
+        var po = DraftWithLine();
+        _orders.GetByIdAsync(po.Id, Arg.Any<CancellationToken>()).Returns(po);
+        _masterData.SupplierExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        _masterData.WarehouseExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+        _masterData.ProductExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(true);
+
+        var handler = new UpdatePurchaseOrderHandler(_orders, _masterData, _uow);
+        var result = await handler.Handle(
+            new UpdatePurchaseOrderCommand(po.Id, Guid.NewGuid(), Guid.NewGuid(), Date, null,
+                new[] { new CreatePoLine(Guid.NewGuid(), 1m, 50m, 0m, null) }), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _orders.DidNotReceive().SetExpectedVersion(Arg.Any<PurchaseOrder>(), Arg.Any<byte[]>());
+    }
+
+    [Fact]
     public async Task Submit_with_matching_rule_goes_pending()
     {
         var po = DraftWithLine();

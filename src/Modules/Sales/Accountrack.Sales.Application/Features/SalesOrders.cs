@@ -108,7 +108,7 @@ public sealed class CreateSalesOrderHandler : ICommandHandler<CreateSalesOrderCo
 
 public sealed record UpdateSalesOrderCommand(
     Guid Id, Guid CustomerId, Guid WarehouseId, DateOnly OrderDate, string? Notes,
-    IReadOnlyList<CreateSoLine> Lines) : ICommand<Guid>;
+    IReadOnlyList<CreateSoLine> Lines, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateSalesOrderValidator : AbstractValidator<UpdateSalesOrderCommand>
 {
@@ -171,6 +171,13 @@ public sealed class UpdateSalesOrderHandler : ICommandHandler<UpdateSalesOrderCo
             {
                 return SalesErrors.ProductNotFound(line.ProductId);
             }
+        }
+
+        // Optimistic concurrency (ADR-0021): if the client sent the version it loaded, fail the save
+        // when the draft was changed by someone else in the meantime.
+        if (request.RowVersion is not null)
+        {
+            _orders.SetExpectedVersion(order, request.RowVersion);
         }
 
         order.EditDraft(

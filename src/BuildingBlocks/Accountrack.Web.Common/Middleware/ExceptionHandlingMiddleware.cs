@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Accountrack.SharedKernel.Domain;
 using Accountrack.Web.Common.Contracts;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
@@ -41,6 +42,15 @@ public sealed class ExceptionHandlingMiddleware
                 StatusCodes.Status422UnprocessableEntity,
                 "Validation failed",
                 new ApiError("VALIDATION_ERROR", details, context.TraceIdentifier));
+        }
+        catch (ConcurrencyConflictException)
+        {
+            // A stale write (optimistic concurrency, ADR-0021): the client's copy is out of date.
+            await WriteAsync(
+                context,
+                StatusCodes.Status409Conflict,
+                "The record was changed by someone else. Reload and try again.",
+                new ApiError("CONCURRENCY_CONFLICT", null, context.TraceIdentifier));
         }
         catch (Exception ex)
         {

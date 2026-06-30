@@ -9,6 +9,12 @@ public interface ISalesOrderRepository
     Task<IReadOnlyList<SalesOrder>> ListAsync(CancellationToken ct);
     Task<SalesOrderNumberSequence?> GetSequenceAsync(CancellationToken ct);
     void AddSequence(SalesOrderNumberSequence sequence);
+
+    /// <summary>
+    /// Sets the concurrency token the caller expects to still be current, so the next save fails with
+    /// a concurrency conflict if the order was changed by someone else since it was loaded (ADR-0021).
+    /// </summary>
+    void SetExpectedVersion(SalesOrder order, byte[] expectedVersion);
 }
 
 public interface IDeliveryOrderRepository

@@ -15,7 +15,8 @@ internal static class SalesOrderMapping
         o.Lines.Select(l => new SalesOrderLineDto(
             l.Id, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineSubTotal, l.LineTaxAmount, l.LineTotal,
             l.Description, l.DeliveredQuantity, l.InvoicedQuantity, l.OutstandingQuantity))
-            .ToList());
+            .ToList(),
+        o.RowVersion);
 }
 
 public sealed record GetSalesOrderQuery(Guid Id) : IQuery<SalesOrderDto>;

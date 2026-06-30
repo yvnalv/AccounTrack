@@ -17,7 +17,8 @@ export const purchasingApi = {
   list: () => unwrap<PurchaseOrderSummary[]>(http.get('/purchase-orders')),
   get: (id: string) => unwrap<PurchaseOrder>(http.get(`/purchase-orders/${id}`)),
   create: (body: CreatePurchaseOrder) => unwrap<string>(http.post('/purchase-orders', body)),
-  update: (id: string, body: CreatePurchaseOrder) => unwrap<string>(http.put(`/purchase-orders/${id}`, body)),
+  update: (id: string, body: CreatePurchaseOrder, rowVersion?: string | null) =>
+    unwrap<string>(http.put(`/purchase-orders/${id}`, { ...body, rowVersion: rowVersion ?? null })),
   submit: (id: string) => unwrap<string>(http.post(`/purchase-orders/${id}/submit`, {})),
   cancel: (id: string) => unwrap<string>(http.post(`/purchase-orders/${id}/cancel`, {})),
 

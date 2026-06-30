@@ -40,7 +40,7 @@ public static class SalesEndpoints
 
         so.MapPut("/{id:guid}", (Guid id, UpdateSalesOrderBody body, ISender s, CancellationToken ct) =>
                 Send(s.Send(new UpdateSalesOrderCommand(
-                    id, body.CustomerId, body.WarehouseId, body.OrderDate, body.Notes, body.Lines), ct)))
+                    id, body.CustomerId, body.WarehouseId, body.OrderDate, body.Notes, body.Lines, body.RowVersion), ct)))
             .RequireAuthorization("Sales.Edit").WithName("UpdateSalesOrder");
 
         so.MapPost("/{id:guid}/cancel", (Guid id, ISender s, CancellationToken ct) =>
@@ -122,7 +122,8 @@ public static class SalesEndpoints
     }
 
     public sealed record UpdateSalesOrderBody(
-        Guid CustomerId, Guid WarehouseId, DateOnly OrderDate, string? Notes, IReadOnlyList<CreateSoLine> Lines);
+        Guid CustomerId, Guid WarehouseId, DateOnly OrderDate, string? Notes, IReadOnlyList<CreateSoLine> Lines,
+        byte[]? RowVersion);
 
     public sealed record ShipGoodsRequest(
         DateOnly DeliveryDate, string? Notes, IReadOnlyList<DeliveryOrderLineInput> Lines);

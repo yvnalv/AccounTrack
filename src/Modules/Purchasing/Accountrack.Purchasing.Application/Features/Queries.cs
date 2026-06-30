@@ -15,7 +15,8 @@ internal static class PurchaseOrderMapping
         o.Lines.Select(l => new PurchaseOrderLineDto(
             l.Id, l.ProductId, l.Quantity, l.UnitPrice, l.TaxRate, l.LineSubTotal, l.LineTaxAmount, l.LineTotal,
             l.Description, l.ReceivedQuantity, l.InvoicedQuantity, l.OutstandingQuantity))
-            .ToList());
+            .ToList(),
+        o.RowVersion);
 }
 
 public sealed record GetPurchaseOrderQuery(Guid Id) : IQuery<PurchaseOrderDto>;

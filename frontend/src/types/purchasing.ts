@@ -45,6 +45,8 @@ export interface PurchaseOrder {
   grandTotal: number
   notes: string | null
   lines: PurchaseOrderLine[]
+  /** Optimistic-concurrency token (base64); echo it back on update to detect stale edits. */
+  rowVersion: string | null
 }
 
 export interface CreatePurchaseOrder {

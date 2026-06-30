@@ -40,6 +40,8 @@ const warehouses = ref<NamedRef[]>([])
 const products = ref<Product[]>([])
 const error = ref('')
 const submitting = ref(false)
+// Concurrency token captured when editing, echoed back on save to detect a stale edit (ADR-0021).
+const editRowVersion = ref<string | null>(null)
 
 onMounted(async () => {
   const [c, w, p] = await Promise.all([
@@ -56,6 +58,7 @@ onMounted(async () => {
   if (editId) {
     // Editing an existing draft — prefill the header + lines.
     const o = await salesApi.get(editId)
+    editRowVersion.value = o.rowVersion
     form.customerId = o.customerId
     form.warehouseId = o.warehouseId
     form.orderDate = o.orderDate
@@ -112,10 +115,15 @@ async function submit() {
         description: l.description || null,
       })),
     }
-    const id = editId ? await salesApi.update(editId, payload) : await salesApi.create(payload)
+    const id = editId
+      ? await salesApi.update(editId, payload, editRowVersion.value)
+      : await salesApi.create(payload)
     await router.push({ name: 'salesOrderDetail', params: { id } })
-  } catch {
-    error.value = t('sales.form.failed')
+  } catch (e) {
+    error.value =
+      (e as { response?: { status?: number } })?.response?.status === 409
+        ? t('sales.form.conflict')
+        : t('sales.form.failed')
   } finally {
     submitting.value = false
   }

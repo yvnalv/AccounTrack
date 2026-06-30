@@ -38,7 +38,7 @@ public static class PurchasingEndpoints
 
         po.MapPut("/{id:guid}", (Guid id, UpdatePurchaseOrderBody body, ISender s, CancellationToken ct) =>
                 Send(s.Send(new UpdatePurchaseOrderCommand(
-                    id, body.SupplierId, body.WarehouseId, body.OrderDate, body.Notes, body.Lines), ct)))
+                    id, body.SupplierId, body.WarehouseId, body.OrderDate, body.Notes, body.Lines, body.RowVersion), ct)))
             .RequireAuthorization("Purchasing.Edit").WithName("UpdatePurchaseOrder");
 
         po.MapPost("/{id:guid}/cancel", (Guid id, ISender s, CancellationToken ct) =>
@@ -121,7 +121,8 @@ public static class PurchasingEndpoints
     }
 
     public sealed record UpdatePurchaseOrderBody(
-        Guid SupplierId, Guid WarehouseId, DateOnly OrderDate, string? Notes, IReadOnlyList<CreatePoLine> Lines);
+        Guid SupplierId, Guid WarehouseId, DateOnly OrderDate, string? Notes, IReadOnlyList<CreatePoLine> Lines,
+        byte[]? RowVersion);
 
     public sealed record ReceiveGoodsRequest(
         DateOnly ReceiptDate, string? Notes, IReadOnlyList<GoodsReceiptLineInput> Lines);

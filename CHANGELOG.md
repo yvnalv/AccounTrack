@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-06-30 16:02:21 UTC]
+
+CHG-0086 — Optimistic concurrency on Sales & Purchase Order edits (ADR-0021)
+
+- Editing a draft Sales Order or Purchase Order is now **guarded against lost updates across
+  requests**. The detail/edit payload carries the row's concurrency token (`rowVersion`); on save the
+  client echoes back the version it loaded, and if another user changed the draft in the meantime the
+  update is rejected with **409 `CONCURRENCY_CONFLICT`** instead of silently overwriting their work.
+  (EF Core's rowversion already guarded the in-request load→save window; this adds the cross-request
+  check that matters when two people edit the same draft.)
+- **Provider-agnostic translation:** a new `ConcurrencyConflictException` (SharedKernel) is thrown by
+  `BaseDbContext.SaveChangesAsync` when EF raises `DbUpdateConcurrencyException`, and the web
+  middleware maps it to a 409 with code `CONCURRENCY_CONFLICT` — so the Application layer never
+  references EF (ADR-0023). The dispatcher/attempt-cap constant lives in one place via the existing
+  `RowVersion` token already mapped on every entity.
+- The update commands accept an optional `RowVersion`; when omitted, behaviour is unchanged (no
+  cross-request check), so existing API callers are unaffected. `SalesOrderDto`/`PurchaseOrderDto`
+  expose `RowVersion`; the repositories gained `SetExpectedVersion(...)`.
+- **Frontend:** the SO/PO edit screens capture the loaded `rowVersion`, send it on update, and surface
+  a clear "changed by someone else — reload" message on 409 (EN/ID).
+- **Tests:** +4 (Sales & Purchasing update handlers set the expected version when supplied, skip it
+  otherwise). Full suite **327** green; frontend builds.
+- **Verified (e2e):** loaded a draft SO (v1) → edit with v1 succeeded and advanced to v2 → re-editing
+  with the stale v1 returned **409 CONCURRENCY_CONFLICT** → editing with the fresh v2 succeeded again.
+
+---
+
 ## [2026-06-25 14:36:33 UTC]
 
 CHG-0085 — Frontend: outbox dead-letter panel in Settings

@@ -182,6 +182,7 @@ export default {
       saving: 'Creating…',
       needLine: 'Add at least one line with a product and quantity.',
       failed: 'Could not create the sales order.',
+      conflict: 'This order was changed by someone else. Reload the page and reapply your changes.',
     },
     status: {
       Draft: 'Draft',
@@ -286,6 +287,7 @@ export default {
       saving: 'Creating…',
       needLine: 'Add at least one line with a product and quantity.',
       failed: 'Could not create the purchase order.',
+      conflict: 'This order was changed by someone else. Reload the page and reapply your changes.',
     },
     status: {
       Draft: 'Draft',
