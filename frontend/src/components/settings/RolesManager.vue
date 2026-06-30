@@ -175,7 +175,7 @@ function roleLabel(role: Role): string {
       </table>
     </div>
 
-    <AppModal v-model="modalOpen" :title="editing ? roleLabel(editing) : t('settings.roles.new')">
+    <AppModal v-model="modalOpen" size="lg" :title="editing ? roleLabel(editing) : t('settings.roles.new')">
       <div class="space-y-4">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField :label="t('settings.roles.name')" required>

@@ -27,6 +27,19 @@ const canManageRoles = computed(() => auth.has('Admin.Roles'))
 const canManageUsers = computed(() => auth.has('Admin.Users'))
 const canManageApprovals = computed(() => auth.has('Approval.Manage'))
 
+// One tab per settings category; admin-only tabs appear only with the matching permission.
+const tabs = computed(() =>
+  [
+    { key: 'company', label: t('settings.company.title'), show: true },
+    { key: 'users', label: t('settings.users.title'), show: canManageUsers.value },
+    { key: 'roles', label: t('settings.roles.title'), show: canManageRoles.value },
+    { key: 'events', label: t('settings.outbox.title'), show: canManageApprovals.value },
+    { key: 'profile', label: t('settings.profile.title'), show: true },
+    { key: 'preferences', label: t('settings.prefs.title'), show: true },
+  ].filter((tab) => tab.show),
+)
+const activeTab = ref('company')
+
 // --- Company ---
 const companies = ref<Company[]>([])
 const selectedId = ref('')
@@ -116,9 +129,24 @@ function setLocale(next: string | undefined) {
 </script>
 
 <template>
-  <div class="grid max-w-4xl gap-6">
+  <div class="max-w-4xl space-y-5">
+    <nav class="flex flex-wrap gap-1 border-b border-border">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        type="button"
+        class="-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors"
+        :class="activeTab === tab.key
+          ? 'border-accent text-text'
+          : 'border-transparent text-text-muted hover:text-text'"
+        @click="activeTab = tab.key"
+      >
+        {{ tab.label }}
+      </button>
+    </nav>
+
     <!-- Company -->
-    <AppCard :title="t('settings.company.title')">
+    <AppCard v-if="activeTab === 'company'" :title="t('settings.company.title')">
       <div v-if="loading" class="text-sm text-text-muted">{{ t('common.loading') }}</div>
       <div v-else-if="!selected" class="text-sm text-text-muted">{{ t('settings.company.none') }}</div>
       <div v-else class="space-y-4">
@@ -202,22 +230,22 @@ function setLocale(next: string | undefined) {
     </AppCard>
 
     <!-- Users -->
-    <AppCard v-if="canManageUsers" :title="t('settings.users.title')">
+    <AppCard v-if="activeTab === 'users'" :title="t('settings.users.title')">
       <UsersManager />
     </AppCard>
 
     <!-- Roles & access -->
-    <AppCard v-if="canManageRoles" :title="t('settings.roles.title')">
+    <AppCard v-if="activeTab === 'roles'" :title="t('settings.roles.title')">
       <RolesManager />
     </AppCard>
 
     <!-- Event delivery (outbox dead-letters) -->
-    <AppCard v-if="canManageApprovals" :title="t('settings.outbox.title')">
+    <AppCard v-if="activeTab === 'events'" :title="t('settings.outbox.title')">
       <OutboxDeadLetters />
     </AppCard>
 
     <!-- Profile -->
-    <AppCard :title="t('settings.profile.title')">
+    <AppCard v-if="activeTab === 'profile'" :title="t('settings.profile.title')">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <p class="text-xs text-text-muted">{{ t('settings.profile.name') }}</p>
@@ -235,7 +263,7 @@ function setLocale(next: string | undefined) {
     </AppCard>
 
     <!-- Preferences -->
-    <AppCard :title="t('settings.prefs.title')">
+    <AppCard v-if="activeTab === 'preferences'" :title="t('settings.prefs.title')">
       <div class="space-y-5">
         <div>
           <p class="mb-2 text-xs text-text-muted">{{ t('settings.prefs.theme') }}</p>

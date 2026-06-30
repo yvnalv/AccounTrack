@@ -8,9 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-30 (last change **CHG-0087**)
+- **As of:** 2026-06-30 (last change **CHG-0088**)
 - **Build:** green — backend `net8.0` (329 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **optimistic concurrency extended to all master-data + Chart-of-Accounts edits** — stale
+  Latest: **Settings tabs + modal overflow fix** — modals now cap to the viewport with a scrollable
+  body (fixes the Add-role modal pushing its footer off-screen); Settings is tabbed per category
+  (CHG-0088); **optimistic concurrency extended to all master-data + Chart-of-Accounts edits** — stale
   cross-request edits return 409 `CONCURRENCY_CONFLICT` (CHG-0087); **optimistic concurrency on SO/PO
   edits** — drafts carry a `rowVersion`; a stale cross-request
   edit is rejected with 409 `CONCURRENCY_CONFLICT` instead of clobbering (CHG-0086); **outbox

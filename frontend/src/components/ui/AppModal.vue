@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { X } from 'lucide-vue-next'
 
 const open = defineModel<boolean>({ required: true })
-defineProps<{ title: string }>()
+const props = withDefaults(
+  defineProps<{ title: string; size?: 'sm' | 'md' | 'lg' | 'xl' }>(),
+  { size: 'md' },
+)
+
+const maxWidth = computed(
+  () => ({ sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' })[props.size],
+)
 
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape') open.value = false
@@ -20,8 +27,13 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
         class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
         @click.self="open = false"
       >
-        <div class="w-full max-w-lg rounded-card border border-border bg-surface shadow-card">
-          <header class="flex items-center justify-between border-b border-border px-5 py-3.5">
+        <div
+          :class="[
+            'flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-card border border-border bg-surface shadow-card',
+            maxWidth,
+          ]"
+        >
+          <header class="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
             <h2 class="text-sm font-semibold text-text">{{ title }}</h2>
             <button
               type="button"
@@ -31,10 +43,11 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
               <X :size="18" />
             </button>
           </header>
-          <div class="p-5">
+          <!-- Body scrolls when content exceeds the viewport; header/footer stay pinned. -->
+          <div class="min-h-0 overflow-y-auto p-5">
             <slot />
           </div>
-          <footer v-if="$slots.footer" class="flex items-center justify-end gap-3 border-t border-border px-5 py-3.5">
+          <footer v-if="$slots.footer" class="flex shrink-0 items-center justify-end gap-3 border-t border-border px-5 py-3.5">
             <slot name="footer" />
           </footer>
         </div>

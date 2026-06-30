@@ -1,6 +1,20 @@
 # Accountrack Changelog
 
-## [2026-06-30 16:52:03 UTC]
+## [2026-06-30 16:59:13 UTC]
+
+CHG-0088 — Settings tabs + modal overflow fix (UX)
+
+- **Modal overflow fixed (all modals).** `AppModal` capped its panel at the viewport
+  (`max-h-[calc(100dvh-2rem)]`) as a flex column with a **scrollable body** and pinned header/footer.
+  Previously a tall modal (notably **Add/Edit role**, with its full permission matrix) grew past the
+  screen and pushed the Save/Cancel footer out of reach. Because every dialog in the app shares
+  `AppModal` (17 call sites), this one change fixes them all. Added an optional `size` prop
+  (`sm`/`md`/`lg`/`xl`); the role modal now uses `lg` so the permission matrix has room.
+- **Settings reorganized into tabs.** The stacked cards (Company, Users, Roles, Event delivery,
+  Profile, Preferences) are now a tab bar, one tab per category, matching the Master-Data tab style.
+  Admin-only tabs (Users, Roles, Event delivery) appear only with the matching permission; selecting a
+  tab mounts just that section. No new i18n — tab labels reuse the existing section titles (EN/ID).
+- Frontend builds (vue-tsc + vite). No backend change; suite remains **329** green.
 
 CHG-0087 — Optimistic concurrency on master-data & Chart-of-Accounts edits (ADR-0021)
 
