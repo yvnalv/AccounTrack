@@ -11,7 +11,8 @@ namespace Accountrack.MasterData.Application.Features;
 
 // ---- Customers ----
 public sealed record UpdateCustomerCommand(
-    Guid Id, string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit) : ICommand<Guid>;
+    Guid Id, string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit,
+    byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateCustomerValidator : AbstractValidator<UpdateCustomerCommand>
 {
@@ -34,6 +35,7 @@ public sealed class UpdateCustomerHandler : ICommandHandler<UpdateCustomerComman
     {
         var customer = await _repo.GetByIdAsync(request.Id, ct);
         if (customer is null) return MasterDataErrors.NotFound("customer");
+        if (request.RowVersion is not null) _repo.SetExpectedVersion(customer, request.RowVersion);
         customer.Update(request.Name, request.TaxId, request.PaymentTermDays, request.CreditLimit);
         await _uow.SaveChangesAsync(ct);
         return customer.Id;
@@ -59,7 +61,8 @@ public sealed class SetCustomerActiveHandler : ICommandHandler<SetCustomerActive
 }
 
 // ---- Suppliers ----
-public sealed record UpdateSupplierCommand(Guid Id, string Name, string? TaxId, int PaymentTermDays) : ICommand<Guid>;
+public sealed record UpdateSupplierCommand(
+    Guid Id, string Name, string? TaxId, int PaymentTermDays, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateSupplierValidator : AbstractValidator<UpdateSupplierCommand>
 {
@@ -81,6 +84,7 @@ public sealed class UpdateSupplierHandler : ICommandHandler<UpdateSupplierComman
     {
         var supplier = await _repo.GetByIdAsync(request.Id, ct);
         if (supplier is null) return MasterDataErrors.NotFound("supplier");
+        if (request.RowVersion is not null) _repo.SetExpectedVersion(supplier, request.RowVersion);
         supplier.Update(request.Name, request.TaxId, request.PaymentTermDays);
         await _uow.SaveChangesAsync(ct);
         return supplier.Id;
@@ -106,7 +110,8 @@ public sealed class SetSupplierActiveHandler : ICommandHandler<SetSupplierActive
 }
 
 // ---- Warehouses ----
-public sealed record UpdateWarehouseCommand(Guid Id, string Name, string? Address) : ICommand<Guid>;
+public sealed record UpdateWarehouseCommand(
+    Guid Id, string Name, string? Address, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateWarehouseValidator : AbstractValidator<UpdateWarehouseCommand>
 {
@@ -127,6 +132,7 @@ public sealed class UpdateWarehouseHandler : ICommandHandler<UpdateWarehouseComm
     {
         var warehouse = await _repo.GetByIdAsync(request.Id, ct);
         if (warehouse is null) return MasterDataErrors.NotFound("warehouse");
+        if (request.RowVersion is not null) _repo.SetExpectedVersion(warehouse, request.RowVersion);
         warehouse.Update(request.Name, request.Address);
         await _uow.SaveChangesAsync(ct);
         return warehouse.Id;
@@ -153,7 +159,8 @@ public sealed class SetWarehouseActiveHandler : ICommandHandler<SetWarehouseActi
 
 // ---- Products ----
 public sealed record UpdateProductCommand(
-    Guid Id, string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased) : ICommand<Guid>;
+    Guid Id, string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased,
+    byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateProductValidator : AbstractValidator<UpdateProductCommand>
 {
@@ -174,6 +181,7 @@ public sealed class UpdateProductHandler : ICommandHandler<UpdateProductCommand,
     {
         var product = await _repo.GetByIdAsync(request.Id, ct);
         if (product is null) return MasterDataErrors.NotFound("product");
+        if (request.RowVersion is not null) _repo.SetExpectedVersion(product, request.RowVersion);
         product.Update(request.Name, request.CategoryId, request.IsStockTracked, request.IsSold, request.IsPurchased);
         await _uow.SaveChangesAsync(ct);
         return product.Id;
@@ -199,7 +207,7 @@ public sealed class SetProductActiveHandler : ICommandHandler<SetProductActiveCo
 }
 
 // ---- Units of measure ----
-public sealed record UpdateUomCommand(Guid Id, string Name) : ICommand<Guid>;
+public sealed record UpdateUomCommand(Guid Id, string Name, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateUomValidator : AbstractValidator<UpdateUomCommand>
 {
@@ -220,6 +228,7 @@ public sealed class UpdateUomHandler : ICommandHandler<UpdateUomCommand, Guid>
     {
         var uom = await _repo.GetByIdAsync(request.Id, ct);
         if (uom is null) return MasterDataErrors.NotFound("unit of measure");
+        if (request.RowVersion is not null) _repo.SetExpectedVersion(uom, request.RowVersion);
         uom.Update(request.Name);
         await _uow.SaveChangesAsync(ct);
         return uom.Id;
@@ -245,7 +254,7 @@ public sealed class SetUomActiveHandler : ICommandHandler<SetUomActiveCommand, G
 }
 
 // ---- Product categories ----
-public sealed record UpdateCategoryCommand(Guid Id, string Name) : ICommand<Guid>;
+public sealed record UpdateCategoryCommand(Guid Id, string Name, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateCategoryValidator : AbstractValidator<UpdateCategoryCommand>
 {
@@ -266,6 +275,7 @@ public sealed class UpdateCategoryHandler : ICommandHandler<UpdateCategoryComman
     {
         var category = await _repo.GetByIdAsync(request.Id, ct);
         if (category is null) return MasterDataErrors.NotFound("category");
+        if (request.RowVersion is not null) _repo.SetExpectedVersion(category, request.RowVersion);
         category.Update(request.Name);
         await _uow.SaveChangesAsync(ct);
         return category.Id;
@@ -291,7 +301,7 @@ public sealed class SetCategoryActiveHandler : ICommandHandler<SetCategoryActive
 }
 
 // ---- Tax codes ----
-public sealed record UpdateTaxCodeCommand(Guid Id, string Name, decimal Rate) : ICommand<Guid>;
+public sealed record UpdateTaxCodeCommand(Guid Id, string Name, decimal Rate, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateTaxCodeValidator : AbstractValidator<UpdateTaxCodeCommand>
 {
@@ -313,6 +323,7 @@ public sealed class UpdateTaxCodeHandler : ICommandHandler<UpdateTaxCodeCommand,
     {
         var taxCode = await _repo.GetByIdAsync(request.Id, ct);
         if (taxCode is null) return MasterDataErrors.NotFound("tax code");
+        if (request.RowVersion is not null) _repo.SetExpectedVersion(taxCode, request.RowVersion);
         taxCode.Update(request.Name, request.Rate);
         await _uow.SaveChangesAsync(ct);
         return taxCode.Id;

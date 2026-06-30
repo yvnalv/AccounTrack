@@ -89,6 +89,16 @@ http.interceptors.response.use(
   },
 )
 
+/**
+ * True when a rejected request is an optimistic-concurrency conflict (ADR-0021). Matches on the
+ * `CONCURRENCY_CONFLICT` error code, not the 409 status — other conflicts (e.g. a duplicate code on
+ * create) also return 409 but must not be reported as "changed by someone else".
+ */
+export function isConflict(error: unknown): boolean {
+  const data = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data
+  return data?.error?.code === 'CONCURRENCY_CONFLICT'
+}
+
 /** Unwraps the `{ success, data }` envelope, throwing the message on failure. */
 export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> {
   const { data } = await promise

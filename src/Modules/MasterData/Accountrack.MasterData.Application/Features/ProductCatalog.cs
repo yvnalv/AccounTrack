@@ -47,7 +47,7 @@ public sealed class GetUomsHandler : IQueryHandler<GetUomsQuery, IReadOnlyList<U
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<UnitOfMeasureDto>>(
-            items.Select(u => new UnitOfMeasureDto(u.Id, u.Code, u.Name, u.IsActive)).ToList());
+            items.Select(u => new UnitOfMeasureDto(u.Id, u.Code, u.Name, u.IsActive, u.RowVersion)).ToList());
     }
 }
 
@@ -91,7 +91,7 @@ public sealed class GetCategoriesHandler : IQueryHandler<GetCategoriesQuery, IRe
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<ProductCategoryDto>>(
-            items.Select(c => new ProductCategoryDto(c.Id, c.Code, c.Name, c.IsActive)).ToList());
+            items.Select(c => new ProductCategoryDto(c.Id, c.Code, c.Name, c.IsActive, c.RowVersion)).ToList());
     }
 }
 
@@ -150,6 +150,7 @@ public sealed class GetProductsHandler : IQueryHandler<GetProductsQuery, IReadOn
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<ProductDto>>(items.Select(p => new ProductDto(
-            p.Id, p.Code, p.Name, p.BaseUomId, p.CategoryId, p.IsStockTracked, p.IsSold, p.IsPurchased, p.IsActive)).ToList());
+            p.Id, p.Code, p.Name, p.BaseUomId, p.CategoryId, p.IsStockTracked, p.IsSold, p.IsPurchased, p.IsActive,
+            p.RowVersion)).ToList());
     }
 }

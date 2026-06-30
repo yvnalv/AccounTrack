@@ -18,7 +18,7 @@ public static class AccountingEndpoints
 
     public sealed record AllocateRequest(string PaymentReference, DateOnly Date, decimal Amount);
 
-    public sealed record UpdateAccountBody(string Name, bool AllowPosting);
+    public sealed record UpdateAccountBody(string Name, bool AllowPosting, byte[]? RowVersion);
 
     public sealed record SetActiveBody(bool IsActive);
 
@@ -36,7 +36,7 @@ public static class AccountingEndpoints
             .RequireAuthorization("MasterData.Create").WithName("CreateAccount");
 
         accounts.MapPut("/{id:guid}", async (Guid id, UpdateAccountBody body, ISender sender, CancellationToken ct) =>
-            (await sender.Send(new UpdateAccountCommand(id, body.Name, body.AllowPosting), ct)).ToHttpResult())
+            (await sender.Send(new UpdateAccountCommand(id, body.Name, body.AllowPosting, body.RowVersion), ct)).ToHttpResult())
             .RequireAuthorization("MasterData.Edit").WithName("UpdateAccount");
 
         accounts.MapPut("/{id:guid}/active", async (Guid id, SetActiveBody body, ISender sender, CancellationToken ct) =>

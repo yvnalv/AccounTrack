@@ -34,6 +34,20 @@ public class ChartOfAccountsEditTests
     }
 
     [Fact]
+    public async Task Update_sets_expected_version_for_optimistic_concurrency_when_supplied()
+    {
+        var acc = Account.CreateWithId(Guid.NewGuid(), "6500", "Misc", AccountType.Expense);
+        _accounts.GetByIdAsync(acc.Id, Arg.Any<CancellationToken>()).Returns(acc);
+        var version = new byte[] { 4, 2 };
+
+        var result = await new UpdateAccountCommandHandler(_accounts, _uow)
+            .Handle(new UpdateAccountCommand(acc.Id, "Miscellaneous", AllowPosting: true, RowVersion: version), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _accounts.Received(1).SetExpectedVersion(acc, version);
+    }
+
+    [Fact]
     public async Task Deactivate_a_plain_unused_account_succeeds()
     {
         var acc = Account.CreateWithId(Guid.NewGuid(), "6500", "Misc", AccountType.Expense);

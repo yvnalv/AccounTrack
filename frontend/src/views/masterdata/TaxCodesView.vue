@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
+import { isConflict } from '@/lib/api'
 import { formatPercent } from '@/lib/format'
 import type { TaxCode } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -23,6 +24,7 @@ const modalOpen = ref(false)
 const saving = ref(false)
 const error = ref('')
 const editingId = ref<string | null>(null)
+const editRowVersion = ref<string | null>(null)
 const form = reactive({ code: '', name: '', ratePercent: 0 })
 
 const columns = computed<Column[]>(() => [
@@ -52,6 +54,7 @@ function openNew() {
 
 function openEdit(row: TaxCode) {
   editingId.value = row.id
+  editRowVersion.value = row.rowVersion
   Object.assign(form, { code: row.code, name: row.name, ratePercent: row.rate * 100 })
   error.value = ''
   modalOpen.value = true
@@ -62,12 +65,12 @@ async function save() {
   saving.value = true
   try {
     const rate = Number(form.ratePercent) / 100
-    if (editingId.value) await masterData.updateTaxCode(editingId.value, { name: form.name, rate })
+    if (editingId.value) await masterData.updateTaxCode(editingId.value, { name: form.name, rate }, editRowVersion.value)
     else await masterData.createTaxCode({ code: form.code, name: form.name, rate })
     modalOpen.value = false
     await load()
-  } catch {
-    error.value = t('masterData.failed')
+  } catch (e) {
+    error.value = isConflict(e) ? t('masterData.conflict') : t('masterData.failed')
   } finally {
     saving.value = false
   }

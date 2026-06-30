@@ -2,7 +2,7 @@ namespace Accountrack.Accounting.Application.Contracts;
 
 public sealed record AccountDto(
     Guid Id, string Code, string Name, string Type, string NormalBalance,
-    bool IsControlAccount, string ControlType, bool AllowPosting, bool IsActive, bool IsSystem);
+    bool IsControlAccount, string ControlType, bool AllowPosting, bool IsActive, bool IsSystem, byte[]? RowVersion);
 
 public sealed record FiscalPeriodDto(Guid Id, int PeriodNo, DateOnly StartDate, DateOnly EndDate, string Status);
 

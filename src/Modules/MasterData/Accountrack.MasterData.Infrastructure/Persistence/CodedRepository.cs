@@ -25,4 +25,7 @@ public sealed class CodedRepository<T> : ICodedRepository<T>
 
     public async Task<IReadOnlyList<T>> ListAsync(CancellationToken ct) =>
         await _db.Set<T>().OrderBy(e => EF.Property<string>(e, "Code")).ToListAsync(ct);
+
+    public void SetExpectedVersion(T entity, byte[] expectedVersion) =>
+        _db.Entry(entity).Property(e => e.RowVersion).OriginalValue = expectedVersion;
 }

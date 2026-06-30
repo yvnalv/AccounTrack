@@ -11,7 +11,7 @@ internal static class AccountMapping
 {
     public static AccountDto ToDto(this Account a) => new(
         a.Id, a.Code, a.Name, a.Type.ToString(), a.NormalBalance.ToString(),
-        a.IsControlAccount, a.ControlType.ToString(), a.AllowPosting, a.IsActive, a.IsSystem);
+        a.IsControlAccount, a.ControlType.ToString(), a.AllowPosting, a.IsActive, a.IsSystem, a.RowVersion);
 }
 
 public sealed record CreateAccountCommand(
@@ -55,7 +55,7 @@ public sealed class CreateAccountCommandHandler : ICommandHandler<CreateAccountC
 }
 
 // ---- Edit an account (ADR-0029) — Code/Type are immutable; name + postability are editable ----
-public sealed record UpdateAccountCommand(Guid Id, string Name, bool AllowPosting) : ICommand<Guid>;
+public sealed record UpdateAccountCommand(Guid Id, string Name, bool AllowPosting, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateAccountCommandValidator : AbstractValidator<UpdateAccountCommand>
 {
@@ -85,6 +85,7 @@ public sealed class UpdateAccountCommandHandler : ICommandHandler<UpdateAccountC
             return AccountingErrors.AccountNotFound;
         }
 
+        if (request.RowVersion is not null) _accounts.SetExpectedVersion(account, request.RowVersion);
         account.Rename(request.Name);
         account.SetPostingAllowed(request.AllowPosting);
         await _uow.SaveChangesAsync(ct);

@@ -1,5 +1,30 @@
 # Accountrack Changelog
 
+## [2026-06-30 16:52:03 UTC]
+
+CHG-0087 — Optimistic concurrency on master-data & Chart-of-Accounts edits (ADR-0021)
+
+- Extended the cross-request lost-update guard from CHG-0086 to **all master-data edits**
+  (customers, suppliers, warehouses, products, units of measure, product categories, tax codes) and
+  **Chart-of-Accounts** edits. Each edit screen now round-trips the record's `rowVersion`; a stale
+  save is rejected with **409 `CONCURRENCY_CONFLICT`** rather than silently overwriting another user's
+  change. The 409 mapping + `ConcurrencyConflictException` infrastructure from CHG-0086 is reused.
+- **Backend leverage:** the generic `ICodedRepository<T>` gained one `SetExpectedVersion` method that
+  covers all seven master-data aggregates; the `IAccountRepository` got the same. Each `Update*`
+  command takes an optional `RowVersion` (omitted = unchanged behaviour), and every list DTO now
+  exposes `RowVersion` so the client has the token to echo back.
+- **Frontend:** a shared `isConflict(error)` helper keys off the **`CONCURRENCY_CONFLICT` error code**
+  (not the 409 status) so a duplicate-code conflict on *create* — which is also 409 — is not
+  mislabelled as "changed by someone else". All seven master-data views + the CoA view capture the
+  loaded `rowVersion`, send it on update, and show a localized conflict message (EN/ID).
+- **Tests:** +2 (customer + account update handlers set the expected version when supplied). Full
+  suite **329** green; frontend builds.
+- **Verified (e2e):** for both a Customer and a (newly created) GL account — editing with the loaded
+  version succeeded and advanced it; re-editing with the stale version returned **409
+  CONCURRENCY_CONFLICT**.
+
+---
+
 ## [2026-06-30 16:02:21 UTC]
 
 CHG-0086 — Optimistic concurrency on Sales & Purchase Order edits (ADR-0021)

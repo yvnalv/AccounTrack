@@ -23,7 +23,7 @@ public static class MasterDataEndpoints
         uoms.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetUomsQuery(), ct))).RequireAuthorization(View);
         uoms.MapPost("/", (CreateUomCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/units-of-measure")).RequireAuthorization(Create);
         uoms.MapPut("/{id:guid}", (Guid id, NameBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateUomCommand(id, b.Name), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateUomCommand(id, b.Name, b.RowVersion), ct))).RequireAuthorization(Edit);
         uoms.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetUomActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
 
@@ -31,7 +31,7 @@ public static class MasterDataEndpoints
         cats.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetCategoriesQuery(), ct))).RequireAuthorization(View);
         cats.MapPost("/", (CreateCategoryCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/product-categories")).RequireAuthorization(Create);
         cats.MapPut("/{id:guid}", (Guid id, NameBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateCategoryCommand(id, b.Name), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateCategoryCommand(id, b.Name, b.RowVersion), ct))).RequireAuthorization(Edit);
         cats.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetCategoryActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
 
@@ -39,7 +39,7 @@ public static class MasterDataEndpoints
         products.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetProductsQuery(), ct))).RequireAuthorization(View);
         products.MapPost("/", (CreateProductCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/products")).RequireAuthorization(Create);
         products.MapPut("/{id:guid}", (Guid id, UpdateProductBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateProductCommand(id, b.Name, b.CategoryId, b.IsStockTracked, b.IsSold, b.IsPurchased), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateProductCommand(id, b.Name, b.CategoryId, b.IsStockTracked, b.IsSold, b.IsPurchased, b.RowVersion), ct))).RequireAuthorization(Edit);
         products.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetProductActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
         products.MapGet("/import/template", () =>
@@ -59,7 +59,7 @@ public static class MasterDataEndpoints
         customers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetCustomersQuery(), ct))).RequireAuthorization(View);
         customers.MapPost("/", (CreateCustomerCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/customers")).RequireAuthorization(Create);
         customers.MapPut("/{id:guid}", (Guid id, UpdateCustomerBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateCustomerCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.CreditLimit), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateCustomerCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.CreditLimit, b.RowVersion), ct))).RequireAuthorization(Edit);
         customers.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetCustomerActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
 
@@ -84,7 +84,7 @@ public static class MasterDataEndpoints
         suppliers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetSuppliersQuery(), ct))).RequireAuthorization(View);
         suppliers.MapPost("/", (CreateSupplierCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/suppliers")).RequireAuthorization(Create);
         suppliers.MapPut("/{id:guid}", (Guid id, UpdateSupplierBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateSupplierCommand(id, b.Name, b.TaxId, b.PaymentTermDays), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateSupplierCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.RowVersion), ct))).RequireAuthorization(Edit);
         suppliers.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetSupplierActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
         suppliers.MapGet("/import/template", () =>
@@ -104,7 +104,7 @@ public static class MasterDataEndpoints
         warehouses.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetWarehousesQuery(), ct))).RequireAuthorization(View);
         warehouses.MapPost("/", (CreateWarehouseCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/warehouses")).RequireAuthorization(Create);
         warehouses.MapPut("/{id:guid}", (Guid id, UpdateWarehouseBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateWarehouseCommand(id, b.Name, b.Address), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateWarehouseCommand(id, b.Name, b.Address, b.RowVersion), ct))).RequireAuthorization(Edit);
         warehouses.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetWarehouseActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
         warehouses.MapGet("/import/template", () =>
@@ -124,7 +124,7 @@ public static class MasterDataEndpoints
         taxCodes.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetTaxCodesQuery(), ct))).RequireAuthorization(View);
         taxCodes.MapPost("/", (CreateTaxCodeCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/tax-codes")).RequireAuthorization(Create);
         taxCodes.MapPut("/{id:guid}", (Guid id, UpdateTaxCodeBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateTaxCodeCommand(id, b.Name, b.Rate), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateTaxCodeCommand(id, b.Name, b.Rate, b.RowVersion), ct))).RequireAuthorization(Edit);
         taxCodes.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetTaxCodeActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
 
@@ -133,12 +133,12 @@ public static class MasterDataEndpoints
 
     // Request bodies for edits — the id comes from the route, the rest from the body.
     public sealed record SetActiveBody(bool IsActive);
-    public sealed record NameBody(string Name);
-    public sealed record UpdateTaxCodeBody(string Name, decimal Rate);
-    public sealed record UpdateCustomerBody(string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit);
-    public sealed record UpdateSupplierBody(string Name, string? TaxId, int PaymentTermDays);
-    public sealed record UpdateWarehouseBody(string Name, string? Address);
-    public sealed record UpdateProductBody(string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased);
+    public sealed record NameBody(string Name, byte[]? RowVersion);
+    public sealed record UpdateTaxCodeBody(string Name, decimal Rate, byte[]? RowVersion);
+    public sealed record UpdateCustomerBody(string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit, byte[]? RowVersion);
+    public sealed record UpdateSupplierBody(string Name, string? TaxId, int PaymentTermDays, byte[]? RowVersion);
+    public sealed record UpdateWarehouseBody(string Name, string? Address, byte[]? RowVersion);
+    public sealed record UpdateProductBody(string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased, byte[]? RowVersion);
 
     /// <summary>Reads an uploaded import file as CSV text, converting an .xlsx upload on the fly so
     /// the CSV import pipeline ingests both formats unchanged (ADR-0031).</summary>

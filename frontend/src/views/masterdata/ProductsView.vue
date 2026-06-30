@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, Minus, Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
+import { isConflict } from '@/lib/api'
 import { useCsvImport } from '@/composables/useCsvImport'
 import type { NamedRef, Product } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -43,6 +44,7 @@ const modalOpen = ref(false)
 const saving = ref(false)
 const error = ref('')
 const editingId = ref<string | null>(null)
+const editRowVersion = ref<string | null>(null)
 const form = reactive({
   code: '',
   name: '',
@@ -103,6 +105,7 @@ function openNew() {
 
 function openEdit(row: Product) {
   editingId.value = row.id
+  editRowVersion.value = row.rowVersion
   Object.assign(form, {
     code: row.code,
     name: row.name,
@@ -127,7 +130,7 @@ async function save() {
         isStockTracked: form.isStockTracked,
         isSold: form.isSold,
         isPurchased: form.isPurchased,
-      })
+      }, editRowVersion.value)
     } else {
       await masterData.createProduct({
         code: form.code,
@@ -141,8 +144,8 @@ async function save() {
     }
     modalOpen.value = false
     await load()
-  } catch {
-    error.value = t('masterData.failed')
+  } catch (e) {
+    error.value = isConflict(e) ? t('masterData.conflict') : t('masterData.failed')
   } finally {
     saving.value = false
   }

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
+import { isConflict } from '@/lib/api'
 import type { UnitOfMeasure } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -22,6 +23,7 @@ const modalOpen = ref(false)
 const saving = ref(false)
 const error = ref('')
 const editingId = ref<string | null>(null)
+const editRowVersion = ref<string | null>(null)
 const form = reactive({ code: '', name: '' })
 
 const columns = computed<Column[]>(() => [
@@ -50,6 +52,7 @@ function openNew() {
 
 function openEdit(row: UnitOfMeasure) {
   editingId.value = row.id
+  editRowVersion.value = row.rowVersion
   Object.assign(form, { code: row.code, name: row.name })
   error.value = ''
   modalOpen.value = true
@@ -59,12 +62,12 @@ async function save() {
   error.value = ''
   saving.value = true
   try {
-    if (editingId.value) await masterData.updateUom(editingId.value, { name: form.name })
+    if (editingId.value) await masterData.updateUom(editingId.value, { name: form.name }, editRowVersion.value)
     else await masterData.createUom({ code: form.code, name: form.name })
     modalOpen.value = false
     await load()
-  } catch {
-    error.value = t('masterData.failed')
+  } catch (e) {
+    error.value = isConflict(e) ? t('masterData.conflict') : t('masterData.failed')
   } finally {
     saving.value = false
   }

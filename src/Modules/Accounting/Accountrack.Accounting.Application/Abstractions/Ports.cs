@@ -11,6 +11,12 @@ public interface IAccountRepository
     Task<bool> CodeExistsAsync(string code, CancellationToken ct);
     Task<IReadOnlyDictionary<Guid, Account>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
     void Add(Account account);
+
+    /// <summary>
+    /// Sets the concurrency token the caller expects to still be current, so the next save fails with
+    /// a concurrency conflict if the account was changed by someone else since it was loaded (ADR-0021).
+    /// </summary>
+    void SetExpectedVersion(Account account, byte[] expectedVersion);
 }
 
 public interface IFiscalPeriodRepository

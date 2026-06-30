@@ -307,6 +307,7 @@ export default {
     cancel: 'Cancel',
     close: 'Close',
     failed: 'Could not save. Check the fields (code may already exist).',
+    conflict: 'This record was changed by someone else. Reload and try again.',
     yes: 'Yes',
     no: 'No',
     empty: 'Nothing here yet.',

@@ -308,6 +308,7 @@ export default {
     cancel: 'Batal',
     close: 'Tutup',
     failed: 'Tidak dapat menyimpan. Periksa isian (kode mungkin sudah ada).',
+    conflict: 'Data ini diubah oleh orang lain. Muat ulang lalu coba lagi.',
     yes: 'Ya',
     no: 'Tidak',
     empty: 'Belum ada data.',

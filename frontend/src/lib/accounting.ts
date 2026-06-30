@@ -17,8 +17,8 @@ export const accountingApi = {
   accounts: () => unwrap<AccountRef[]>(http.get('/accounts')),
   createAccount: (body: { code: string; name: string; type: string; isControlAccount: boolean; controlType: string }) =>
     unwrap<string>(http.post('/accounts', body)),
-  updateAccount: (id: string, body: { name: string; allowPosting: boolean }) =>
-    unwrap(http.put(`/accounts/${id}`, body)),
+  updateAccount: (id: string, body: { name: string; allowPosting: boolean }, rowVersion?: string | null) =>
+    unwrap(http.put(`/accounts/${id}`, { ...body, rowVersion: rowVersion ?? null })),
   setAccountActive: (id: string, isActive: boolean) =>
     unwrap(http.put(`/accounts/${id}/active`, { isActive })),
 

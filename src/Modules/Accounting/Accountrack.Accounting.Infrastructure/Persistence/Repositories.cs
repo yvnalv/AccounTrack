@@ -25,6 +25,9 @@ public sealed class AccountRepository : IAccountRepository
         await _db.Accounts.Where(a => ids.Contains(a.Id)).ToDictionaryAsync(a => a.Id, ct);
 
     public void Add(Account account) => _db.Accounts.Add(account);
+
+    public void SetExpectedVersion(Account account, byte[] expectedVersion) =>
+        _db.Entry(account).Property(a => a.RowVersion).OriginalValue = expectedVersion;
 }
 
 public sealed class FiscalPeriodRepository : IFiscalPeriodRepository

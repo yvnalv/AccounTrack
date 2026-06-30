@@ -11,6 +11,7 @@ export interface Product extends NamedRef {
   isSold: boolean
   isPurchased: boolean
   isActive: boolean
+  rowVersion: string | null
 }
 
 export interface Customer extends NamedRef {
@@ -18,30 +19,36 @@ export interface Customer extends NamedRef {
   paymentTermDays: number
   creditLimit: number
   isActive: boolean
+  rowVersion: string | null
 }
 
 export interface Supplier extends NamedRef {
   taxId: string | null
   paymentTermDays: number
   isActive: boolean
+  rowVersion: string | null
 }
 
 export interface Warehouse extends NamedRef {
   address: string | null
   isActive: boolean
+  rowVersion: string | null
 }
 
 export interface UnitOfMeasure extends NamedRef {
   isActive: boolean
+  rowVersion: string | null
 }
 
 export interface ProductCategory extends NamedRef {
   isActive: boolean
+  rowVersion: string | null
 }
 
 export interface TaxCode extends NamedRef {
   rate: number
   isActive: boolean
+  rowVersion: string | null
 }
 
 export interface CreateProduct {

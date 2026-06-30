@@ -22,6 +22,7 @@ export interface AccountRef {
   allowPosting: boolean
   isActive: boolean
   isSystem?: boolean
+  rowVersion?: string | null
 }
 
 export interface FiscalPeriod {

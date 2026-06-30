@@ -50,7 +50,7 @@ public sealed class GetCustomersHandler : IQueryHandler<GetCustomersQuery, IRead
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<CustomerDto>>(items.Select(c => new CustomerDto(
-            c.Id, c.Code, c.Name, c.TaxId, c.PaymentTermDays, c.CreditLimit, c.IsActive)).ToList());
+            c.Id, c.Code, c.Name, c.TaxId, c.PaymentTermDays, c.CreditLimit, c.IsActive, c.RowVersion)).ToList());
     }
 }
 
@@ -95,7 +95,7 @@ public sealed class GetSuppliersHandler : IQueryHandler<GetSuppliersQuery, IRead
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<SupplierDto>>(items.Select(s => new SupplierDto(
-            s.Id, s.Code, s.Name, s.TaxId, s.PaymentTermDays, s.IsActive)).ToList());
+            s.Id, s.Code, s.Name, s.TaxId, s.PaymentTermDays, s.IsActive, s.RowVersion)).ToList());
     }
 }
 
@@ -139,7 +139,7 @@ public sealed class GetWarehousesHandler : IQueryHandler<GetWarehousesQuery, IRe
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<WarehouseDto>>(items.Select(w => new WarehouseDto(
-            w.Id, w.Code, w.Name, w.Address, w.IsActive)).ToList());
+            w.Id, w.Code, w.Name, w.Address, w.IsActive, w.RowVersion)).ToList());
     }
 }
 
@@ -184,6 +184,6 @@ public sealed class GetTaxCodesHandler : IQueryHandler<GetTaxCodesQuery, IReadOn
     {
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<TaxCodeDto>>(items.Select(t => new TaxCodeDto(
-            t.Id, t.Code, t.Name, t.Rate, t.IsActive)).ToList());
+            t.Id, t.Code, t.Name, t.Rate, t.IsActive, t.RowVersion)).ToList());
     }
 }

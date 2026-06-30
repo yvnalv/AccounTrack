@@ -8,9 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-30 (last change **CHG-0086**)
-- **Build:** green — backend `net8.0` (327 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **optimistic concurrency on SO/PO edits** — drafts carry a `rowVersion`; a stale cross-request
+- **As of:** 2026-06-30 (last change **CHG-0087**)
+- **Build:** green — backend `net8.0` (329 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **optimistic concurrency extended to all master-data + Chart-of-Accounts edits** — stale
+  cross-request edits return 409 `CONCURRENCY_CONFLICT` (CHG-0087); **optimistic concurrency on SO/PO
+  edits** — drafts carry a `rowVersion`; a stale cross-request
   edit is rejected with 409 `CONCURRENCY_CONFLICT` instead of clobbering (CHG-0086); **outbox
   dead-letter UI** — an "Event delivery" card in Settings (Approval.Manage) that lists
   failed events with a Retry action (CHG-0085); **outbox dead-letter visibility** —
@@ -135,9 +137,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   are no remaining in-process producers to migrate.)
 - **Idempotency for atomic flows:** ✅ command-level idempotency done (CHG-0040) —
   `IdempotencyBehavior` keyed off the `Idempotency-Key` header dedupes replays of the posting/create
-  commands (ADR-0021). ✅ **RowVersion optimistic concurrency on SO/PO edits (CHG-0086)** — stale
-  cross-request edits return 409. Remaining hardening: write the idempotency key in the same
-  transaction (exactly-once); extend the concurrency round-trip to master-data/CoA edit screens.
+  commands (ADR-0021). ✅ **RowVersion optimistic concurrency on SO/PO edits (CHG-0086)** + **all
+  master-data & CoA edits (CHG-0087)** — stale cross-request edits return 409. Remaining hardening:
+  write the idempotency key in the same transaction (exactly-once).
 - **Frontend:** Vue 3 SPA — **pause for a UI/UX design discussion before building** (user
   preference: not template/AI-ish).
 

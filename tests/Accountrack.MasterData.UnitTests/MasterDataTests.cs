@@ -167,6 +167,20 @@ public class UpdateCustomerHandlerTests
     }
 
     [Fact]
+    public async Task Update_sets_expected_version_for_optimistic_concurrency_when_supplied()
+    {
+        var customer = Customer.Create("C1", "Old", null, 30, 0);
+        _repo.GetByIdAsync(customer.Id, Arg.Any<CancellationToken>()).Returns(customer);
+        var version = new byte[] { 7, 7 };
+
+        var result = await new UpdateCustomerHandler(_repo, _uow)
+            .Handle(new UpdateCustomerCommand(customer.Id, "New", null, 7, 0, version), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _repo.Received(1).SetExpectedVersion(customer, version);
+    }
+
+    [Fact]
     public async Task Set_active_deactivates_when_false()
     {
         var customer = Customer.Create("C1", "Old", null, 30, 0);

@@ -34,18 +34,22 @@ export const masterData = {
   createCategory: (body: { code: string; name: string }) => unwrap<string>(http.post('/product-categories', body)),
   createTaxCode: (body: { code: string; name: string; rate: number }) => unwrap<string>(http.post('/tax-codes', body)),
 
-  // Edits (code is the immutable natural key, so it isn't part of the update body).
-  updateCustomer: (id: string, body: Omit<CreateCustomer, 'code'>) =>
-    unwrap<string>(http.put(`/customers/${id}`, body)),
-  updateSupplier: (id: string, body: Omit<CreateSupplier, 'code'>) =>
-    unwrap<string>(http.put(`/suppliers/${id}`, body)),
-  updateWarehouse: (id: string, body: Omit<CreateWarehouse, 'code'>) =>
-    unwrap<string>(http.put(`/warehouses/${id}`, body)),
-  updateProduct: (id: string, body: Omit<CreateProduct, 'code' | 'baseUomId'>) =>
-    unwrap<string>(http.put(`/products/${id}`, body)),
-  updateUom: (id: string, body: { name: string }) => unwrap<string>(http.put(`/units-of-measure/${id}`, body)),
-  updateCategory: (id: string, body: { name: string }) => unwrap<string>(http.put(`/product-categories/${id}`, body)),
-  updateTaxCode: (id: string, body: { name: string; rate: number }) => unwrap<string>(http.put(`/tax-codes/${id}`, body)),
+  // Edits (code is the immutable natural key, so it isn't part of the update body). The optional
+  // rowVersion is echoed back for optimistic-concurrency checking (ADR-0021).
+  updateCustomer: (id: string, body: Omit<CreateCustomer, 'code'>, rowVersion?: string | null) =>
+    unwrap<string>(http.put(`/customers/${id}`, { ...body, rowVersion: rowVersion ?? null })),
+  updateSupplier: (id: string, body: Omit<CreateSupplier, 'code'>, rowVersion?: string | null) =>
+    unwrap<string>(http.put(`/suppliers/${id}`, { ...body, rowVersion: rowVersion ?? null })),
+  updateWarehouse: (id: string, body: Omit<CreateWarehouse, 'code'>, rowVersion?: string | null) =>
+    unwrap<string>(http.put(`/warehouses/${id}`, { ...body, rowVersion: rowVersion ?? null })),
+  updateProduct: (id: string, body: Omit<CreateProduct, 'code' | 'baseUomId'>, rowVersion?: string | null) =>
+    unwrap<string>(http.put(`/products/${id}`, { ...body, rowVersion: rowVersion ?? null })),
+  updateUom: (id: string, body: { name: string }, rowVersion?: string | null) =>
+    unwrap<string>(http.put(`/units-of-measure/${id}`, { ...body, rowVersion: rowVersion ?? null })),
+  updateCategory: (id: string, body: { name: string }, rowVersion?: string | null) =>
+    unwrap<string>(http.put(`/product-categories/${id}`, { ...body, rowVersion: rowVersion ?? null })),
+  updateTaxCode: (id: string, body: { name: string; rate: number }, rowVersion?: string | null) =>
+    unwrap<string>(http.put(`/tax-codes/${id}`, { ...body, rowVersion: rowVersion ?? null })),
 
   setCustomerActive: (id: string, isActive: boolean) =>
     unwrap<string>(http.put(`/customers/${id}/active`, { isActive })),

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Check, Minus, Pencil, Ban, RotateCcw } from 'lucide-vue-next'
 import { accountingApi } from '@/lib/accounting'
+import { isConflict } from '@/lib/api'
 import type { AccountRef } from '@/types/accounting'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -65,7 +66,7 @@ async function save() {
   saving.value = true
   try {
     if (editing.value) {
-      await accountingApi.updateAccount(editing.value.id, { name: form.name, allowPosting: form.allowPosting })
+      await accountingApi.updateAccount(editing.value.id, { name: form.name, allowPosting: form.allowPosting }, editing.value.rowVersion)
     } else {
       await accountingApi.createAccount({
         code: form.code,
@@ -78,7 +79,9 @@ async function save() {
     modalOpen.value = false
     await load()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : t('masterData.failed')
+    error.value = isConflict(e)
+      ? t('masterData.conflict')
+      : (e instanceof Error ? e.message : t('masterData.failed'))
   } finally {
     saving.value = false
   }

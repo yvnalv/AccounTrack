@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
+import { isConflict } from '@/lib/api'
 import { useCsvImport } from '@/composables/useCsvImport'
 import type { Warehouse } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -29,6 +30,7 @@ const modalOpen = ref(false)
 const saving = ref(false)
 const error = ref('')
 const editingId = ref<string | null>(null)
+const editRowVersion = ref<string | null>(null)
 const form = reactive({ code: '', name: '', address: '' })
 
 const columns = computed<Column[]>(() => [
@@ -58,6 +60,7 @@ function openNew() {
 
 function openEdit(row: Warehouse) {
   editingId.value = row.id
+  editRowVersion.value = row.rowVersion
   Object.assign(form, { code: row.code, name: row.name, address: row.address ?? '' })
   error.value = ''
   modalOpen.value = true
@@ -68,14 +71,14 @@ async function save() {
   saving.value = true
   try {
     if (editingId.value) {
-      await masterData.updateWarehouse(editingId.value, { name: form.name, address: form.address || null })
+      await masterData.updateWarehouse(editingId.value, { name: form.name, address: form.address || null }, editRowVersion.value)
     } else {
       await masterData.createWarehouse({ code: form.code, name: form.name, address: form.address || null })
     }
     modalOpen.value = false
     await load()
-  } catch {
-    error.value = t('masterData.failed')
+  } catch (e) {
+    error.value = isConflict(e) ? t('masterData.conflict') : t('masterData.failed')
   } finally {
     saving.value = false
   }
