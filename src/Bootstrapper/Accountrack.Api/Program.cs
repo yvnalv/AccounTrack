@@ -102,6 +102,16 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 
 // --- Authentication & authorization ---
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+
+// Never run a real environment on the insecure zero-key fallback: a missing/weak signing key means
+// anyone can forge tokens (SECURITY.md §6). Fail fast outside Development.
+if (!builder.Environment.IsDevelopment() && (string.IsNullOrWhiteSpace(jwt.SigningKey) || jwt.SigningKey.Length < 32))
+{
+    throw new InvalidOperationException(
+        "Jwt:SigningKey must be a strong secret of at least 32 characters outside Development. " +
+        "Set it via the Jwt__SigningKey environment variable.");
+}
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

@@ -3,6 +3,40 @@
 Build, configuration, environments, and deployment for Accountrack. Stack: Docker, Docker
 Compose, Nginx, GitHub, GitHub Actions (`CLAUDE.md`).
 
+## 0. Quick start — self-hosted on a single VPS (CHG-0091)
+
+The repo ships a ready stack: `Dockerfile.api`, `frontend/Dockerfile` + `frontend/nginx.conf`,
+`docker-compose.yml`, and `.env.example`. It runs **SQL Server + API + SPA/Nginx**. TLS and
+subdomain routing are **not** in this stack — your existing reverse proxy (the one already serving
+your other subdomains) terminates TLS and forwards a subdomain to the one published `web` port.
+
+```bash
+git clone <repo> && cd Accountrack
+cp .env.example .env
+# Edit .env: strong MSSQL_SA_PASSWORD, a >=32-char JWT_SIGNING_KEY (openssl rand -base64 48),
+# your ADMIN_EMAIL / ADMIN_PASSWORD, and WEB_PORT (default 8090).
+docker compose up -d --build
+```
+
+First boot migrates every module schema and (with `SEED_ENABLED=true`) seeds the permission
+catalog, standard roles, a working company (chart of accounts, posting rules, PPN 11%, system
+accounts) and your administrator. Then point your reverse proxy at the stack, e.g.:
+
+- **Nginx Proxy Manager / Traefik / Caddy** → proxy `accountrack.yourdomain.com` → `http://<host>:${WEB_PORT}`.
+- The `web` container serves the SPA and reverse-proxies `/api` to the API (same origin, no CORS).
+- Log in at your subdomain with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. After first login, set
+  `SEED_ENABLED=false` in `.env` and `docker compose up -d` to avoid re-seeding.
+
+**Notes & limits**
+- The app **refuses to start** outside Development if `Jwt:SigningKey` is missing/`<32` chars.
+- Migrations auto-apply on boot here (single-VPS convenience). For a formal Prod pipeline, run
+  migrations as a discrete, backed-up step instead (§4) and set `Database__AutoMigrate=false`.
+- The public `/register` sign-up creates a tenant + company but does **not yet** provision that
+  company's accounting — so use the seeded company above. Per-registration accounting provisioning
+  is a known follow-up before multi-tenant SaaS use.
+- If your reverse proxy runs in Docker, either publish the port (default) and target `host:WEB_PORT`,
+  or attach the `web` service to your proxy's external network and route by container name.
+
 ## 1. Environments
 
 | Env | Purpose | Config source |

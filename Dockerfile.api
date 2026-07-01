@@ -1,0 +1,27 @@
+# Accountrack API — modular-monolith .NET 8 host. Multi-stage: publish with the SDK, run on the
+# slim ASP.NET runtime as a non-root user (DEPLOYMENT.md §3).
+
+# --- build ---
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy the whole repo (context is the repo root) and publish the API — restore pulls the referenced
+# module projects transitively. A NuGet-only restore layer would need every csproj copied first; the
+# repo is small enough that copying once is simpler and still cache-friendly per source change.
+COPY . .
+RUN dotnet publish src/Bootstrapper/Accountrack.Api/Accountrack.Api.csproj \
+    -c Release -o /app/publish /p:UseAppHost=false
+
+# --- runtime ---
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_gcServer=1
+
+EXPOSE 8080
+# APP_UID is the non-root user baked into the aspnet image.
+USER $APP_UID
+ENTRYPOINT ["dotnet", "Accountrack.Api.dll"]

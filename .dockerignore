@@ -1,0 +1,14 @@
+# Keep the build context small + reproducible (never copy build outputs or local state).
+**/bin
+**/obj
+**/node_modules
+frontend/dist
+.git
+.github
+.vs
+.vscode
+tests
+**/*.user
+.env
+.env.*
+!.env.example

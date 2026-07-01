@@ -8,8 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-01 (last change **CHG-0090**)
+- **As of:** 2026-07-01 (last change **CHG-0091**)
 - **Build:** green — backend `net8.0` (329 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  **Deployable:** Docker stack (SQL Server + API + SPA/Nginx) verified via `docker compose up` — behind
+  your own reverse proxy; first boot migrates + seeds a working company/admin (CHG-0091).
   Latest: **silent refresh-token rotation** — the SPA refreshes the access token in the background on
   401 and retries, instead of bouncing to login; sign-out revokes server-side (CHG-0090); **list export
   honors active filters** — Export downloads only the searched/filtered rows

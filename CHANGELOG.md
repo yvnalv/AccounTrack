@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-07-01 16:01:01 UTC]
+
+CHG-0091 — Docker deployment stack (self-hosted, single VPS)
+
+- Added the deployment artifacts the app previously lacked, so it can actually be shipped:
+  `Dockerfile.api` (multi-stage .NET 8 publish → non-root ASP.NET runtime), `frontend/Dockerfile`
+  + `frontend/nginx.conf` (build the SPA, serve it, reverse-proxy `/api` to the API — same origin,
+  no CORS), `docker-compose.yml` (SQL Server + api + web on an internal network with a persistent
+  DB volume), `.env.example`, `.dockerignore`s, and `appsettings.Production.json` (quieter logging).
+- **Reverse-proxy-friendly:** the stack does **not** terminate TLS or bind 80/443 — only the `web`
+  container publishes one port (`WEB_PORT`, default 8090) for an existing external proxy to forward a
+  subdomain to. Fits a VPS already hosting other apps behind Nginx Proxy Manager / Traefik / Caddy.
+- **First-boot provisioning:** with `SEED_ENABLED=true` the API migrates every module schema and
+  seeds the permission catalog, standard roles, a **working company** (chart of accounts, posting
+  rules, PPN 11%, system accounts) and the initial administrator from `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
+- **Security hardening:** the app now **refuses to start outside Development** if `Jwt:SigningKey` is
+  missing or `< 32` chars (previously it silently fell back to an all-zero key). All secrets come from
+  env / `.env` (gitignored); no secrets baked into images; containers run non-root.
+- **Verified locally with Docker:** `docker compose up -d --build` → SQL Server healthy → API migrated
+  + seeded → SPA served and `/api` proxied on one port → login as the seeded admin succeeds
+  (Administrator) → the company has **21 GL accounts + PPN11** seeded (usable for posting).
+- Runbook added to `docs/DEPLOYMENT.md §0`. Known follow-up: public `/register` sign-up does not yet
+  provision a new company's accounting (use the seeded company); formal Prod pipelines should apply
+  migrations as a discrete, backed-up step rather than auto-migrate on boot.
+
+---
+
 ## [2026-07-01 15:17:37 UTC]
 
 CHG-0090 — Frontend silent refresh-token rotation (no surprise logouts)

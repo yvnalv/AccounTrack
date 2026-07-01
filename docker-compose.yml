@@ -1,0 +1,65 @@
+# Accountrack — self-hosted stack: SQL Server + API + SPA/Nginx (DEPLOYMENT.md).
+# TLS and subdomain routing are handled by YOUR existing reverse proxy in front of this stack;
+# only the `web` container publishes a port for that proxy to forward to. Copy .env.example → .env
+# and fill it in, then: docker compose up -d --build
+name: accountrack
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
+      MSSQL_PID: ${MSSQL_PID:-Developer}
+    volumes:
+      - mssql-data:/var/opt/mssql
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Server=db;Database=Accountrack;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      # Auth — MUST be a strong secret (>= 32 chars). The app refuses to start in Production without it.
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env}
+      Jwt__Issuer: ${JWT_ISSUER:-Accountrack}
+      Jwt__Audience: ${JWT_AUDIENCE:-Accountrack}
+      # First boot: create/upgrade all module schemas, then seed the catalog + a working company
+      # (chart of accounts, posting rules, PPN 11%, system accounts) and the initial administrator.
+      Database__Initialize: "true"
+      Database__AutoMigrate: "true"
+      Seed__Enabled: ${SEED_ENABLED:-true}
+      Seed__AdminEmail: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+    depends_on: [api]
+    # Publish only the SPA/proxy container; point your external reverse proxy (the one already serving
+    # your other subdomains) at http://<host>:${WEB_PORT}. Bind to localhost if the proxy runs on the
+    # same host: set WEB_BIND=127.0.0.1 in .env.
+    ports:
+      - "${WEB_BIND:-0.0.0.0}:${WEB_PORT:-8090}:80"
+    networks: [internal]
+    restart: unless-stopped
+
+networks:
+  internal:
+
+volumes:
+  mssql-data:
