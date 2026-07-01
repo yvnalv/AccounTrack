@@ -1,5 +1,18 @@
 # Accountrack Changelog
 
+## [2026-07-01 16:10:42 UTC]
+
+CHG-0092 — Docs: integrate Accountrack into an existing reverse-proxy compose
+
+- Added `docs/DEPLOYMENT.md §0.1` — how to drop the Accountrack services (`accountrack-db` /
+  `accountrack-api` / `accountrack-web`) into an **existing** docker-compose stack that already has an
+  Nginx TLS reverse proxy serving other subdomains (e.g. n8n). The web container uses `expose` (not a
+  published port) so the existing Nginx proxies to it by name; includes the service block, the
+  `accountrack_mssql` volume, the `.env` keys, an Nginx `server` block for the subdomain, and a note
+  that SQL Server needs ~2 GB RAM (VPS should have ≥ 4 GB total). Docs-only; no code change.
+
+---
+
 ## [2026-07-01 16:01:01 UTC]
 
 CHG-0091 — Docker deployment stack (self-hosted, single VPS)

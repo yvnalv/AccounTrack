@@ -37,6 +37,116 @@ accounts) and your administrator. Then point your reverse proxy at the stack, e.
 - If your reverse proxy runs in Docker, either publish the port (default) and target `host:WEB_PORT`,
   or attach the `web` service to your proxy's external network and route by container name.
 
+## 0.1 Integrating into an existing reverse-proxy compose (e.g. alongside n8n)
+
+If your VPS already runs a compose stack with an Nginx that terminates TLS and routes subdomains
+(serving other apps like n8n), add Accountrack **into that same compose** instead of the standalone
+`docker-compose.yml`. Clone this repo into a subfolder (e.g. `./accountrack`) next to your compose,
+then add these services under `services:` (they join the default network, so your Nginx reaches them
+by name — just like `app`/`n8n`):
+
+```yaml
+  accountrack-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: accountrack-db
+    restart: unless-stopped
+    mem_limit: 2g                       # SQL Server needs ~2 GB; ensure the VPS has room
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${ACCOUNTRACK_SA_PASSWORD}
+      MSSQL_PID: Developer
+      MSSQL_MEMORY_LIMIT_MB: "1536"     # cap SQL's own usage under the container limit
+    volumes:
+      - accountrack_mssql:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$ACCOUNTRACK_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+
+  accountrack-api:
+    build:
+      context: ./accountrack
+      dockerfile: Dockerfile.api
+    container_name: accountrack-api
+    restart: unless-stopped
+    mem_limit: 400m
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Server=accountrack-db;Database=Accountrack;User Id=sa;Password=${ACCOUNTRACK_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      Jwt__SigningKey: ${ACCOUNTRACK_JWT_KEY}     # >= 32 chars; app refuses to start without it
+      Jwt__Issuer: Accountrack
+      Jwt__Audience: Accountrack
+      Database__Initialize: "true"
+      Database__AutoMigrate: "true"
+      Seed__Enabled: "true"                        # set false after first boot
+      Seed__AdminEmail: ${ACCOUNTRACK_ADMIN_EMAIL}
+      Seed__AdminPassword: ${ACCOUNTRACK_ADMIN_PASSWORD}
+    depends_on:
+      accountrack-db:
+        condition: service_healthy
+
+  accountrack-web:
+    build:
+      context: ./accountrack/frontend
+    container_name: accountrack-web
+    restart: unless-stopped
+    mem_limit: 100m
+    expose:
+      - "80"                            # internal only; your Nginx proxies to it
+    depends_on:
+      - accountrack-api
+```
+
+Add the volume under the top-level `volumes:` key:
+
+```yaml
+volumes:
+  # ... your existing volumes ...
+  accountrack_mssql:
+```
+
+Add these to the `.env` next to your compose (never commit real secrets):
+
+```
+ACCOUNTRACK_SA_PASSWORD=<strong SA password>
+ACCOUNTRACK_JWT_KEY=<random, >=32 chars: openssl rand -base64 48>
+ACCOUNTRACK_ADMIN_EMAIL=you@yourcompany.com
+ACCOUNTRACK_ADMIN_PASSWORD=<strong admin password>
+```
+
+Finally add an Nginx server block (in your mounted conf) for the subdomain — mirror your n8n block,
+proxying to the `accountrack-web` container:
+
+```nginx
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name accountrack.yvnalvworks.com;
+
+    ssl_certificate     /etc/letsencrypt/live/accountrack.yvnalvworks.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/accountrack.yvnalvworks.com/privkey.pem;
+
+    client_max_body_size 25m;           # CSV/Excel imports
+
+    location / {
+        proxy_pass http://accountrack-web:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Then: DNS `accountrack.yvnalvworks.com` → VPS, issue the cert (certbot), and
+`docker compose up -d --build accountrack-db accountrack-api accountrack-web` + reload Nginx.
+
+> **RAM:** SQL Server wants ~2 GB. With your existing services (~1 GB of limits) the VPS should have
+> **≥ 4 GB** total. If it's a small box, this is the main thing to check before deploying.
+
 ## 1. Environments
 
 | Env | Purpose | Config source |
