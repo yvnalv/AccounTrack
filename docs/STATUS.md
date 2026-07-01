@@ -8,9 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-01 (last change **CHG-0089**)
+- **As of:** 2026-07-01 (last change **CHG-0090**)
 - **Build:** green — backend `net8.0` (329 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **list export honors active filters** — Export now downloads only the searched/filtered rows
+  Latest: **silent refresh-token rotation** — the SPA refreshes the access token in the background on
+  401 and retries, instead of bouncing to login; sign-out revokes server-side (CHG-0090); **list export
+  honors active filters** — Export downloads only the searched/filtered rows
   via a generic `POST /api/v1/export` (CHG-0089); **Settings tabs + modal overflow fix** — modals now cap to the viewport with a scrollable
   body (fixes the Add-role modal pushing its footer off-screen); Settings is tabbed per category
   (CHG-0088); **optimistic concurrency extended to all master-data + Chart-of-Accounts edits** — stale
@@ -157,7 +159,7 @@ CHG-0022–0025; both post atomically across modules and reconcile to the AR/AP 
 CHG-0027 (`frontend/`) — app shell, light/dark toggle, login, finance dashboard. Next frontend slices:
 ⌘K command palette; a shared **DataTable** + **DocumentForm** in the dense register; the first real
 CRUD screen (**Sales** list + Sales-Order create/detail); then the other modules' screens; i18n `id`
-locale; refresh-token rotation; self-hosted font.
+locale; **✅ refresh-token rotation (silent refresh + retry — CHG-0090)**; self-hosted font.
 
 Backend threads that can be picked up independently if desired (none block the frontend):
 - **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021). Remaining:

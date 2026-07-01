@@ -25,7 +25,7 @@ const initials = computed(() => {
 })
 
 function signOut() {
-  auth.clear()
+  void auth.logout() // revokes the refresh token server-side, then clears the local session
   void router.push({ name: 'login' })
 }
 </script>

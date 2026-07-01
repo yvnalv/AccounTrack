@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { http, setAuthToken, unwrap } from '@/lib/api'
+import { http, setAuthToken, setRefreshToken, getRefreshToken, unwrap } from '@/lib/api'
 import type { AuthResponse } from '@/types/api'
 
 const USER_KEY = 'accountrack.user'
@@ -25,6 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setSession(auth: AuthResponse) {
     setAuthToken(auth.accessToken)
+    setRefreshToken(auth.refreshToken)
     const session: SessionUser = {
       userId: auth.userId,
       email: auth.email,
@@ -57,12 +58,26 @@ export const useAuthStore = defineStore('auth', () => {
   function clear() {
     user.value = null
     setAuthToken(null)
+    setRefreshToken(null)
     localStorage.removeItem(USER_KEY)
+  }
+
+  /** Revokes the refresh token server-side (best-effort), then clears the local session. */
+  async function logout() {
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      try {
+        await http.post('/auth/logout', { refreshToken })
+      } catch {
+        /* revocation is best-effort; clear locally regardless */
+      }
+    }
+    clear()
   }
 
   function has(permission: string): boolean {
     return user.value?.permissions.includes(permission) ?? false
   }
 
-  return { user, isAuthenticated, login, register, clear, has }
+  return { user, isAuthenticated, setSession, login, register, clear, logout, has }
 })

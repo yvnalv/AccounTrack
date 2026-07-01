@@ -5,7 +5,7 @@ import router from './router'
 import { i18n } from './i18n'
 import { useThemeStore } from './stores/theme'
 import { useAuthStore } from './stores/auth'
-import { setUnauthorizedHandler } from './lib/api'
+import { setUnauthorizedHandler, setSessionRefreshedHandler } from './lib/api'
 import './assets/styles/main.css'
 
 const app = createApp(App)
@@ -25,5 +25,8 @@ setUnauthorizedHandler(() => {
     void router.push({ name: 'login' })
   }
 })
+
+// After a silent token refresh, persist the rotated tokens + refreshed user in the store.
+setSessionRefreshedHandler((auth) => useAuthStore().setSession(auth))
 
 app.mount('#app')

@@ -1,6 +1,23 @@
 # Accountrack Changelog
 
-## [2026-07-01 14:50:38 UTC]
+## [2026-07-01 15:17:37 UTC]
+
+CHG-0090 — Frontend silent refresh-token rotation (no surprise logouts)
+
+- The SPA previously discarded the refresh token and **bounced the user to login the moment the access
+  token expired**. Now the access token is refreshed silently in the background: on a `401` for a
+  normal request, the axios interceptor exchanges the stored **refresh token** at `POST /auth/refresh`,
+  persists the rotated pair, and **retries the original request** — the user never sees a logout. Only
+  when there is no valid refresh token (both expired) does it clear the session and route to login.
+- **Rotation-safe under concurrency:** a single in-flight refresh is shared across simultaneous `401`s,
+  and a request that 401s after another already rotated the token just retries with the current token —
+  so the (single-use) refresh token is never spent twice, which would otherwise revoke the whole
+  token family.
+- **Proper logout:** sign-out now calls `POST /auth/logout` to **revoke the refresh token server-side**
+  (best-effort) before clearing locally; the refresh token is stored/cleared alongside the access token.
+- Backend already issued rotating refresh tokens — no backend change. Frontend builds (vue-tsc + vite);
+  suite remains **329** green. **Verified (e2e):** a 401 → `/auth/refresh` returns a **rotated** pair →
+  retry succeeds (200); reusing the old refresh token is rejected (401); logout revokes it.
 
 CHG-0089 — List export honors active filters (ADR-0031)
 
