@@ -37,6 +37,20 @@ accounts) and your administrator. Then point your reverse proxy at the stack, e.
 - If your reverse proxy runs in Docker, either publish the port (default) and target `host:WEB_PORT`,
   or attach the `web` service to your proxy's external network and route by container name.
 
+### Local development in Docker
+
+To run the whole app in Docker on your own machine (self-contained SQL Server + API + SPA, isolated
+from any host SQL Server and the `dotnet run` / `npm run dev` servers), use `docker-compose.dev.yml`:
+
+```bash
+cp .env.example .env      # set MSSQL_SA_PASSWORD (dev defaults for the rest are fine)
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+SPA → http://localhost:8090 · API/Swagger → http://localhost:8081/swagger · SQL → `localhost,1434`
+(`sa`). Runs in `Development` (Swagger on) and auto-migrates + seeds a working company + admin on
+first boot. `down -v` wipes its isolated DB volume.
+
 ## 0.1 Integrating into an existing reverse-proxy compose (e.g. alongside n8n)
 
 If your VPS already runs a compose stack with an Nginx that terminates TLS and routes subdomains

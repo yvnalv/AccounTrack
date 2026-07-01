@@ -1,5 +1,22 @@
 # Accountrack Changelog
 
+## [2026-07-01 16:29:49 UTC]
+
+CHG-0093 — Local development Docker stack (docker-compose.dev.yml)
+
+- Added `docker-compose.dev.yml`: a self-contained local stack (its **own** SQL Server container +
+  API + SPA) that runs the whole app in Docker on `localhost`, isolated from the host SQL Server
+  (stays on 1433) and the dev servers (:5080/:5173). Uses a containerised DB because the dev
+  connection is Windows-auth (`Trusted_Connection`), which a Linux container can't use.
+- Ports bound to `127.0.0.1`: SPA `:8090`, API `:8081` (Swagger — `ASPNETCORE_ENVIRONMENT=Development`),
+  SQL `:1434` (`sa`). First boot auto-migrates + seeds a working company + admin. Secrets come from a
+  gitignored `.env` (dev defaults documented; nothing must be changed to run locally).
+- **Verified on local Docker:** `docker compose -f docker-compose.dev.yml up -d --build` → DB healthy →
+  API migrated + seeded → SPA + Swagger reachable → login (`admin@accountrack.local`) works → 21 GL
+  accounts + PPN11 seeded.
+
+---
+
 ## [2026-07-01 16:10:42 UTC]
 
 CHG-0092 — Docs: integrate Accountrack into an existing reverse-proxy compose
