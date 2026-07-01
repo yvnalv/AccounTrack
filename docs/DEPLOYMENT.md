@@ -59,7 +59,7 @@ by name — just like `app`/`n8n`):
     volumes:
       - accountrack_mssql:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$ACCOUNTRACK_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 18
