@@ -1,6 +1,24 @@
 # Accountrack Changelog
 
-## [2026-06-30 16:59:13 UTC]
+## [2026-07-01 14:50:38 UTC]
+
+CHG-0089 — List export honors active filters (ADR-0031)
+
+- **Export now reflects the active search/filter.** Previously "Export" always downloaded the whole
+  list regardless of what the user had filtered to. Now every list export sends exactly the rows the
+  table is currently showing — after the client-side search — so the CSV/XLSX contains only those rows.
+- **Mechanism (no per-entity backend work, no new frontend dependency):** `DataTable` exposes its
+  filtered rows via `v-model:filtered`; a new `exportTable(columns, rows, name, format)` helper posts
+  the visible columns + filtered rows to a single generic **`POST /api/v1/export`** endpoint, which
+  renders them to CSV/XLSX through the existing ClosedXML/CSV `TableExport` path. The endpoint only
+  formats the caller's own already-loaded data (nothing new is exposed) and is auth-gated.
+- Wired across all 8 list views with an export button: **customers, suppliers, warehouses, products,
+  sales orders, purchase orders, inventory on-hand, expenses**. Columns exported match the on-screen
+  table (raw values — numbers/enums — which suit data export). The former per-entity `*/export`
+  endpoints remain but are no longer called by the UI.
+- Frontend builds (vue-tsc + vite); backend suite **329** green. **Verified (e2e):** `POST /export`
+  returns exactly the posted rows as CSV, a valid XLSX (PK zip) for `format=xlsx`, and 401 without a
+  token.
 
 CHG-0088 — Settings tabs + modal overflow fix (UX)
 

@@ -8,9 +8,10 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-06-30 (last change **CHG-0088**)
+- **As of:** 2026-07-01 (last change **CHG-0089**)
 - **Build:** green — backend `net8.0` (329 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **Settings tabs + modal overflow fix** — modals now cap to the viewport with a scrollable
+  Latest: **list export honors active filters** — Export now downloads only the searched/filtered rows
+  via a generic `POST /api/v1/export` (CHG-0089); **Settings tabs + modal overflow fix** — modals now cap to the viewport with a scrollable
   body (fixes the Add-role modal pushing its footer off-screen); Settings is tabbed per category
   (CHG-0088); **optimistic concurrency extended to all master-data + Chart-of-Accounts edits** — stale
   cross-request edits return 409 `CONCURRENCY_CONFLICT` (CHG-0087); **optimistic concurrency on SO/PO
@@ -119,8 +120,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   master data, sales orders, purchase orders, inventory on-hand, expenses (CHG-0051, ClosedXML/MIT);
   **PDF** documents — Invoice + Quotation (CHG-0052), **purchase-document PDFs** PO + bill (CHG-0054) —
   and **report PDFs** TB/P&L/BS/VAT (CHG-0053), all QuestPDF, with the **brand logo** embedded as
-  vector SVG (CHG-0054). Remaining: optional Plus Jakarta Sans font embedding,
-  list-export-with-active-filters, async large files. (BR-IMP-*.)
+  vector SVG (CHG-0054); ✅ **list export honors active filters (CHG-0089)** — Export downloads only
+  the searched/filtered rows via a generic `POST /api/v1/export`. Remaining: optional Plus Jakarta Sans
+  font embedding, async large files. (BR-IMP-*.)
 - **Accounting slice 2:** ✅ complete — **period-close balance snapshots (rebuildable, ADR-0022 —
   CHG-0079)**. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017; AR/AP subledgers —
   CHG-0018; **Cash Flow — CHG-0056**; **year-end close to retained earnings — CHG-0059**.)

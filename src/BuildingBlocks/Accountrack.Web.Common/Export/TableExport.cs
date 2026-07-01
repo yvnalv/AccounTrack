@@ -54,10 +54,16 @@ public static class TableExport
             return result.ToHttpResult();
         }
 
+        return File(result.Value, baseName, format);
+    }
+
+    /// <summary>Renders already-materialized tabular data to a CSV or XLSX file response.</summary>
+    public static IResult File(TabularData data, string baseName, string? format)
+    {
         var fmt = (format ?? "csv").Trim().ToLowerInvariant();
         return fmt == "xlsx"
-            ? Microsoft.AspNetCore.Http.Results.File(Xlsx(result.Value, baseName), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{baseName}.xlsx")
-            : Microsoft.AspNetCore.Http.Results.File(Csv(result.Value), "text/csv", $"{baseName}.csv");
+            ? Microsoft.AspNetCore.Http.Results.File(Xlsx(data, baseName), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{baseName}.xlsx")
+            : Microsoft.AspNetCore.Http.Results.File(Csv(data), "text/csv", $"{baseName}.csv");
     }
 
     private static string Sanitize(string name)

@@ -164,6 +164,16 @@ app.MapPurchasingEndpoints();
 app.MapSalesEndpoints();
 app.MapExpensesEndpoints();
 
+// Generic tabular export (ADR-0031): the client posts exactly the rows it is displaying — already
+// filtered/searched client-side — and the server renders them to CSV/XLSX. This makes "Export" honor
+// the active list filters (it echoes the caller's own visible data; nothing new is exposed).
+app.MapPost("/api/v1/export", (ExportTableRequest body, string? format) =>
+        Accountrack.Web.Common.Export.TableExport.File(
+            Accountrack.SharedKernel.Export.TabularData.From(body.Header, body.Rows),
+            string.IsNullOrWhiteSpace(body.FileName) ? "export" : body.FileName,
+            format))
+    .RequireAuthorization().WithName("ExportTable");
+
 // Optionally migrate + seed module schemas at startup (off by default; needs a database).
 if (builder.Configuration.GetValue("Database:Initialize", false))
 {
@@ -199,6 +209,12 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
 app.Run();
 
 internal sealed record PingInfo(string Service, string ApiVersion, DateTime TimestampUtc);
+
+/// <summary>Payload for the generic export endpoint: a header row + the rows the client is showing.</summary>
+internal sealed record ExportTableRequest(
+    string? FileName,
+    IReadOnlyList<string> Header,
+    IReadOnlyList<IReadOnlyList<string?>> Rows);
 
 // Exposed so WebApplicationFactory-based integration tests can reference the entry assembly.
 public partial class Program;

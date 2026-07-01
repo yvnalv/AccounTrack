@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Undo2, Wallet } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData, nameMap } from '@/lib/masterData'
-import { downloadExport } from '@/lib/api'
+import { exportTable } from '@/lib/exportTable'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { SalesOrderSummary } from '@/types/sales'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -21,6 +21,7 @@ const router = useRouter()
 const orders = ref<SalesOrderSummary[]>([])
 const customers = ref(new Map<string, string>())
 const loading = ref(true)
+const filteredRows = ref<Record<string, unknown>[]>([])
 
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('sales.columns.number') },
@@ -66,7 +67,7 @@ function openOrder(row: Record<string, unknown>) {
   <div class="space-y-4">
     <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
-      <ExportMenu :download="(f) => downloadExport('/sales-orders/export', 'sales-orders', f)" />
+      <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'sales-orders', f)" />
       <AppButton variant="ghost" @click="router.push({ name: 'salesReturns' })">
         <Undo2 :size="16" /> {{ t('returns.salesTitle') }}
       </AppButton>
@@ -79,6 +80,7 @@ function openOrder(row: Record<string, unknown>) {
     </div>
 
     <DataTable
+      v-model:filtered="filteredRows"
       searchable
       :columns="columns"
       :rows="rows"

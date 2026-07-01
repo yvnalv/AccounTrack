@@ -6,7 +6,7 @@ import { expensesApi } from '@/lib/expenses'
 import { masterData } from '@/lib/masterData'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
 import { useCompanyStore } from '@/stores/company'
-import { downloadExport } from '@/lib/api'
+import { exportTable } from '@/lib/exportTable'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { ExpenseCategory, ExpenseVoucherSummary } from '@/types/expenses'
 import type { Supplier } from '@/types/masterdata'
@@ -26,6 +26,7 @@ const { t } = useI18n()
 const company = useCompanyStore()
 
 const rows = ref<ExpenseVoucherSummary[]>([])
+const filteredRows = ref<Record<string, unknown>[]>([])
 
 const insights = computed<Insight[]>(() => {
   const total = rows.value.reduce((s, v) => s + v.grandTotal, 0)
@@ -234,12 +235,12 @@ async function save() {
   <div class="space-y-4">
     <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
-      <ExportMenu :download="(f) => downloadExport('/expense-vouchers/export', 'expense-vouchers', f)" />
+      <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'expense-vouchers', f)" />
       <AppButton variant="ghost" @click="openCategories"><Tags :size="16" /> {{ t('expenses.categories.manage') }}</AppButton>
       <AppButton @click="openNew"><Plus :size="16" /> {{ t('expenses.new') }}</AppButton>
     </div>
 
-    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('expenses.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('expenses.empty')">
       <template #cell-payeeName="{ value }">{{ value || '—' }}</template>
       <template #cell-grandTotal="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-status="{ value, row }">

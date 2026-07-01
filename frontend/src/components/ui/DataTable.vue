@@ -24,6 +24,9 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{ rowClick: [row: Record<string, unknown>] }>()
+// Two-way exposure of the currently-filtered rows (all pages), so a parent can export exactly what
+// the user is seeing after search/filter (used by Export — see lib/exportTable.ts).
+const filtered = defineModel<Record<string, unknown>[]>('filtered', { default: () => [] })
 const { t } = useI18n()
 
 const query = ref('')
@@ -43,6 +46,9 @@ const source = computed(() => {
     }),
   )
 })
+
+// Keep the exposed filtered set in sync for parents that bind v-model:filtered.
+watch(source, (rows) => { filtered.value = rows }, { immediate: true })
 
 const page = ref(1)
 // Snap back to page 1 whenever the data or the query changes.

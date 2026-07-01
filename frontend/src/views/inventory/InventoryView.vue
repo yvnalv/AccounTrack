@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { Scale } from 'lucide-vue-next'
 import { inventoryApi } from '@/lib/inventory'
 import { masterData, nameMap } from '@/lib/masterData'
-import { downloadExport } from '@/lib/api'
+import { exportTable } from '@/lib/exportTable'
 import { formatMoney, formatMoneyShort, formatNumber } from '@/lib/format'
 import type { StockOnHand } from '@/types/inventory'
 import DataTable from '@/components/ui/DataTable.vue'
@@ -24,6 +24,7 @@ const stock = ref<StockOnHand[]>([])
 const products = ref(new Map<string, string>())
 const warehouses = ref(new Map<string, string>())
 const loading = ref(true)
+const filteredRows = ref<Record<string, unknown>[]>([])
 
 const columns = computed<Column[]>(() => [
   { key: 'product', label: t('inventory.columns.product') },
@@ -147,9 +148,10 @@ async function submit() {
       >
         <Scale :size="16" /> {{ t('inventory.valuation.link') }}
       </RouterLink>
-      <ExportMenu :download="(f) => downloadExport('/stock/on-hand/export', 'stock-on-hand', f)" />
+      <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'stock-on-hand', f)" />
     </div>
     <DataTable
+      v-model:filtered="filteredRows"
       searchable
       :columns="columns"
       :rows="rows"

@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Undo2, Wallet } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
 import { masterData, nameMap } from '@/lib/masterData'
-import { downloadExport } from '@/lib/api'
+import { exportTable } from '@/lib/exportTable'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { PurchaseOrderSummary } from '@/types/purchasing'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -21,6 +21,7 @@ const router = useRouter()
 const orders = ref<PurchaseOrderSummary[]>([])
 const suppliers = ref(new Map<string, string>())
 const loading = ref(true)
+const filteredRows = ref<Record<string, unknown>[]>([])
 
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('purchasing.columns.number') },
@@ -66,7 +67,7 @@ function open(row: Record<string, unknown>) {
   <div class="space-y-4">
     <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
-      <ExportMenu :download="(f) => downloadExport('/purchase-orders/export', 'purchase-orders', f)" />
+      <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'purchase-orders', f)" />
       <AppButton variant="ghost" @click="router.push({ name: 'purchaseReturns' })">
         <Undo2 :size="16" /> {{ t('returns.purchaseTitle') }}
       </AppButton>
@@ -79,6 +80,7 @@ function open(row: Record<string, unknown>) {
     </div>
 
     <DataTable
+      v-model:filtered="filteredRows"
       searchable
       :columns="columns"
       :rows="rows"

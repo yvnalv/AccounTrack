@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
 import { isConflict } from '@/lib/api'
+import { exportTable } from '@/lib/exportTable'
 import { formatMoney } from '@/lib/format'
 import { useCsvImport } from '@/composables/useCsvImport'
 import type { Customer } from '@/types/masterdata'
@@ -23,6 +24,7 @@ import { useAuthStore } from '@/stores/auth'
 const { t } = useI18n()
 const auth = useAuthStore()
 const rows = ref<Customer[]>([])
+const filteredRows = ref<Record<string, unknown>[]>([])
 
 const insights = computed<Insight[]>(() => {
   const total = rows.value.length
@@ -130,14 +132,14 @@ async function toggleActive(row: Customer) {
       <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="io.template()">
         <FileDown :size="16" /> {{ t('masterData.import.template') }}
       </button>
-      <ExportMenu :download="(f) => io.export(f)" />
+      <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'customers', f)" />
       <button class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text hover:bg-surface-2" @click="pick">
         <Upload :size="16" /> {{ t('masterData.import.import') }}
       </button>
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.customers.new') }}</AppButton>
     </div>
 
-    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
       <template #cell-creditLimit="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-isActive="{ value }">
