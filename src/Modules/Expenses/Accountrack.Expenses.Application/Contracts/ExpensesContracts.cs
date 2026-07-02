@@ -9,7 +9,7 @@ public sealed record ExpenseVoucherDto(
     Guid Id, string Number, DateOnly ExpenseDate, string? PayeeName, Guid? CashAccountId, Guid? SupplierId,
     DateOnly? DueDate, string Currency,
     decimal SubTotal, decimal TaxTotal, decimal GrandTotal, Guid? JournalEntryId, Guid? ApOpenItemId,
-    string Status, string? Reference, string? Notes,
+    Guid? ReversalJournalEntryId, string Status, string? Reference, string? Notes,
     IReadOnlyList<ExpenseVoucherLineDto> Lines);
 
 public sealed record ExpenseVoucherSummaryDto(

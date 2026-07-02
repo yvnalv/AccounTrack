@@ -43,9 +43,34 @@ public static class ExpensesEndpoints
                 Send(s.Send(new GetExpenseVoucherQuery(id), ct)))
             .RequireAuthorization("Expenses.View").WithName("GetExpenseVoucher");
 
+        // One-shot "save & post": records and (auto-)posts a voucher in a single call (BR-EXP-5).
         vouchers.MapPost("/", (PostExpenseVoucherCommand c, ISender s, CancellationToken ct) =>
                 Created(s.Send(c, ct), "/api/v1/expense-vouchers"))
             .RequireAuthorization("Expenses.Post").WithName("PostExpenseVoucher");
+
+        // Draft workflow (parity with Sales/Purchasing): create → edit → submit, or cancel a draft.
+        vouchers.MapPost("/draft", (CreateExpenseDraftCommand c, ISender s, CancellationToken ct) =>
+                Created(s.Send(c, ct), "/api/v1/expense-vouchers"))
+            .RequireAuthorization("Expenses.Create").WithName("CreateExpenseDraft");
+
+        vouchers.MapPut("/{id:guid}", (Guid id, UpdateExpenseVoucherBody b, ISender s, CancellationToken ct) =>
+                SendResult(s.Send(new UpdateExpenseVoucherCommand(
+                    id, b.ExpenseDate, b.PayeeName, b.CashAccountId, b.SupplierId, b.DueDate, b.Reference, b.Notes,
+                    b.Lines, b.RowVersion), ct)))
+            .RequireAuthorization("Expenses.Edit").WithName("UpdateExpenseVoucher");
+
+        vouchers.MapPost("/{id:guid}/submit", (Guid id, ISender s, CancellationToken ct) =>
+                Send(s.Send(new SubmitExpenseVoucherCommand(id), ct)))
+            .RequireAuthorization("Expenses.Post").WithName("SubmitExpenseVoucher");
+
+        vouchers.MapPost("/{id:guid}/cancel", (Guid id, ISender s, CancellationToken ct) =>
+                SendResult(s.Send(new CancelExpenseVoucherCommand(id), ct)))
+            .RequireAuthorization("Expenses.Cancel").WithName("CancelExpenseVoucher");
+
+        // Reversal of a posted voucher (posted docs are immutable; correct by reversal — BR-EXP-4).
+        vouchers.MapPost("/{id:guid}/reverse", (Guid id, ReverseExpenseVoucherBody b, ISender s, CancellationToken ct) =>
+                Send(s.Send(new ReverseExpenseVoucherCommand(id, b.Date, b.Reason), ct)))
+            .RequireAuthorization("Expenses.Post").WithName("ReverseExpenseVoucher");
 
         return app;
     }
@@ -60,3 +85,9 @@ public static class ExpensesEndpoints
 
 public sealed record UpdateExpenseCategoryBody(string Name, string PostingRuleKey);
 public sealed record SetActiveBody(bool IsActive);
+
+public sealed record UpdateExpenseVoucherBody(
+    DateOnly ExpenseDate, string? PayeeName, Guid? CashAccountId, Guid? SupplierId, DateOnly? DueDate,
+    string? Reference, string? Notes, IReadOnlyList<ExpenseVoucherLineInput> Lines, byte[]? RowVersion);
+
+public sealed record ReverseExpenseVoucherBody(DateOnly? Date, string? Reason);

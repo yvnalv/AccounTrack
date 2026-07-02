@@ -1,5 +1,36 @@
 # Accountrack Changelog
 
+## [2026-07-02 15:05:00 UTC]
+
+CHG-0095 — Expense vouchers: draft workflow + reversal (full parity with Sales/Purchasing)
+
+- **Draft lifecycle** added to the Expenses module so a voucher can be entered, reviewed, and
+  corrected before it touches the GL, matching how Sales Orders / Purchase Orders already work:
+  - `POST /api/v1/expense-vouchers/draft` — create a **Draft** (no approval, no journal).
+  - `PUT /api/v1/expense-vouchers/{id}` — edit a Draft's header + lines (Draft-only).
+  - `POST /api/v1/expense-vouchers/{id}/submit` — run approval; auto-approve → post atomically,
+    else hold as PendingApproval (returns "Posted"/"Pending").
+  - `POST /api/v1/expense-vouchers/{id}/cancel` — discard a Draft.
+  - The existing one-shot `POST /api/v1/expense-vouchers` (record + auto-post) is unchanged, so the
+    quick-entry path and its tests/UI keep working.
+- **Reversal** of a posted voucher (`POST /api/v1/expense-vouchers/{id}/reverse`): posts a mirror
+  journal (debits ↔ credits) dated on the reversal date, moves the voucher to **Reversed**, and
+  leaves the original journal intact (posted docs immutable — BR-EXP-4). An on-account voucher is
+  reversible only while its AP open item is **fully unpaid** (else `EXPENSES.REVERSAL_HAS_PAYMENTS`);
+  a successful reversal settles the payable. Verified end-to-end: post+reverse nets to zero on every
+  account balance and the trial balance stays balanced.
+- **Domain:** `ExpenseVoucherStatus` gains `Reversed`/`Cancelled`; new `EditDraft`, `Cancel`,
+  `MarkReversed`; new `ReversalJournalEntryId` column (migration `AddExpenseVoucherReversal`) exposed
+  on `ExpenseVoucherDto`. Poster refactored to share journal-line assembly between post and reverse.
+- **RBAC:** new catalog permissions `Expenses.Create` / `Expenses.Edit` / `Expenses.Cancel` (granted
+  to Administrator automatically and added to the Accountant role); submit/reverse stay under
+  `Expenses.Post`. Segregation of duties preserved (create ≠ post).
+- **Rules:** BR-EXP-4 expanded (reversal mechanics + AP-unpaid guard); new **BR-EXP-7** (draft
+  workflow). Tests: 5 new Expenses unit tests (reversal + draft guards); full unit/architecture
+  suites green.
+
+---
+
 ## [2026-07-02 11:20:00 UTC]
 
 CHG-0094 — Migrate database provider from SQL Server to PostgreSQL (ADR-0032)
