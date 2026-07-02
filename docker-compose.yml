@@ -1,26 +1,32 @@
-# Accountrack — self-hosted stack: SQL Server + API + SPA/Nginx (DEPLOYMENT.md).
+# Accountrack — self-hosted stack: PostgreSQL + API + SPA/Nginx (DEPLOYMENT.md).
 # TLS and subdomain routing are handled by YOUR existing reverse proxy in front of this stack;
 # only the `web` container publishes a port for that proxy to forward to. Copy .env.example → .env
 # and fill it in, then: docker compose up -d --build
+#
+# NOTE: if your VPS already runs a PostgreSQL container, you can drop the `db` service below and
+# instead point the API at it: remove the `db` block + `depends_on`, attach the api to that DB's
+# network, and set ConnectionStrings__Default to Host=<that-container>;... The `db` service here
+# makes the stack self-contained.
 name: accountrack
 
 services:
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: postgres:16-alpine
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
-      MSSQL_PID: ${MSSQL_PID:-Developer}
+      POSTGRES_DB: ${POSTGRES_DB:-Accountrack}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
-      - mssql-data:/var/opt/mssql
+      - pg-data:/var/lib/postgresql/data
     networks: [internal]
     restart: unless-stopped
+    # Not published: reachable only on the internal Docker network, never from the public interface.
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
-      retries: 18
-      start_period: 40s
+      retries: 12
+      start_period: 20s
 
   api:
     build:
@@ -28,7 +34,7 @@ services:
       dockerfile: Dockerfile.api
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Default: "Server=db;Database=Accountrack;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-Accountrack};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       # Auth — MUST be a strong secret (>= 32 chars). The app refuses to start in Production without it.
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env}
       Jwt__Issuer: ${JWT_ISSUER:-Accountrack}
@@ -62,4 +68,4 @@ networks:
   internal:
 
 volumes:
-  mssql-data:
+  pg-data:

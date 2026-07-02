@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Integration;
+﻿using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Expenses.Application;
 using Accountrack.Expenses.Application.Abstractions;
 using Accountrack.Expenses.Application.Features;
@@ -25,10 +25,10 @@ public static class DependencyInjection
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
         // Shares the cross-module connection so posting an expense commits the voucher + its GL
-        // journal atomically (INTEGRATION_EVENTS.md §2).
+        // journal atomically (INTEGRATION_EVENTS.md Â§2).
         services.AddDbContext<ExpensesDbContext>((sp, options) =>
         {
-            options.UseSqlServer(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
+            options.UseNpgsql(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", ExpensesDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),

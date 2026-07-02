@@ -18,8 +18,8 @@ namespace Accountrack.IntegrationTests;
 /// </summary>
 public sealed class ModelConventionTests
 {
-    // Offline: building a model never opens a connection, so any string works.
-    private const string OfflineConnection = "Server=localhost;Database=ModelOnly;Trusted_Connection=True";
+    // Offline: building a model never opens a connection, so any valid Npgsql string works.
+    private const string OfflineConnection = "Host=localhost;Database=ModelOnly;Username=postgres";
 
     public static IEnumerable<object[]> ModuleContexts()
     {
@@ -86,7 +86,7 @@ public sealed class ModelConventionTests
     {
         var builderType = typeof(DbContextOptionsBuilder<>).MakeGenericType(contextType);
         var builder = (DbContextOptionsBuilder)Activator.CreateInstance(builderType)!;
-        builder.UseSqlServer(OfflineConnection);
+        builder.UseNpgsql(OfflineConnection);
 
         // builder.Options is, at runtime, DbContextOptions<TContext>, so it binds to the ctor.
         ITenantContext tenant = FakeTenantContext.For(Guid.NewGuid(), Guid.NewGuid());

@@ -139,7 +139,7 @@ Hard rules (ADR-0007):
 
 ## 7. Persistence
 
-- Single SQL Server database, shared schema (ADR-0004). Each module maps to its own EF schema
+- Single PostgreSQL database, shared schema (ADR-0004; provider per ADR-0032). Each module maps to its own EF schema
   (e.g. `sales`, `inventory`, `accounting`) for boundary clarity and future extraction.
 - One `DbContext` per module; a base context applies tenant + soft-delete filters, audit
   fields, and `RowVersion`.

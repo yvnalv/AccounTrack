@@ -6,14 +6,14 @@ Compose, Nginx, GitHub, GitHub Actions (`CLAUDE.md`).
 ## 0. Quick start — self-hosted on a single VPS (CHG-0091)
 
 The repo ships a ready stack: `Dockerfile.api`, `frontend/Dockerfile` + `frontend/nginx.conf`,
-`docker-compose.yml`, and `.env.example`. It runs **SQL Server + API + SPA/Nginx**. TLS and
+`docker-compose.yml`, and `.env.example`. It runs **PostgreSQL + API + SPA/Nginx**. TLS and
 subdomain routing are **not** in this stack — your existing reverse proxy (the one already serving
 your other subdomains) terminates TLS and forwards a subdomain to the one published `web` port.
 
 ```bash
 git clone <repo> && cd Accountrack
 cp .env.example .env
-# Edit .env: strong MSSQL_SA_PASSWORD, a >=32-char JWT_SIGNING_KEY (openssl rand -base64 48),
+# Edit .env: POSTGRES_USER + strong POSTGRES_PASSWORD, a >=32-char JWT_SIGNING_KEY (openssl rand -base64 48),
 # your ADMIN_EMAIL / ADMIN_PASSWORD, and WEB_PORT (default 8090).
 docker compose up -d --build
 ```
@@ -39,17 +39,17 @@ accounts) and your administrator. Then point your reverse proxy at the stack, e.
 
 ### Local development in Docker
 
-To run the whole app in Docker on your own machine (self-contained SQL Server + API + SPA, isolated
-from any host SQL Server and the `dotnet run` / `npm run dev` servers), use `docker-compose.dev.yml`:
+To run the whole app in Docker on your own machine (self-contained PostgreSQL + API + SPA, isolated
+from any host PostgreSQL and the `dotnet run` / `npm run dev` servers), use `docker-compose.dev.yml`:
 
 ```bash
-cp .env.example .env      # set MSSQL_SA_PASSWORD (dev defaults for the rest are fine)
+cp .env.example .env      # set POSTGRES_USER/POSTGRES_PASSWORD (dev defaults for the rest are fine)
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-SPA → http://localhost:8090 · API/Swagger → http://localhost:8081/swagger · SQL → `localhost,1434`
-(`sa`). Runs in `Development` (Swagger on) and auto-migrates + seeds a working company + admin on
-first boot. `down -v` wipes its isolated DB volume.
+SPA → http://localhost:8090 · API/Swagger → http://localhost:8081/swagger · PostgreSQL →
+`localhost:5433`. Runs in `Development` (Swagger on) and auto-migrates + seeds a working company +
+admin on first boot. `down -v` wipes its isolated DB volume.
 
 ## 0.1 Integrating into an existing reverse-proxy compose (e.g. alongside n8n)
 
@@ -61,23 +61,22 @@ by name — just like `app`/`n8n`):
 
 ```yaml
   accountrack-db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: postgres:16-alpine
     container_name: accountrack-db
     restart: unless-stopped
-    mem_limit: 2g                       # SQL Server needs ~2 GB; ensure the VPS has room
+    mem_limit: 512m                     # PostgreSQL is light; ~256–512 MB is plenty
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${ACCOUNTRACK_SA_PASSWORD}
-      MSSQL_PID: Developer
-      MSSQL_MEMORY_LIMIT_MB: "1536"     # cap SQL's own usage under the container limit
+      POSTGRES_DB: Accountrack
+      POSTGRES_USER: ${ACCOUNTRACK_DB_USER}
+      POSTGRES_PASSWORD: ${ACCOUNTRACK_DB_PASSWORD}
     volumes:
-      - accountrack_mssql:/var/opt/mssql
+      - accountrack_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
-      retries: 18
-      start_period: 40s
+      retries: 12
+      start_period: 20s
 
   accountrack-api:
     build:
@@ -88,7 +87,7 @@ by name — just like `app`/`n8n`):
     mem_limit: 400m
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Default: "Server=accountrack-db;Database=Accountrack;User Id=sa;Password=${ACCOUNTRACK_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      ConnectionStrings__Default: "Host=accountrack-db;Port=5432;Database=Accountrack;Username=${ACCOUNTRACK_DB_USER};Password=${ACCOUNTRACK_DB_PASSWORD}"
       Jwt__SigningKey: ${ACCOUNTRACK_JWT_KEY}     # >= 32 chars; app refuses to start without it
       Jwt__Issuer: Accountrack
       Jwt__Audience: Accountrack
@@ -118,13 +117,14 @@ Add the volume under the top-level `volumes:` key:
 ```yaml
 volumes:
   # ... your existing volumes ...
-  accountrack_mssql:
+  accountrack_pg:
 ```
 
 Add these to the `.env` next to your compose (never commit real secrets):
 
 ```
-ACCOUNTRACK_SA_PASSWORD=<strong SA password>
+ACCOUNTRACK_DB_USER=accountrack
+ACCOUNTRACK_DB_PASSWORD=<strong database password>
 ACCOUNTRACK_JWT_KEY=<random, >=32 chars: openssl rand -base64 48>
 ACCOUNTRACK_ADMIN_EMAIL=you@yourcompany.com
 ACCOUNTRACK_ADMIN_PASSWORD=<strong admin password>
@@ -158,8 +158,8 @@ server {
 Then: DNS `accountrack.yvnalvworks.com` → VPS, issue the cert (certbot), and
 `docker compose up -d --build accountrack-db accountrack-api accountrack-web` + reload Nginx.
 
-> **RAM:** SQL Server wants ~2 GB. With your existing services (~1 GB of limits) the VPS should have
-> **≥ 4 GB** total. If it's a small box, this is the main thing to check before deploying.
+> **RAM:** PostgreSQL is light (~256–512 MB). With your existing services the VPS should be fine on
+> **≥ 2 GB** total — much lower than the previous SQL Server requirement.
 
 ## 1. Environments
 
@@ -186,14 +186,14 @@ inject via environment variables / Docker secrets / a vault (SECURITY.md §6).
             │   API (.NET)│  └─────────────────┘
             └──────┬──────┘
             ┌──────▼──────┐
-            │ SQL Server  │
+            │ PostgreSQL  │
             └─────────────┘
   (future: Redis, RabbitMQ, Hangfire dashboard, OTEL collector)
 ```
 
 - **Nginx** terminates TLS, serves the built SPA, and reverse-proxies `/api` to the API.
 - **API** is the modular-monolith host (`Accountrack.Api`).
-- **SQL Server** is the single database (shared schema, ADR-0004).
+- **PostgreSQL** is the single database (shared schema, ADR-0004; provider per ADR-0032).
 
 ## 3. Containers
 - `Dockerfile` (API): multi-stage build (`dotnet publish` → minimal runtime image).
@@ -216,7 +216,7 @@ inject via environment variables / Docker secrets / a vault (SECURITY.md §6).
 1. Restore + build (warnings-as-errors).
 2. Lint/format check (`dotnet format --verify-no-changes`, ESLint/Prettier).
 3. Unit + architecture + contract tests.
-4. Integration tests (SQL Server via Testcontainers/service container).
+4. Integration tests (PostgreSQL via Testcontainers/service container).
 5. Frontend build + Vitest.
 6. Dependency vulnerability scan (`dotnet list package --vulnerable`, `npm audit`).
 7. Security review of flagged changes (raw SQL / `IgnoreQueryFilters`).
@@ -244,7 +244,7 @@ Email:* (provider settings)      ; credentials via secret store
 - Future: OpenTelemetry traces/metrics, centralized logs (ElasticSearch).
 
 ## 8. Backups & DR
-- Regular automated SQL Server backups (full + differential/log) with tested restore.
+- Regular automated PostgreSQL backups (`pg_dump`/`pg_basebackup`, optionally WAL archiving/PITR) with tested restore.
 - Migrations preceded by a backup in UAT/Prod.
 - Documented restore procedure and RPO/RTO targets (to be set with the business).
 

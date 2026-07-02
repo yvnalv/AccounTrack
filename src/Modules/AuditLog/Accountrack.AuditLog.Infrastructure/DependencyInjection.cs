@@ -1,4 +1,4 @@
-using Accountrack.AuditLog.Application;
+﻿using Accountrack.AuditLog.Application;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +18,7 @@ public static class DependencyInjection
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
         services.AddDbContext<AuditDbContext>(options =>
-            options.UseSqlServer(connectionString, sql =>
+            options.UseNpgsql(connectionString, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", BaseAuditSchema)));
 
         services.AddScoped<IAuditReadStore, AuditReadStore>();

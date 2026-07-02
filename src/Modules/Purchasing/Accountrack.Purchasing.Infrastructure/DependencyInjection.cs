@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Integration;
+﻿using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
 using Accountrack.Infrastructure.Common.Transactions;
 using Accountrack.Modules.Contracts.Events;
@@ -24,10 +24,10 @@ public static class DependencyInjection
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
         // Shares the cross-module connection so a goods receipt commits its inventory ledger +
-        // GL journal atomically with the document (INTEGRATION_EVENTS.md §2).
+        // GL journal atomically with the document (INTEGRATION_EVENTS.md Â§2).
         services.AddDbContext<PurchasingDbContext>((sp, options) =>
         {
-            options.UseSqlServer(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
+            options.UseNpgsql(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", PurchasingDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),

@@ -1,4 +1,4 @@
-using Accountrack.Approval.Application.Abstractions;
+﻿using Accountrack.Approval.Application.Abstractions;
 using Accountrack.Approval.Application.Features;
 using Accountrack.Approval.Infrastructure.Persistence;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
@@ -23,7 +23,7 @@ public static class DependencyInjection
 
         services.AddDbContext<ApprovalDbContext>((sp, options) =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseNpgsql(connectionString, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", ApprovalDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),

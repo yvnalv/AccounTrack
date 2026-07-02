@@ -1,32 +1,34 @@
 # DATABASE.md
 
 Database conventions and the core schema for Accountrack. This is a **logical design** — the
-authoritative schema is the EF Core model + migrations. SQL Server, EF Core (ADR-0003).
+authoritative schema is the EF Core model + migrations. PostgreSQL (Npgsql), EF Core
+(ADR-0003, engine changed to PostgreSQL by ADR-0032). Identifiers are PascalCase and therefore
+double-quoted in PostgreSQL.
 
 ## 1. Conventions
 
 | Topic | Rule |
 |---|---|
-| PK | `Id uniqueidentifier` (sequential GUID, ADR-0005), named `Id` |
+| PK | `Id uuid` (sequential GUID, ADR-0005), named `Id` |
 | Tenancy | `TenantId`, `CompanyId` on every business table (ADR-0004) |
 | Audit | `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, `DeletedAt`, `DeletedBy`, `IsDeleted` |
-| Concurrency | `RowVersion rowversion` on mutable documents (ADR-0021) |
-| Money | `decimal(19,4)` amount + `CurrencyCode char(3)`; never float (ADR-0013) |
-| Quantity | `decimal(19,6)` (supports fractional UoM) |
-| Rates/% | `decimal(9,6)` |
+| Concurrency | `RowVersion bytea` concurrency token, app-bumped, on mutable documents (ADR-0021, ADR-0032) |
+| Money | `numeric(19,4)` amount + `CurrencyCode char(3)`; never float (ADR-0013) |
+| Quantity | `numeric(19,6)` (supports fractional UoM) |
+| Rates/% | `numeric(9,6)` |
 | Tables | PascalCase plural (`SalesOrders`, `InventoryTransactions`) |
-| Schemas | one per module: `identity`, `company`, `masterdata`, `sales`, `purchasing`, `inventory`, `accounting`, `approval`, `audit`, `notification`, `reporting` |
+| Schemas | one per module: `identity`, `company`, `masterdata`, `sales`, `purchasing`, `inventory`, `accounting`, `approval`, `audit`, `notification`, `reporting`, `platform` |
 | Columns | PascalCase |
 | FK | `<Entity>Id` (e.g. `CustomerId`); FKs do not cross module schemas (boundary rule) |
-| Enums | stored as `tinyint`/`int` with a documented mapping (or string for stable external values) |
-| Timestamps | UTC `datetime2`; convert to user TZ in presentation only |
-| Booleans | `bit`, non-null with default |
+| Enums | stored as `smallint`/`int` with a documented mapping (or string for stable external values) |
+| Timestamps | UTC `timestamptz`; convert to user TZ in presentation only |
+| Booleans | `boolean`, non-null with default |
 
 ### Indexing
 - Every index/unique constraint on a business table **leads with `TenantId, CompanyId`**.
 - Business document numbers: `UNIQUE (CompanyId, DocumentNumber)` — per-company, not global.
 - Foreign-key columns are indexed.
-- Filtered indexes exclude soft-deleted rows where it helps (`WHERE IsDeleted = 0`).
+- Partial indexes exclude soft-deleted rows where it helps (`WHERE "IsDeleted" = false`).
 
 ### Cross-module references
 A module never has a FK into another module's table. To reference another module's entity it
@@ -37,15 +39,15 @@ keeps schemas independently migratable and extraction-ready.
 
 ```
 Entity (BaseEntity)              TenantScopedEntity : Entity        TenantOwnedEntity : TenantScopedEntity
-├── Id            : guid (PK)     ├── (all Entity)                   ├── (all TenantScopedEntity)
-├── CreatedAt     : datetime2     └── TenantId : guid (indexed)      └── CompanyId : guid (indexed)
-├── CreatedBy     : guid
-├── UpdatedAt     : datetime2?    Money (value object, owned)        Inheritance:
-├── UpdatedBy     : guid?         ├── Amount       : decimal(19,4)     Entity → TenantScopedEntity → TenantOwnedEntity
-├── DeletedAt     : datetime2?    └── CurrencyCode : char(3)
-├── DeletedBy     : guid?
-├── IsDeleted     : bit          PagedResult<T> (query helper: Items, Page, PageSize, TotalItems)
-└── RowVersion    : rowversion   (mutable docs only)
+├── Id            : uuid (PK)     ├── (all Entity)                   ├── (all TenantScopedEntity)
+├── CreatedAt     : timestamptz   └── TenantId : uuid (indexed)      └── CompanyId : uuid (indexed)
+├── CreatedBy     : uuid
+├── UpdatedAt     : timestamptz?  Money (value object, owned)        Inheritance:
+├── UpdatedBy     : uuid?         ├── Amount       : numeric(19,4)     Entity → TenantScopedEntity → TenantOwnedEntity
+├── DeletedAt     : timestamptz?  └── CurrencyCode : char(3)
+├── DeletedBy     : uuid?
+├── IsDeleted     : boolean      PagedResult<T> (query helper: Items, Page, PageSize, TotalItems)
+└── RowVersion    : bytea        (concurrency token, mutable docs only)
 ```
 
 Three entity bases (marker interfaces `ITenantScoped` ⊂ `ITenantOwned`):
@@ -65,10 +67,10 @@ change. The AuditLog module's context owns the table's migration; all other modu
 with `ExcludeFromMigrations()`.
 ```
 AuditEntry
-├── Id : guid (PK)        ├── EntityType : nvarchar(200)   ├── ChangesJson : nvarchar(max)  (before/after)
-├── TenantId : guid        ├── EntityId   : nvarchar(128)   ├── UserId      : guid
-├── CompanyId : guid?      ├── Action     : int {Insert,Update,Delete}   ├── TimestampUtc : datetime2
-└── CorrelationId : nvarchar(128)?
+├── Id : uuid (PK)        ├── EntityType : varchar(200)   ├── ChangesJson : text  (before/after)
+├── TenantId : uuid        ├── EntityId   : varchar(128)   ├── UserId      : uuid
+├── CompanyId : uuid?      ├── Action     : int {Insert,Update,Delete}   ├── TimestampUtc : timestamptz
+└── CorrelationId : varchar(128)?
    indexes: (TenantId, EntityType, EntityId), (TimestampUtc)
 ```
 

@@ -1,14 +1,13 @@
 # Accountrack — LOCAL DEVELOPMENT stack. Runs the whole app in Docker on localhost, isolated from
-# your host SQL Server (stays on :1433) and your dev servers (:5080 / :5173). Its own SQL Server
-# container avoids the Windows-auth issue (your dev connection uses Trusted_Connection, which a Linux
-# container can't use).
+# your host PostgreSQL (stays on :5432) and your dev servers (:5080 / :5173). Its own PostgreSQL
+# container is published on :5433 so you can inspect it without clashing with a host install.
 #
 #   1. cp .env.example .env   (or use the .env already created for you) and set the credentials
 #   2. docker compose -f docker-compose.dev.yml up -d --build
 #
 #   SPA  → http://localhost:8090
 #   API  → http://localhost:8081        (Swagger at http://localhost:8081/swagger)
-#   SQL  → localhost,1434   user: sa / MSSQL_SA_PASSWORD   (for SSMS / Azure Data Studio)
+#   PG   → localhost:5433   user: $POSTGRES_USER / $POSTGRES_PASSWORD   (for psql / pgAdmin / DBeaver)
 #
 #   Stop:  docker compose -f docker-compose.dev.yml down          (keeps the DB volume)
 #   Reset: docker compose -f docker-compose.dev.yml down -v       (wipes the DB volume)
@@ -16,22 +15,21 @@ name: accountrack-dev
 
 services:
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: postgres:16-alpine
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
-      MSSQL_PID: Developer
-      MSSQL_MEMORY_LIMIT_MB: "2048"
+      POSTGRES_DB: ${POSTGRES_DB:-Accountrack}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "127.0.0.1:1434:1433"
+      - "127.0.0.1:5433:5432"
     volumes:
-      - devdata:/var/opt/mssql
+      - devdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
-      retries: 18
-      start_period: 40s
+      retries: 12
+      start_period: 20s
 
   api:
     build:
@@ -39,7 +37,7 @@ services:
       dockerfile: Dockerfile.api
     environment:
       ASPNETCORE_ENVIRONMENT: Development    # Swagger + verbose logs; env vars below still win
-      ConnectionStrings__Default: "Server=db;Database=Accountrack;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-Accountrack};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}"
       Jwt__SigningKey: ${JWT_SIGNING_KEY:-dev-only-signing-key-change-me-please-32chars}
       Jwt__Issuer: Accountrack
       Jwt__Audience: Accountrack

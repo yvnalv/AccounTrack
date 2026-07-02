@@ -27,7 +27,10 @@ public abstract class Entity : IAuditable, ISoftDeletable, IHasDomainEvents
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 
-    /// <summary>Optimistic-concurrency token (ADR-0021). Mapped to a SQL rowversion.</summary>
+    /// <summary>
+    /// Optimistic-concurrency token (ADR-0021). Mapped to a provider-agnostic <c>bytea</c>
+    /// concurrency token; its value is bumped on every insert/update by the persistence interceptor.
+    /// </summary>
     public byte[]? RowVersion { get; set; }
 
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();

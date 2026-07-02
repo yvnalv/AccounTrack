@@ -1,5 +1,5 @@
 using System.Data.Common;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 
 namespace Accountrack.Infrastructure.Common.Transactions;
 
@@ -15,9 +15,9 @@ public interface ISharedDbConnection
 
 internal sealed class SharedDbConnection : ISharedDbConnection, IAsyncDisposable, IDisposable
 {
-    private readonly SqlConnection _connection;
+    private readonly NpgsqlConnection _connection;
 
-    public SharedDbConnection(string connectionString) => _connection = new SqlConnection(connectionString);
+    public SharedDbConnection(string connectionString) => _connection = new NpgsqlConnection(connectionString);
 
     public DbConnection Connection => _connection;
 

@@ -13,7 +13,7 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 |---|-------|--------|------|
 | 0001 | Modular Monolith over Microservices for MVP | Accepted | 2026-06-13 |
 | 0002 | Clean Architecture per module | Accepted | 2026-06-13 |
-| 0003 | SQL Server + EF Core | Accepted | 2026-06-13 |
+| 0003 | SQL Server + EF Core | Superseded by ADR-0032 | 2026-06-13 |
 | 0004 | Shared-database, shared-schema multi-tenancy | Accepted | 2026-06-13 |
 | 0005 | GUID (sequential) primary keys | Accepted | 2026-06-13 |
 | 0006 | Soft delete + standard audit fields | Accepted | 2026-06-13 |
@@ -39,6 +39,10 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0026 | Atomic audit capture into one shared audit table | Accepted | 2026-06-13 |
 | 0027 | Build with the .NET 9 SDK while targeting net8.0 | Accepted | 2026-06-13 |
 | 0028 | GUID primary keys are `ValueGeneratedNever` (domain-generated) | Accepted | 2026-06-14 |
+| 0029 | Edit/Delete policy — full CRUD for master data, reversal-only for posted documents | Accepted | 2026-06-19 |
+| 0030 | Expenses module (operating-expense vouchers) | Accepted | 2026-06-19 |
+| 0031 | Data import (CSV/Excel) and export (CSV/Excel/PDF) | Accepted | 2026-06-19 |
+| 0032 | PostgreSQL (Npgsql) as the database provider, replacing SQL Server | Accepted | 2026-07-02 |
 
 ---
 
@@ -74,13 +78,16 @@ boilerplate; mitigated by shared kernel and conventions (see DATABASE.md, CODING
 
 ## ADR-0003: SQL Server + EF Core
 
-- **Status:** Accepted — **Date:** 2026-06-13
+- **Status:** Superseded by ADR-0032 — **Date:** 2026-06-13
 
 **Decision.** Relational database (SQL Server) with EF Core as ORM. Strong relational
 integrity and transactions are required for accounting and inventory.
 
 **Consequences.** (+) Mature tooling, migrations, transactions, global query filters for
 tenancy. (−) Vendor coupling; mitigated by keeping provider-specific SQL behind repositories.
+
+**Superseded (2026-07-02).** The database engine was changed to **PostgreSQL** while keeping
+EF Core — see **ADR-0032**. The "relational + EF Core" decision stands; only the engine changed.
 
 ---
 
@@ -346,6 +353,12 @@ narrow window between commit and `SaveAsync` would let a retry re-execute (doubl
 exactly-once requires writing the key inside the same transaction; that is a future hardening step
 once a durable outbox lands. RowVersion optimistic concurrency on documents is still pending.
 
+**Amended (ADR-0032).** With the move to PostgreSQL, `RowVersion` is no longer a store-generated
+SQL Server `rowversion`. It is now a provider-agnostic `bytea` **concurrency token** whose value the
+`AuditingSaveChangesInterceptor` bumps (`Guid.NewGuid().ToByteArray()`) on every insert/update; EF
+still emits it in the `UPDATE ... WHERE` clause for the concurrency check. The `byte[]` shape and the
+client contract (opaque token round-tripped through DTOs/APIs) are unchanged.
+
 ---
 
 ## ADR-0022: Period-balance snapshots for reporting
@@ -567,3 +580,51 @@ first documents are the **sales Invoice** and the **Quotation** (from a sales or
 and other document PDFs reuse the same renderer next. Permission-gated by `MasterData.Import`/
 `MasterData.Export` (master data) and module `View` (list exports + document PDFs); async large-file
 handling is still future.
+
+---
+
+## ADR-0032: PostgreSQL (Npgsql) as the database provider, replacing SQL Server
+
+- **Status:** Accepted — **Date:** 2026-07-02 — **Supersedes:** ADR-0003 (engine only)
+
+**Context.** The target VPS already runs PostgreSQL in Docker; standardizing on it removes the SQL
+Server licensing/edition question and the Windows-auth friction in Linux containers. The application
+was built provider-agnostically (EF Core, repositories, no vendor SQL in Domain/Application), so the
+switch is confined to the Infrastructure layer.
+
+**Decision.** Keep EF Core and the relational model (ADR-0003 stands); change the **engine to
+PostgreSQL** via **`Npgsql.EntityFrameworkCore.PostgreSQL`**. Specifics:
+- `UseSqlServer(...)` → `UseNpgsql(...)` in every module's DI and design-time factory; the shared
+  cross-module connection (`SharedDbConnection`) uses `NpgsqlConnection`.
+- **Concurrency token:** SQL Server's store-generated `rowversion` has no PostgreSQL equivalent.
+  Rather than change the Domain (`byte[] RowVersion`) or the client contract, the token becomes a
+  provider-agnostic `bytea` **`IsConcurrencyToken()`** whose value is bumped by the
+  `AuditingSaveChangesInterceptor` on every insert/update (see amended ADR-0021). No Domain,
+  Application, or API changes.
+- **Migrations regenerated** from scratch for Npgsql (greenfield — no production data): `uuid`,
+  `numeric(p,s)`, `timestamp with time zone`, `bytea`. Each module keeps its own schema and
+  `__EFMigrationsHistory`.
+- **Platform stores** (`platform.IdempotencyKeys`, `platform.InboxState`) rewritten from T-SQL to
+  PostgreSQL (`NpgsqlConnection`, `CREATE … IF NOT EXISTS`, `INSERT … ON CONFLICT DO NOTHING`,
+  `now()`).
+- **Partial unique indexes** for soft-delete keep their filter but in PostgreSQL syntax
+  (`"IsDeleted" = false` instead of `[IsDeleted] = 0`).
+- **Identifier casing:** kept PascalCase (double-quoted in PostgreSQL) to minimize churn and keep the
+  raw platform-store SQL aligned with EF; `EFCore.NamingConventions` (snake_case) was considered and
+  deferred.
+- **Docker:** the `db` service is now `postgres:16-alpine` with a named volume, `pg_isready`
+  healthcheck, `restart: unless-stopped`, on the internal network and **not** published.
+
+**Consequences.** (+) No license/edition question; matches the VPS; fully open-source stack; the
+codebase stayed provider-agnostic so Domain/Application/API were untouched. (−) One provider-specific
+concern (the concurrency token) is now app-managed rather than DB-managed; the initial-migration
+history was reset (acceptable while greenfield). Follow-up: `EnableRetryOnFailure` was intentionally
+**not** enabled because a retrying execution strategy conflicts with the manual
+`BeginTransactionAsync` in `CrossModuleUnitOfWork`; enabling it later requires wrapping that code in
+an execution strategy.
+
+**Implementation (CHG-0094).** Validated end-to-end against local PostgreSQL 18: solution builds
+(warnings-as-errors), all unit + 35 architecture-fitness tests pass, and the 28 integration tests —
+including the cross-tenant isolation suite (global query filters + tenancy stamping + concurrency
+token) — pass against a live database. All 12 module migrations apply cleanly (73 tables across 13
+schemas) and the platform-store DDL + `ON CONFLICT` idempotency were verified.

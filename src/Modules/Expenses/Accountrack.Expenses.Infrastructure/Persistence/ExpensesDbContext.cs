@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Accountrack.Expenses.Application.Abstractions;
 using Accountrack.Expenses.Domain;
 using Accountrack.Infrastructure.Common.Persistence;
@@ -31,7 +31,7 @@ public sealed class ExpensesDbContext : BaseDbContext, IExpensesUnitOfWork
             b.Property(c => c.Code).IsRequired().HasMaxLength(32);
             b.Property(c => c.Name).IsRequired().HasMaxLength(100);
             b.Property(c => c.PostingRuleKey).IsRequired().HasMaxLength(64);
-            b.HasIndex(c => new { c.TenantId, c.CompanyId, c.Code }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(c => new { c.TenantId, c.CompanyId, c.Code }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<ExpenseVoucher>(b =>
@@ -48,7 +48,7 @@ public sealed class ExpensesDbContext : BaseDbContext, IExpensesUnitOfWork
             b.Property(v => v.Status).HasConversion<int>();
             b.HasMany(v => v.Lines).WithOne().HasForeignKey(l => l.ExpenseVoucherId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(v => v.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
-            b.HasIndex(v => new { v.TenantId, v.CompanyId, v.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(v => new { v.TenantId, v.CompanyId, v.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(v => new { v.TenantId, v.CompanyId, v.ExpenseDate });
         });
 
@@ -67,7 +67,7 @@ public sealed class ExpensesDbContext : BaseDbContext, IExpensesUnitOfWork
         modelBuilder.Entity<ExpenseVoucherNumberSequence>(b =>
         {
             b.ToTable("ExpenseVoucherNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         base.OnModelCreating(modelBuilder);

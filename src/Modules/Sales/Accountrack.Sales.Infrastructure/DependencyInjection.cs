@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Integration;
+﻿using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
 using Accountrack.Infrastructure.Common.Transactions;
 using Accountrack.Modules.Contracts.Events;
@@ -23,11 +23,11 @@ public static class DependencyInjection
         services.TryAddScoped<AuditCaptureInterceptor>();
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
-        // Shares the cross-module connection so later slices (delivery → COGS, invoice → AR) can
-        // commit stock + journal atomically with the document (INTEGRATION_EVENTS.md §2).
+        // Shares the cross-module connection so later slices (delivery â†’ COGS, invoice â†’ AR) can
+        // commit stock + journal atomically with the document (INTEGRATION_EVENTS.md Â§2).
         services.AddDbContext<SalesDbContext>((sp, options) =>
         {
-            options.UseSqlServer(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
+            options.UseNpgsql(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", SalesDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),

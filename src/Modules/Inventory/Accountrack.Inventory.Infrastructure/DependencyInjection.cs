@@ -1,4 +1,4 @@
-using Accountrack.Infrastructure.Common.Persistence.Interceptors;
+﻿using Accountrack.Infrastructure.Common.Persistence.Interceptors;
 using Accountrack.Infrastructure.Common.Transactions;
 using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Application.Features;
@@ -23,10 +23,10 @@ public static class DependencyInjection
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
         // Shares the cross-module connection so stock movements can commit atomically with the
-        // originating document + its GL journal (INTEGRATION_EVENTS.md §2).
+        // originating document + its GL journal (INTEGRATION_EVENTS.md Â§2).
         services.AddDbContext<InventoryDbContext>((sp, options) =>
         {
-            options.UseSqlServer(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
+            options.UseNpgsql(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", InventoryDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),

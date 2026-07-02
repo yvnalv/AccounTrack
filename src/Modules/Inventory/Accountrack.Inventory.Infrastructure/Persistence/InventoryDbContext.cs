@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Accountrack.Infrastructure.Common.Persistence;
 using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Domain;
@@ -29,9 +29,9 @@ public sealed class InventoryDbContext : BaseDbContext, IInventoryUnitOfWork
             b.Property(x => x.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
             b.Property(x => x.OnHandQty).HasColumnType("decimal(19,6)");
             b.Property(x => x.AvgUnitCost).HasColumnType("decimal(19,4)");
-            // One bucket per (company, warehouse, product) — the cost-bucket granularity (ADR-0015).
+            // One bucket per (company, warehouse, product) â€” the cost-bucket granularity (ADR-0015).
             b.HasIndex(x => new { x.TenantId, x.CompanyId, x.WarehouseId, x.ProductId })
-                .IsUnique().HasFilter("[IsDeleted] = 0");
+                .IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<InventoryTransaction>(b =>

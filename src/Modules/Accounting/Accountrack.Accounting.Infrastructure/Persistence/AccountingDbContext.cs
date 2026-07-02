@@ -1,4 +1,4 @@
-using Accountrack.Accounting.Application.Abstractions;
+﻿using Accountrack.Accounting.Application.Abstractions;
 using Accountrack.Accounting.Domain;
 using Accountrack.Application.Abstractions.Context;
 using Accountrack.Infrastructure.Common.Persistence;
@@ -39,7 +39,7 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
             b.Property(a => a.Type).HasConversion<int>();
             b.Property(a => a.NormalBalance).HasConversion<int>();
             b.Property(a => a.ControlType).HasConversion<int>();
-            b.HasIndex(a => new { a.TenantId, a.CompanyId, a.Code }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(a => new { a.TenantId, a.CompanyId, a.Code }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<FiscalYear>(b =>
@@ -47,7 +47,7 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
             b.ToTable("FiscalYears");
             b.HasMany(fy => fy.Periods).WithOne().HasForeignKey(p => p.FiscalYearId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(fy => fy.Periods).UsePropertyAccessMode(PropertyAccessMode.Field);
-            b.HasIndex(fy => new { fy.TenantId, fy.CompanyId, fy.Year }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(fy => new { fy.TenantId, fy.CompanyId, fy.Year }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<FiscalPeriod>(b =>
@@ -77,7 +77,7 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
             b.Property(j => j.Source).HasConversion<int>();
             b.HasMany(j => j.Lines).WithOne().HasForeignKey(l => l.JournalEntryId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(j => j.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
-            b.HasIndex(j => new { j.TenantId, j.CompanyId, j.EntryNo }).IsUnique().HasFilter("[EntryNo] IS NOT NULL AND [IsDeleted] = 0");
+            b.HasIndex(j => new { j.TenantId, j.CompanyId, j.EntryNo }).IsUnique().HasFilter("\"EntryNo\" IS NOT NULL AND \"IsDeleted\" = false");
             b.HasIndex(j => new { j.TenantId, j.CompanyId, j.Date });
         });
 
@@ -103,7 +103,7 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
         modelBuilder.Entity<JournalNumberSequence>(b =>
         {
             b.ToTable("JournalNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<PostingRule>(b =>

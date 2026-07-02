@@ -56,7 +56,7 @@ rules referenced; security implications addressed.
 
 ## 6. Local Setup (summary; see DEPLOYMENT.md)
 1. Install .NET 8 SDK, Node LTS, Docker.
-2. `docker compose up` to start SQL Server (+ api/nginx).
+2. `docker compose up` to start PostgreSQL (+ api/nginx).
 3. Backend: `dotnet build`, `dotnet test`, run `Accountrack.Api`.
 4. Frontend: `npm install`, `npm run dev`.
 5. Secrets via `dotnet user-secrets`; never commit secrets.

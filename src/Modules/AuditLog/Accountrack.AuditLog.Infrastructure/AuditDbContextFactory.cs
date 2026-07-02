@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Accountrack.Infrastructure.Common.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -11,8 +11,8 @@ public sealed class AuditDbContextFactory : IDesignTimeDbContextFactory<AuditDbC
     public AuditDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<AuditDbContext>()
-            .UseSqlServer(
-                "Server=localhost;Database=Accountrack_Design;Trusted_Connection=True;TrustServerCertificate=True",
+            .UseNpgsql(
+                "Host=localhost;Port=5432;Database=Accountrack_Design;Username=postgres;Password=postgres",
                 sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", BaseDbContext.AuditSchema))
             .Options;
 
