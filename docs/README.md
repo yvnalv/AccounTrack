@@ -55,6 +55,8 @@ Decisions confirmed 2026-06-13 are recorded in [DECISIONS.md](DECISIONS.md).
 - [CODING_STANDARDS.md](CODING_STANDARDS.md) — code conventions and quality rules.
 - [TESTING.md](TESTING.md) — testing strategy and high-priority suites.
 - [DEPLOYMENT.md](DEPLOYMENT.md) — environments, CI/CD, migrations, secrets.
+- [VPS_DEPLOYMENT_GUIDE.md](VPS_DEPLOYMENT_GUIDE.md) — step-by-step runbook for deploying onto a VPS
+  that already runs a Docker stack (reuse existing PostgreSQL + Nginx, expand SAN cert, pgAdmin tunnel).
 - [CONTRIBUTING.md](CONTRIBUTING.md) — workflow for human and AI contributors.
 
 ## Maintenance rule
