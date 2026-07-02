@@ -36,4 +36,13 @@ public static class ExpenseErrors
 
     public static Error LineCategoryNotFound(Guid categoryId) =>
         Error.Validation("EXPENSES.LINE_CATEGORY_NOT_FOUND", $"Expense category {categoryId} does not exist or is inactive.");
+
+    public static readonly Error NotDraft =
+        Error.BusinessRule("BR-EXP-7", "Only a draft expense voucher can be edited, submitted, or cancelled.", "EXPENSES.NOT_DRAFT");
+
+    public static readonly Error NotPosted =
+        Error.BusinessRule("BR-EXP-4", "Only a posted expense voucher can be reversed.", "EXPENSES.NOT_POSTED");
+
+    public static readonly Error ReversalHasPayments =
+        Error.BusinessRule("BR-EXP-4", "This on-account voucher has payments allocated; unwind the supplier payment before reversing.", "EXPENSES.REVERSAL_HAS_PAYMENTS");
 }

@@ -24,6 +24,36 @@ export interface ExpenseLineInput {
   taxRate: number
 }
 
+export interface ExpenseVoucherLine {
+  expenseCategoryId: string
+  description: string | null
+  amount: number
+  taxRate: number
+  lineTax: number
+  lineTotal: number
+}
+
+export interface ExpenseVoucher {
+  id: string
+  number: string
+  expenseDate: string
+  payeeName: string | null
+  cashAccountId: string | null
+  supplierId: string | null
+  dueDate: string | null
+  currency: string
+  subTotal: number
+  taxTotal: number
+  grandTotal: number
+  journalEntryId: string | null
+  apOpenItemId: string | null
+  reversalJournalEntryId: string | null
+  status: string
+  reference: string | null
+  notes: string | null
+  lines: ExpenseVoucherLine[]
+}
+
 export interface CreateExpenseVoucher {
   expenseDate: string
   payeeName: string | null

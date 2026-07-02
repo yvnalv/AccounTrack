@@ -13,6 +13,10 @@ public enum ExpenseVoucherStatus
     Posted = 2,
     /// <summary>Approval was rejected; never posted.</summary>
     Rejected = 3,
+    /// <summary>A posted voucher that was reversed by a reversing journal (BR-EXP-4). Immutable.</summary>
+    Reversed = 4,
+    /// <summary>A draft that was discarded before posting.</summary>
+    Cancelled = 5,
 }
 
 /// <summary>
@@ -70,6 +74,9 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
     /// <summary>The GL journal posted for this voucher (null until posted).</summary>
     public Guid? JournalEntryId { get; private set; }
 
+    /// <summary>The reversing GL journal posted when this voucher was reversed (null unless reversed).</summary>
+    public Guid? ReversalJournalEntryId { get; private set; }
+
     /// <summary>The AP open item created for an on-account voucher (null when paid from cash/bank).</summary>
     public Guid? ApOpenItemId { get; private set; }
 
@@ -80,6 +87,12 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
     public Guid? ApprovalRequestId { get; private set; }
 
     public bool IsPendingApproval => Status == ExpenseVoucherStatus.PendingApproval;
+
+    /// <summary>A draft can still be edited, submitted, or cancelled.</summary>
+    public bool CanEdit => Status == ExpenseVoucherStatus.Draft;
+
+    /// <summary>Only a posted voucher can be reversed (posted docs are immutable; correct by reversal — BR-EXP-4).</summary>
+    public bool CanReverse => Status == ExpenseVoucherStatus.Posted;
 
     /// <summary>Whether this voucher is recorded on account (unpaid, Cr AP) rather than paid from cash/bank.</summary>
     public bool IsOnAccount => SupplierId is not null;
@@ -99,6 +112,58 @@ public sealed class ExpenseVoucher : TenantOwnedEntity, IAggregateRoot
         string currency, string? reference, string? notes) =>
         new(number, expenseDate, payeeName?.Trim(), null, supplierId, dueDate,
             currency.Trim().ToUpperInvariant(), reference?.Trim(), notes?.Trim());
+
+    /// <summary>
+    /// Replaces the header and clears the lines of a <b>draft</b> voucher so the caller can re-add them
+    /// (BR-EXP-7). Editing is only allowed before posting; a posted voucher is immutable and corrected
+    /// by reversal. Payment mode may switch between paid (cash/bank) and on-account (supplier).
+    /// </summary>
+    public void EditDraft(
+        DateOnly expenseDate, string? payeeName, Guid? cashAccountId, Guid? supplierId, DateOnly? dueDate,
+        string? reference, string? notes)
+    {
+        EnsureDraft();
+        ExpenseDate = expenseDate;
+        PayeeName = payeeName?.Trim();
+        CashAccountId = cashAccountId;
+        SupplierId = supplierId;
+        DueDate = dueDate;
+        Reference = reference?.Trim();
+        Notes = notes?.Trim();
+        _lines.Clear();
+        Recalculate();
+    }
+
+    /// <summary>Discards a draft voucher that was never posted.</summary>
+    public void Cancel()
+    {
+        if (Status != ExpenseVoucherStatus.Draft)
+        {
+            throw new InvalidOperationException("Only a draft expense voucher can be cancelled.");
+        }
+
+        Status = ExpenseVoucherStatus.Cancelled;
+    }
+
+    /// <summary>Records the reversing journal and moves a posted voucher to Reversed (BR-EXP-4).</summary>
+    public void MarkReversed(Guid reversalJournalEntryId)
+    {
+        if (Status != ExpenseVoucherStatus.Posted)
+        {
+            throw new InvalidOperationException("Only a posted expense voucher can be reversed.");
+        }
+
+        ReversalJournalEntryId = reversalJournalEntryId;
+        Status = ExpenseVoucherStatus.Reversed;
+    }
+
+    private void EnsureDraft()
+    {
+        if (Status != ExpenseVoucherStatus.Draft)
+        {
+            throw new InvalidOperationException("Only a draft expense voucher can be edited.");
+        }
+    }
 
     public void AddLine(Guid expenseCategoryId, string expenseRuleKey, string? description, decimal amount, decimal taxRate)
     {

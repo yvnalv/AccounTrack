@@ -12,6 +12,7 @@ const statusTone: Record<string, Tone> = {
   Approved: 'info',
   Rejected: 'negative',
   Cancelled: 'neutral',
+  Reversed: 'neutral',
   PartiallyDelivered: 'warning',
   Delivered: 'positive',
   PartiallyReceived: 'warning',

@@ -126,13 +126,24 @@ configurable per company with the stated default.
   creditable) / Cr Cash-Bank** when paid, or **Cr AP** when unpaid (on account — creating an AP open
   item reconciled to the AP control account). A voucher specifies **exactly one** of a cash/bank
   account (paid) or a supplier + due date (on account); on account is rejected for an unknown supplier.
-- **BR-EXP-4** A posted expense voucher is immutable; correct it by reversal (cf. BR-ACC-3, BR-X-8).
+- **BR-EXP-4** A posted expense voucher is immutable; correct it by **reversal** — never by editing
+  (cf. BR-ACC-3, BR-X-8). Reversal posts a mirror journal (debits ↔ credits) dated on the reversal
+  date and moves the voucher to **Reversed**, leaving the original journal intact. An on-account
+  voucher can be reversed only while its AP open item is **fully unpaid**; once a supplier payment is
+  allocated the reversal is refused (unwind the payment first), and a successful reversal settles the
+  payable so it no longer shows as outstanding. Only a posted voucher can be reversed (CHG-0095).
 - **BR-EXP-5 (config)** An expense over a configured threshold requires approval: the voucher is
   submitted to the approval engine on create; if a definition matches (e.g. amount ≥ threshold) it
   waits as PendingApproval and posts to the GL only once approved, else it auto-approves and posts
   immediately. Rejection leaves it unposted (CHG-0082).
 - **BR-EXP-6** Payroll proper (employees, statutory deductions, PPh 21) is out of scope here
   (Phase 3); salaries paid as cash use a "Salaries & Wages" expense category.
+- **BR-EXP-7** An expense voucher supports a **draft workflow** in parity with Sales/Purchasing: it
+  may be created as a **Draft** (`POST /expense-vouchers/draft`), **edited** while Draft
+  (`PUT /expense-vouchers/{id}`), **submitted** for approval/posting (`POST …/submit`), or
+  **cancelled** while Draft (`POST …/cancel`). Editing, submitting, or cancelling is allowed only in
+  Draft. The one-shot `POST /expense-vouchers` (record + auto-post) remains for quick entry
+  (CHG-0095).
 
 ## Data Import / Export (ADR-0031)
 

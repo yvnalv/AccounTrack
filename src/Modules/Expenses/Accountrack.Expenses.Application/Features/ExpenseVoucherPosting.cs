@@ -19,6 +19,14 @@ public static class ExpenseDocumentTypes
 public interface IExpenseVoucherPoster
 {
     Task<Result> PostAsync(ExpenseVoucher voucher, CancellationToken ct);
+
+    /// <summary>
+    /// Reverses a posted voucher (BR-EXP-4): posts a mirror journal (debits ↔ credits) dated
+    /// <paramref name="reversalDate"/>, settles the AP open item for an on-account voucher (only when
+    /// still fully unpaid), and moves the voucher to Reversed. The original journal is left intact.
+    /// Save-less — the caller owns the cross-module transaction.
+    /// </summary>
+    Task<Result> ReverseAsync(ExpenseVoucher voucher, DateOnly reversalDate, string? reason, CancellationToken ct);
 }
 
 public sealed class ExpenseVoucherPoster : IExpenseVoucherPoster
@@ -37,6 +45,102 @@ public sealed class ExpenseVoucherPoster : IExpenseVoucherPoster
 
     public async Task<Result> PostAsync(ExpenseVoucher voucher, CancellationToken ct)
     {
+        var built = await BuildLinesAsync(voucher, ct);
+        if (built.IsFailure)
+        {
+            return built.Error;
+        }
+
+        var posting = new LedgerPostingRequest(
+            voucher.ExpenseDate, LedgerSource.Expense, voucher.Id, $"Expense voucher {voucher.Number}", built.Value);
+
+        var journal = await _ledger.PostAsync(posting, ct);
+        if (journal.IsFailure)
+        {
+            return journal.Error;
+        }
+
+        voucher.MarkPosted(journal.Value);
+
+        if (voucher.IsOnAccount)
+        {
+            var openItem = await _subledger.OpenPayableAsync(
+                voucher.SupplierId!.Value, voucher.Id, voucher.Number, voucher.ExpenseDate, voucher.DueDate!.Value,
+                voucher.GrandTotal, ct);
+            if (openItem.IsFailure)
+            {
+                return openItem.Error;
+            }
+
+            voucher.SetApOpenItem(openItem.Value);
+        }
+
+        return Result.Success();
+    }
+
+    public async Task<Result> ReverseAsync(ExpenseVoucher voucher, DateOnly reversalDate, string? reason, CancellationToken ct)
+    {
+        // A reversal must not silently undo money that has already moved: block if the payable was
+        // (partly) paid — the caller unwinds the supplier payment first.
+        if (voucher.IsOnAccount)
+        {
+            var outstanding = await _subledger.GetOutstandingAsync(voucher.ApOpenItemId!.Value, ct);
+            if (outstanding.IsFailure)
+            {
+                return outstanding.Error;
+            }
+
+            if (outstanding.Value != voucher.GrandTotal)
+            {
+                return ExpenseErrors.ReversalHasPayments;
+            }
+        }
+
+        var built = await BuildLinesAsync(voucher, ct);
+        if (built.IsFailure)
+        {
+            return built.Error;
+        }
+
+        // Mirror every line (debit ↔ credit) so the reversing journal exactly offsets the original.
+        var mirrored = built.Value
+            .Select(l => new LedgerLine(l.AccountId, l.Credit, l.Debit, $"Reversal: {l.Description}", l.SubledgerPartyId))
+            .ToList();
+
+        var description = string.IsNullOrWhiteSpace(reason)
+            ? $"Reversal of expense voucher {voucher.Number}"
+            : $"Reversal of expense voucher {voucher.Number} — {reason.Trim()}";
+
+        var posting = new LedgerPostingRequest(reversalDate, LedgerSource.Expense, voucher.Id, description, mirrored);
+
+        var journal = await _ledger.PostAsync(posting, ct);
+        if (journal.IsFailure)
+        {
+            return journal.Error;
+        }
+
+        // Settle the (fully unpaid) payable so it no longer shows as outstanding in AP.
+        if (voucher.IsOnAccount)
+        {
+            var settled = await _subledger.AllocateAsync(
+                voucher.ApOpenItemId!.Value, $"REV {voucher.Number}", reversalDate, voucher.GrandTotal, voucher.Id, ct);
+            if (settled.IsFailure)
+            {
+                return settled.Error;
+            }
+        }
+
+        voucher.MarkReversed(journal.Value);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Builds the balanced journal lines for a voucher: Dr Expense per resolved account (net) +
+    /// Dr VAT Input (creditable tax) / Cr Cash-Bank (paid) or Cr AP with the supplier (on account).
+    /// Shared by posting and reversal so the account determination lives in exactly one place.
+    /// </summary>
+    private async Task<Result<List<LedgerLine>>> BuildLinesAsync(ExpenseVoucher voucher, CancellationToken ct)
+    {
         // Resolve each line's expense account via the posting-rule engine and accumulate the debit per
         // account (so a multi-line voucher posts one Dr per distinct expense account).
         var expenseDebits = new Dictionary<Guid, decimal>();
@@ -51,7 +155,6 @@ public sealed class ExpenseVoucherPoster : IExpenseVoucherPoster
             expenseDebits[account.Value] = expenseDebits.GetValueOrDefault(account.Value) + line.Amount;
         }
 
-        // Dr Expense per account (net) + Dr VAT Input (total creditable tax) / Cr Cash-Bank|AP (gross).
         var lines = expenseDebits
             .Select(kv => new LedgerLine(kv.Key, Math.Round(kv.Value, 4, MidpointRounding.ToEven), 0m, "Operating expense"))
             .ToList();
@@ -82,30 +185,6 @@ public sealed class ExpenseVoucherPoster : IExpenseVoucherPoster
             lines.Add(new LedgerLine(voucher.CashAccountId!.Value, 0m, voucher.GrandTotal, "Cash / bank"));
         }
 
-        var posting = new LedgerPostingRequest(
-            voucher.ExpenseDate, LedgerSource.Expense, voucher.Id, $"Expense voucher {voucher.Number}", lines);
-
-        var journal = await _ledger.PostAsync(posting, ct);
-        if (journal.IsFailure)
-        {
-            return journal.Error;
-        }
-
-        voucher.MarkPosted(journal.Value);
-
-        if (voucher.IsOnAccount)
-        {
-            var openItem = await _subledger.OpenPayableAsync(
-                voucher.SupplierId!.Value, voucher.Id, voucher.Number, voucher.ExpenseDate, voucher.DueDate!.Value,
-                voucher.GrandTotal, ct);
-            if (openItem.IsFailure)
-            {
-                return openItem.Error;
-            }
-
-            voucher.SetApOpenItem(openItem.Value);
-        }
-
-        return Result.Success();
+        return lines;
     }
 }

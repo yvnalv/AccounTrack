@@ -23,7 +23,9 @@ public static class StandardRoleDefinitions
         {
             PermissionCatalog.AccountingView, PermissionCatalog.AccountingPost, PermissionCatalog.AccountingApprove,
             PermissionCatalog.AccountingPeriodClose, PermissionCatalog.AccountingPeriodReopen,
-            PermissionCatalog.ExpensesView, PermissionCatalog.ExpensesManage, PermissionCatalog.ExpensesPost,
+            PermissionCatalog.ExpensesView, PermissionCatalog.ExpensesManage,
+            PermissionCatalog.ExpensesCreate, PermissionCatalog.ExpensesEdit, PermissionCatalog.ExpensesCancel,
+            PermissionCatalog.ExpensesPost,
             PermissionCatalog.SalesView, PermissionCatalog.PurchasingView, PermissionCatalog.InventoryView,
             PermissionCatalog.MasterDataView, PermissionCatalog.MasterDataExport, PermissionCatalog.AuditView,
         }),

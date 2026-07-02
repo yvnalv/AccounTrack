@@ -41,6 +41,9 @@ public static class PermissionCatalog
 
     public const string ExpensesView = "Expenses.View";
     public const string ExpensesManage = "Expenses.Manage";
+    public const string ExpensesCreate = "Expenses.Create";
+    public const string ExpensesEdit = "Expenses.Edit";
+    public const string ExpensesCancel = "Expenses.Cancel";
     public const string ExpensesPost = "Expenses.Post";
 
     public const string AdminUsers = "Admin.Users";
@@ -84,6 +87,9 @@ public static class PermissionCatalog
         (MasterDataExport, "Export Master Data"),
         (ExpensesView, "View Expenses"),
         (ExpensesManage, "Manage Expense Categories"),
+        (ExpensesCreate, "Create Expense Vouchers"),
+        (ExpensesEdit, "Edit Expense Vouchers"),
+        (ExpensesCancel, "Cancel Expense Vouchers"),
         (ExpensesPost, "Post Expenses"),
         (AdminUsers, "Manage Users"),
         (AdminRoles, "Manage Roles"),
