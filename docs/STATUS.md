@@ -8,10 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-01 (last change **CHG-0091**)
+- **As of:** 2026-07-02 (last change **CHG-0094**)
 - **Build:** green — backend `net8.0` (329 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  **Deployable:** Docker stack (SQL Server + API + SPA/Nginx) verified via `docker compose up` — behind
+  **Deployable:** Docker stack (PostgreSQL + API + SPA/Nginx) verified via `docker compose up` — behind
   your own reverse proxy; first boot migrates + seeds a working company/admin (CHG-0091).
+  **Database provider migrated SQL Server → PostgreSQL (Npgsql), CHG-0094 / ADR-0032.**
   Latest: **silent refresh-token rotation** — the SPA refreshes the access token in the background on
   401 and retries, instead of bouncing to login; sign-out revokes server-side (CHG-0090); **list export
   honors active filters** — Export downloads only the searched/filtered rows
@@ -75,9 +76,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - ✅ **In-process integration events** — publisher + handlers building block (ADR-0007) (CHG-0013)
 - ✅ **Cross-module atomic transactions** — shared connection + unit of work (INTEGRATION_EVENTS.md §2) (CHG-0019)
 - ✅ **Notification** — in-app notifications consuming approval events; list + mark-read (CHG-0014)
-- ✅ **Cross-tenant isolation integration suite** — behavioral (real SQL Server) + model-convention
-  reflection over all 11 contexts (CHG-0042). MULTI_TENANCY.md §9. (Uses local/CI SQL Server with
-  skip, not Testcontainers — Docker unavailable here.)
+- ✅ **Cross-tenant isolation integration suite** — behavioral (real PostgreSQL) + model-convention
+  reflection over all 11 contexts (CHG-0042). MULTI_TENANCY.md §9. (Uses local/CI PostgreSQL via env
+  `ACCOUNTRACK_TEST_PG` with skip, not Testcontainers — Docker unavailable here.)
 
 ### Phase 2 — Core ERP
 - 🟡 **Accounting** (slice 1 + reports + posting engine + subledgers) — chart of accounts, fiscal

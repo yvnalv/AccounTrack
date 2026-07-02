@@ -8,7 +8,7 @@ Testing strategy for Accountrack. Required: unit + integration tests. High-prior
 | Level | Scope | Tooling | Speed |
 |---|---|---|---|
 | **Unit** | Domain logic, value objects, posting-rule resolution, moving-average math, validators, handlers (mocked ports) | xUnit + FluentAssertions + NSubstitute/Moq | fast, run always |
-| **Integration** | Use case → DB (real SQL Server via Testcontainers), EF mappings, query filters, outbox, atomic flows | xUnit + Testcontainers + Respawn | medium |
+| **Integration** | Use case → DB (real PostgreSQL via Testcontainers), EF mappings, query filters, outbox, atomic flows | xUnit + Testcontainers + Respawn | medium |
 | **Architecture** | Boundary/dependency rules | NetArchTest | fast |
 | **Contract** | `Modules.Contracts` event/service shapes & idempotency | xUnit | fast |
 | **API** | Endpoint → pipeline → handler (WebApplicationFactory) | xUnit + `WebApplicationFactory` | medium |
@@ -54,7 +54,7 @@ Testing strategy for Accountrack. Required: unit + integration tests. High-prior
 - Auth: lockout, refresh rotation, reuse-detection revocation.
 
 > **Isolation-suite infra:** TESTING.md prescribes Testcontainers; where Docker is unavailable the
-> suite targets a local/CI SQL Server (env `ACCOUNTRACK_TEST_SQL`, default localhost) and skips the
+> suite targets a local/CI PostgreSQL (env `ACCOUNTRACK_TEST_PG`, default localhost) and skips the
 > behavioral tests if none is reachable. The offline model-convention tests always run.
 
 ## 3. Conventions
@@ -63,7 +63,7 @@ Testing strategy for Accountrack. Required: unit + integration tests. High-prior
 - **Test naming:** `Method_State_ExpectedResult` (e.g. `Post_ClosedPeriod_ThrowsBusinessRule`).
 - **Deterministic:** inject `IClock`; no real `DateTime.Now`, no random without seed, no sleeps.
 - **Isolation:** each integration test runs against a clean DB state (Respawn between tests);
-  Testcontainers spins SQL Server.
+  Testcontainers spins PostgreSQL.
 - **Data builders / object mothers** for entities to keep tests readable.
 - Reference business rules by id in test names/comments where relevant (`BR-INV-3`).
 

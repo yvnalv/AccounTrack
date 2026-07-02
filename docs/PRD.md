@@ -98,7 +98,7 @@ system (accounting, sales, purchasing, inventory, manufacturing, reporting, auto
 - All high-priority accounting/inventory/security/approval paths covered by tests.
 
 ## 7. Constraints
-- Tech stack and non-negotiables per `CLAUDE.md` (.NET 8, SQL Server, Vue 3/TS, Tailwind,
+- Tech stack and non-negotiables per `CLAUDE.md` (.NET 8, PostgreSQL, Vue 3/TS, Tailwind,
   modular monolith, GUID PKs, soft delete, double-entry, inventory ledger, moving average).
 
 ## 8. Assumptions & Dependencies

@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Accountrack.Infrastructure.Common.Persistence;
 using Accountrack.Sales.Application.Abstractions;
 using Accountrack.Sales.Domain;
@@ -47,7 +47,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
             b.Property(o => o.GrandTotal).HasColumnType("decimal(19,4)");
             b.HasMany(o => o.Lines).WithOne().HasForeignKey(l => l.SalesOrderId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(o => o.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
-            b.HasIndex(o => new { o.TenantId, o.CompanyId, o.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(o => new { o.TenantId, o.CompanyId, o.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(o => new { o.TenantId, o.CompanyId, o.Status });
         });
 
@@ -69,7 +69,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
         modelBuilder.Entity<SalesOrderNumberSequence>(b =>
         {
             b.ToTable("SalesOrderNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<DeliveryOrder>(b =>
@@ -81,7 +81,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
             b.HasMany(d => d.Lines).WithOne().HasForeignKey(l => l.DeliveryOrderId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(d => d.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.Ignore(d => d.TotalCost);
-            b.HasIndex(d => new { d.TenantId, d.CompanyId, d.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(d => new { d.TenantId, d.CompanyId, d.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(d => new { d.TenantId, d.CompanyId, d.SalesOrderId });
         });
 
@@ -97,7 +97,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
         modelBuilder.Entity<DeliveryOrderNumberSequence>(b =>
         {
             b.ToTable("DeliveryOrderNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<SalesInvoice>(b =>
@@ -111,7 +111,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
             b.Property(i => i.GrandTotal).HasColumnType("decimal(19,4)");
             b.HasMany(i => i.Lines).WithOne().HasForeignKey(l => l.SalesInvoiceId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(i => i.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
-            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(i => new { i.TenantId, i.CompanyId, i.SalesOrderId });
         });
 
@@ -131,7 +131,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
         modelBuilder.Entity<SalesInvoiceNumberSequence>(b =>
         {
             b.ToTable("SalesInvoiceNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<CustomerPayment>(b =>
@@ -144,7 +144,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
             b.HasMany(p => p.Allocations).WithOne().HasForeignKey(a => a.CustomerPaymentId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(p => p.Allocations).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.Ignore(p => p.TotalAmount);
-            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(p => new { p.TenantId, p.CompanyId, p.CustomerId });
         });
 
@@ -158,7 +158,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
         modelBuilder.Entity<CustomerPaymentNumberSequence>(b =>
         {
             b.ToTable("CustomerPaymentNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<SalesReturn>(b =>
@@ -173,7 +173,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
             b.HasMany(r => r.Lines).WithOne().HasForeignKey(l => l.SalesReturnId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(r => r.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.Ignore(r => r.TotalCost);
-            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(r => new { r.TenantId, r.CompanyId, r.SalesOrderId });
             b.HasIndex(r => new { r.TenantId, r.CompanyId, r.SalesInvoiceId });
         });
@@ -195,7 +195,7 @@ public sealed class SalesDbContext : BaseDbContext, ISalesUnitOfWork
         modelBuilder.Entity<SalesReturnNumberSequence>(b =>
         {
             b.ToTable("SalesReturnNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         base.OnModelCreating(modelBuilder);

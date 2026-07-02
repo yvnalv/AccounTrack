@@ -1,4 +1,4 @@
-using Accountrack.Accounting.Application.Abstractions;
+﻿using Accountrack.Accounting.Application.Abstractions;
 using Accountrack.Accounting.Application.Features;
 using Accountrack.Accounting.Application.Services;
 using Accountrack.Accounting.Infrastructure.Persistence;
@@ -24,10 +24,10 @@ public static class DependencyInjection
         services.TryAddScoped<AuditingSaveChangesInterceptor>();
 
         // Shares the cross-module connection so journals posted by other modules (Goods Receipt,
-        // invoices, payments) commit atomically with their source document (INTEGRATION_EVENTS.md §2).
+        // invoices, payments) commit atomically with their source document (INTEGRATION_EVENTS.md Â§2).
         services.AddDbContext<AccountingDbContext>((sp, options) =>
         {
-            options.UseSqlServer(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
+            options.UseNpgsql(sp.GetRequiredService<ISharedDbConnection>().Connection, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", AccountingDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),

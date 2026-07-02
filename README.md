@@ -16,7 +16,7 @@ with Indonesian PPN (VAT 11%) support.
 
 ## Tech stack
 
-- **Backend:** .NET 8, ASP.NET Core Web API, EF Core, SQL Server
+- **Backend:** .NET 8, ASP.NET Core Web API, EF Core, PostgreSQL (Npgsql)
 - **Frontend:** Vue 3, TypeScript, Pinia, Vue Router, Tailwind CSS
 - **Architecture:** Modular Monolith + Clean Architecture (microservice-extraction ready)
 - **Infra:** Docker, Docker Compose, Nginx, GitHub Actions

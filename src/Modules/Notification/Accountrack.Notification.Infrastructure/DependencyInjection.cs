@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Integration;
+﻿using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
 using Accountrack.Modules.Contracts.Events;
 using Accountrack.Notification.Application;
@@ -23,7 +23,7 @@ public static class DependencyInjection
 
         services.AddDbContext<NotificationDbContext>((sp, options) =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseNpgsql(connectionString, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", NotificationDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),

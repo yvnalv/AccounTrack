@@ -12,7 +12,7 @@ namespace Accountrack.Infrastructure.Common.Persistence;
 /// make the platform safe by default (docs/DATABASE.md, MULTI_TENANCY.md):
 ///   - a global query filter excluding soft-deleted rows on every <see cref="Entity"/>;
 ///   - an additional tenant + company filter on every <see cref="TenantOwnedEntity"/>;
-///   - an optimistic-concurrency rowversion on every entity;
+///   - a provider-agnostic optimistic-concurrency token on every entity;
 ///   - ignoring the in-memory domain-event buffer.
 /// Derived module contexts call <see cref="ApplyAccountrackConventions"/> from OnModelCreating.
 /// </summary>
@@ -68,8 +68,13 @@ public abstract class BaseDbContext : DbContext, ITransactionalDbContext
             // rather than mis-detecting the pre-set key as an existing row to update.
             modelBuilder.Entity(clr).Property(nameof(Entity.Id)).ValueGeneratedNever();
 
-            // Optimistic concurrency token (ADR-0021).
-            modelBuilder.Entity(clr).Property(nameof(Entity.RowVersion)).IsRowVersion();
+            // Optimistic concurrency token (ADR-0021). Provider-agnostic: unlike SQL Server's
+            // store-generated `rowversion`, PostgreSQL has no equivalent, so the token is a plain
+            // `bytea` concurrency token whose value is bumped by AuditingSaveChangesInterceptor on
+            // every insert/update. EF still emits it in the UPDATE ... WHERE clause for the check.
+            modelBuilder.Entity(clr).Property(nameof(Entity.RowVersion))
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
 
             // Global query filters (most specific first).
             if (typeof(TenantOwnedEntity).IsAssignableFrom(clr))

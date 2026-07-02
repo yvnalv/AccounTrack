@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -10,8 +10,8 @@ public sealed class NotificationDbContextFactory : IDesignTimeDbContextFactory<N
     public NotificationDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<NotificationDbContext>()
-            .UseSqlServer(
-                "Server=localhost;Database=Accountrack_Design;Trusted_Connection=True;TrustServerCertificate=True",
+            .UseNpgsql(
+                "Host=localhost;Port=5432;Database=Accountrack_Design;Username=postgres;Password=postgres",
                 sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", NotificationDbContext.Schema))
             .Options;
 

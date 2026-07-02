@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Accountrack.CompanyManagement.Application.Abstractions;
 using Accountrack.CompanyManagement.Domain;
 using Accountrack.Infrastructure.Common.Persistence;
@@ -43,7 +43,7 @@ public sealed class CompanyDbContext : BaseDbContext, ICompanyUnitOfWork
             b.Property(c => c.FunctionalCurrency).IsRequired().HasMaxLength(3).IsFixedLength();
             b.Property(c => c.TimeZone).IsRequired().HasMaxLength(64);
             b.Property(c => c.TaxId).HasMaxLength(64);
-            b.HasIndex(c => new { c.TenantId, c.Code }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(c => new { c.TenantId, c.Code }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<CompanySetting>(b =>
@@ -51,7 +51,7 @@ public sealed class CompanyDbContext : BaseDbContext, ICompanyUnitOfWork
             b.ToTable("CompanySettings");
             b.Property(s => s.Key).IsRequired().HasMaxLength(128);
             b.Property(s => s.Value).IsRequired().HasMaxLength(2048);
-            b.HasIndex(s => new { s.CompanyId, s.Key }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.CompanyId, s.Key }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         base.OnModelCreating(modelBuilder);

@@ -1,4 +1,4 @@
-using Accountrack.Infrastructure.Common.Persistence.Interceptors;
+﻿using Accountrack.Infrastructure.Common.Persistence.Interceptors;
 using Accountrack.MasterData.Application.Abstractions;
 using Accountrack.MasterData.Application.Features;
 using Accountrack.MasterData.Infrastructure.Persistence;
@@ -24,7 +24,7 @@ public static class DependencyInjection
 
         services.AddDbContext<MasterDataDbContext>((sp, options) =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseNpgsql(connectionString, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", MasterDataDbContext.Schema));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditCaptureInterceptor>(),

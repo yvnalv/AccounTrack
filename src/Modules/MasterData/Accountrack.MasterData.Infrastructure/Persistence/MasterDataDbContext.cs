@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Accountrack.Infrastructure.Common.Persistence;
 using Accountrack.MasterData.Application.Abstractions;
 using Accountrack.MasterData.Domain;
@@ -80,7 +80,7 @@ public sealed class MasterDataDbContext : BaseDbContext, IMasterDataUnitOfWork
             b.ToTable(table);
             b.Property("Code").IsRequired().HasMaxLength(codeLen);
             b.Property("Name").IsRequired().HasMaxLength(nameLen);
-            b.HasIndex("TenantId", "CompanyId", "Code").IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex("TenantId", "CompanyId", "Code").IsUnique().HasFilter("\"IsDeleted\" = false");
         });
     }
 
@@ -89,6 +89,6 @@ public sealed class MasterDataDbContext : BaseDbContext, IMasterDataUnitOfWork
     {
         b.Property("Code").IsRequired().HasMaxLength(codeLen);
         b.Property("Name").IsRequired().HasMaxLength(nameLen);
-        b.HasIndex("TenantId", "CompanyId", "Code").IsUnique().HasFilter("[IsDeleted] = 0");
+        b.HasIndex("TenantId", "CompanyId", "Code").IsUnique().HasFilter("\"IsDeleted\" = false");
     }
 }

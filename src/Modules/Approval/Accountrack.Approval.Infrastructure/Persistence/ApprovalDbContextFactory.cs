@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -10,8 +10,8 @@ public sealed class ApprovalDbContextFactory : IDesignTimeDbContextFactory<Appro
     public ApprovalDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<ApprovalDbContext>()
-            .UseSqlServer(
-                "Server=localhost;Database=Accountrack_Design;Trusted_Connection=True;TrustServerCertificate=True",
+            .UseNpgsql(
+                "Host=localhost;Port=5432;Database=Accountrack_Design;Username=postgres;Password=postgres",
                 sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", ApprovalDbContext.Schema))
             .Options;
 

@@ -69,7 +69,7 @@ Build a complete business operating system covering:
 * .NET 8
 * ASP.NET Core Web API
 * Entity Framework Core
-* SQL Server
+* PostgreSQL (Npgsql) — migrated from SQL Server, see [ADR-0032](docs/DECISIONS.md)
 
 ## Frontend
 
@@ -913,7 +913,7 @@ Stores Architectural Decision Records (ADR).
 Examples:
 
 * Why Modular Monolith was chosen
-* Why SQL Server was chosen
+* Why PostgreSQL was chosen (migrated from SQL Server — ADR-0032)
 * Why Moving Average was selected
 * Why Shared Database Multi-Tenancy was selected
 
@@ -1002,7 +1002,7 @@ Intelligence
 # Non-Negotiable Rules
 
 1. Use .NET 8.
-2. Use SQL Server.
+2. Use PostgreSQL (migrated from SQL Server — ADR-0032).
 3. Use Vue 3.
 4. Use TypeScript.
 5. Use Tailwind CSS.

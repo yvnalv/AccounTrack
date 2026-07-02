@@ -1,4 +1,4 @@
-using Accountrack.Identity.Domain;
+﻿using Accountrack.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,7 +16,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.FullName).IsRequired().HasMaxLength(200);
 
         // Email is unique across the system so login can resolve the tenant (MULTI_TENANCY.md).
-        builder.HasIndex(u => u.Email).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(u => u.Email).IsUnique().HasFilter("\"IsDeleted\" = false");
         builder.HasIndex(u => u.TenantId);
 
         builder.HasMany(u => u.Roles).WithOne().HasForeignKey(ur => ur.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -37,7 +37,7 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.Property(r => r.Name).IsRequired().HasMaxLength(128);
         builder.Property(r => r.Description).HasMaxLength(512);
 
-        builder.HasIndex(r => new { r.TenantId, r.Name }).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(r => new { r.TenantId, r.Name }).IsUnique().HasFilter("\"IsDeleted\" = false");
 
         builder.HasMany(r => r.Permissions).WithOne().HasForeignKey(rp => rp.RoleId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(r => r.Permissions).UsePropertyAccessMode(PropertyAccessMode.Field);
@@ -55,7 +55,7 @@ internal sealed class PermissionConfiguration : IEntityTypeConfiguration<Permiss
         builder.Property(p => p.Name).IsRequired().HasMaxLength(200);
         builder.Property(p => p.Description).HasMaxLength(512);
 
-        builder.HasIndex(p => p.Code).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(p => p.Code).IsUnique().HasFilter("\"IsDeleted\" = false");
     }
 }
 
@@ -68,7 +68,7 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
 
         builder.Property(t => t.TokenHash).IsRequired().HasMaxLength(128);
 
-        builder.HasIndex(t => t.TokenHash).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(t => t.TokenHash).IsUnique().HasFilter("\"IsDeleted\" = false");
         builder.HasIndex(t => t.FamilyId);
         builder.HasIndex(t => t.UserId);
     }
@@ -80,7 +80,7 @@ internal sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
     {
         builder.ToTable("UserRoles");
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique().HasFilter("\"IsDeleted\" = false");
     }
 }
 
@@ -90,7 +90,7 @@ internal sealed class RolePermissionConfiguration : IEntityTypeConfiguration<Rol
     {
         builder.ToTable("RolePermissions");
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique().HasFilter("\"IsDeleted\" = false");
     }
 }
 
@@ -100,6 +100,6 @@ internal sealed class UserCompanyConfiguration : IEntityTypeConfiguration<UserCo
     {
         builder.ToTable("UserCompanies");
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.UserId, x.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(x => new { x.UserId, x.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
     }
 }

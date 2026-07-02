@@ -9,14 +9,14 @@ namespace Accountrack.IntegrationTests;
 /// <summary>
 /// Cross-tenant data-isolation suite (MULTI_TENANCY.md §9, non-negotiable #33). Proves the global
 /// query filters + tenancy-stamping interceptor actually isolate data at runtime against a real
-/// SQL Server, using Master Data's <c>Customer</c> (a tenant- and company-owned entity) as the probe.
+/// PostgreSQL, using Master Data's <c>Customer</c> (a tenant- and company-owned entity) as the probe.
 /// </summary>
-[Collection(SqlServerCollection.Name)]
+[Collection(PostgresCollection.Name)]
 public sealed class CrossTenantIsolationTests
 {
-    private readonly SqlServerFixture _fx;
+    private readonly PostgresFixture _fx;
 
-    public CrossTenantIsolationTests(SqlServerFixture fx) => _fx = fx;
+    public CrossTenantIsolationTests(PostgresFixture fx) => _fx = fx;
 
     [SkippableFact]
     public async Task Cross_tenant_query_returns_zero_foreign_rows()

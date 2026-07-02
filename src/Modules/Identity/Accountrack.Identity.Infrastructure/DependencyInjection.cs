@@ -1,4 +1,4 @@
-using Accountrack.Identity.Application.Abstractions;
+﻿using Accountrack.Identity.Application.Abstractions;
 using Accountrack.Identity.Application.Features;
 using Accountrack.Identity.Infrastructure.Authentication;
 using Accountrack.Identity.Infrastructure.Persistence;
@@ -35,7 +35,7 @@ public static class DependencyInjection
 
         services.AddDbContext<IdentityDbContext>((sp, options) =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseNpgsql(connectionString, sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", IdentityDbContext.Schema));
             // Capture audit BEFORE soft-delete conversion, then stamp audit fields (ADR-0026).
             options.AddInterceptors(

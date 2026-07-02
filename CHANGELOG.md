@@ -1,5 +1,34 @@
 # Accountrack Changelog
 
+## [2026-07-02 11:20:00 UTC]
+
+CHG-0094 — Migrate database provider from SQL Server to PostgreSQL (ADR-0032)
+
+- Replaced `Microsoft.EntityFrameworkCore.SqlServer` with `Npgsql.EntityFrameworkCore.PostgreSQL`
+  (8.0.10) in all 13 Infrastructure projects + the integration-test project; swapped every
+  `UseSqlServer(...)` to `UseNpgsql(...)` across module DI and design-time factories. Kept EF Core
+  and the relational model — the switch is confined to the Infrastructure layer (Domain/Application/
+  API unchanged).
+- **Concurrency token:** SQL Server `rowversion` has no PostgreSQL equivalent, so the per-entity
+  `byte[] RowVersion` is now a provider-agnostic `bytea` `IsConcurrencyToken()` whose value is bumped
+  by `AuditingSaveChangesInterceptor` on every insert/update. The `byte[]` shape and the opaque
+  client token contract are unchanged (amends ADR-0021).
+- **Platform stores** `IdempotencyStore`/`InboxStore` rewritten from T-SQL to PostgreSQL
+  (`NpgsqlConnection`, `CREATE … IF NOT EXISTS`, `INSERT … ON CONFLICT DO NOTHING`, `now()`); the
+  shared cross-module connection uses `NpgsqlConnection`.
+- **Migrations regenerated** per module for Npgsql (greenfield, no production data): `uuid`,
+  `numeric(p,s)`, `timestamp with time zone`, `bytea`. Soft-delete partial unique indexes converted
+  to PostgreSQL syntax (`"IsDeleted" = false`). Identifier casing kept PascalCase (quoted).
+- **Docker/config:** `docker-compose.yml` + `docker-compose.dev.yml` now run `postgres:16-alpine`
+  (named volume, `pg_isready` healthcheck, `restart: unless-stopped`, internal network, not
+  published); connection strings, `.env.example`, and `appsettings.Development.json` switched to
+  Npgsql format. Integration-test fixture repointed to PostgreSQL.
+- **Validated** against local PostgreSQL 18: build (warnings-as-errors) + all unit/architecture tests
+  pass; all 28 integration tests (incl. cross-tenant isolation) pass against a live DB; all 12
+  module migrations apply cleanly (73 tables / 13 schemas).
+
+---
+
 ## [2026-07-01 16:29:49 UTC]
 
 CHG-0093 — Local development Docker stack (docker-compose.dev.yml)

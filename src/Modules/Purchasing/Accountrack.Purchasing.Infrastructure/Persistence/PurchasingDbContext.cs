@@ -1,4 +1,4 @@
-using Accountrack.Application.Abstractions.Context;
+﻿using Accountrack.Application.Abstractions.Context;
 using Accountrack.Infrastructure.Common.Persistence;
 using Accountrack.Purchasing.Application.Abstractions;
 using Accountrack.Purchasing.Domain;
@@ -47,7 +47,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
             b.Property(o => o.GrandTotal).HasColumnType("decimal(19,4)");
             b.HasMany(o => o.Lines).WithOne().HasForeignKey(l => l.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(o => o.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
-            b.HasIndex(o => new { o.TenantId, o.CompanyId, o.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(o => new { o.TenantId, o.CompanyId, o.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(o => new { o.TenantId, o.CompanyId, o.Status });
         });
 
@@ -72,7 +72,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
         modelBuilder.Entity<PurchaseOrderNumberSequence>(b =>
         {
             b.ToTable("PurchaseOrderNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<GoodsReceipt>(b =>
@@ -84,7 +84,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
             b.HasMany(g => g.Lines).WithOne().HasForeignKey(l => l.GoodsReceiptId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(g => g.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.Ignore(g => g.TotalCost);
-            b.HasIndex(g => new { g.TenantId, g.CompanyId, g.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(g => new { g.TenantId, g.CompanyId, g.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(g => new { g.TenantId, g.CompanyId, g.PurchaseOrderId });
         });
 
@@ -100,7 +100,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
         modelBuilder.Entity<GoodsReceiptNumberSequence>(b =>
         {
             b.ToTable("GoodsReceiptNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<PurchaseInvoice>(b =>
@@ -115,7 +115,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
             b.Property(i => i.GrandTotal).HasColumnType("decimal(19,4)");
             b.HasMany(i => i.Lines).WithOne().HasForeignKey(l => l.PurchaseInvoiceId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(i => i.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
-            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(i => new { i.TenantId, i.CompanyId, i.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(i => new { i.TenantId, i.CompanyId, i.PurchaseOrderId });
         });
 
@@ -135,7 +135,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
         modelBuilder.Entity<PurchaseInvoiceNumberSequence>(b =>
         {
             b.ToTable("PurchaseInvoiceNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<SupplierPayment>(b =>
@@ -148,7 +148,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
             b.HasMany(p => p.Allocations).WithOne().HasForeignKey(a => a.SupplierPaymentId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(p => p.Allocations).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.Ignore(p => p.TotalAmount);
-            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(p => new { p.TenantId, p.CompanyId, p.SupplierId });
         });
 
@@ -162,7 +162,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
         modelBuilder.Entity<SupplierPaymentNumberSequence>(b =>
         {
             b.ToTable("SupplierPaymentNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         modelBuilder.Entity<PurchaseReturn>(b =>
@@ -177,7 +177,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
             b.HasMany(r => r.Lines).WithOne().HasForeignKey(l => l.PurchaseReturnId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(r => r.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.Ignore(r => r.TotalCost);
-            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.Number }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(r => new { r.TenantId, r.CompanyId, r.Number }).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasIndex(r => new { r.TenantId, r.CompanyId, r.PurchaseOrderId });
             b.HasIndex(r => new { r.TenantId, r.CompanyId, r.PurchaseInvoiceId });
         });
@@ -199,7 +199,7 @@ public sealed class PurchasingDbContext : BaseDbContext, IPurchasingUnitOfWork
         modelBuilder.Entity<PurchaseReturnNumberSequence>(b =>
         {
             b.ToTable("PurchaseReturnNumberSequences");
-            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            b.HasIndex(s => new { s.TenantId, s.CompanyId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         base.OnModelCreating(modelBuilder);

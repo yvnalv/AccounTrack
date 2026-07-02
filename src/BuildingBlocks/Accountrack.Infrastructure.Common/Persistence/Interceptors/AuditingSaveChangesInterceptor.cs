@@ -60,11 +60,16 @@ public sealed class AuditingSaveChangesInterceptor : SaveChangesInterceptor
                 case EntityState.Added:
                     entry.Entity.CreatedAt = now;
                     entry.Entity.CreatedBy = userId;
+                    // Seed the provider-agnostic concurrency token (ADR-0021). Unlike SQL Server's
+                    // store-generated rowversion, PostgreSQL has none, so the app owns the value.
+                    entry.Entity.RowVersion = NewConcurrencyToken();
                     break;
 
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = now;
                     entry.Entity.UpdatedBy = userId;
+                    // Bump the token so a concurrent stale write fails the WHERE-clause check.
+                    entry.Entity.RowVersion = NewConcurrencyToken();
                     break;
 
                 case EntityState.Deleted:
@@ -75,10 +80,14 @@ public sealed class AuditingSaveChangesInterceptor : SaveChangesInterceptor
                     entry.Entity.DeletedBy = userId;
                     entry.Entity.UpdatedAt = now;
                     entry.Entity.UpdatedBy = userId;
+                    entry.Entity.RowVersion = NewConcurrencyToken();
                     break;
             }
         }
     }
+
+    /// <summary>A fresh 16-byte optimistic-concurrency token (opaque; round-tripped to clients).</summary>
+    private static byte[] NewConcurrencyToken() => Guid.NewGuid().ToByteArray();
 
     private void StampTenancy(EntityEntry<Entity> entry)
     {
