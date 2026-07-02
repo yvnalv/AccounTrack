@@ -15,6 +15,8 @@ Decisions confirmed 2026-06-13 are recorded in [DECISIONS.md](DECISIONS.md).
 
 ### Product
 - [STATUS.md](STATUS.md) — **start here**: milestones, where we are, what's next.
+- [END_TO_END_GUIDE.md](END_TO_END_GUIDE.md) — click-through walkthrough of a full business cycle
+  (master data → purchasing → sales → expenses → inventory) and how to read the resulting accounting.
 - [PRD.md](PRD.md) — product requirements, MVP scope.
 - [ROADMAP.md](ROADMAP.md) — phased delivery plan.
 

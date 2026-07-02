@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-07-02 16:20:00 UTC]
+
+CHG-0096 — Expenses UI (draft workflow + reversal) and end-to-end guide
+
+- **Frontend (Vue):** the Expenses screen now matches the Sales/Purchasing pattern.
+  - The voucher list is clickable; rows open a detail page.
+  - New `ExpenseVoucherCreateView` — a create/edit form with **Save as draft** and **Save & post**
+    (edit mode reuses it via `?edit=<id>`).
+  - New `ExpenseVoucherDetailView` — lines, totals, payment/journal metadata, and status-aware
+    actions: **Edit / Submit / Cancel** (Draft) and **Reverse** (Posted, with a date + reason
+    dialog). Buttons are permission-gated (`Expenses.Edit/Cancel/Post`).
+  - API client (`lib/expenses.ts`) + types extended (get/createDraft/update/submit/cancel/reverse,
+    `ExpenseVoucher` detail incl. `reversalJournalEntryId`); router routes `expenses/new` and
+    `expenses/:id`; `StatusBadge` gains a `Reversed` tone; EN + ID translations added.
+  - Typecheck clean; production build succeeds.
+- **Docs:** new [docs/END_TO_END_GUIDE.md](docs/END_TO_END_GUIDE.md) — a click-through walkthrough of a
+  full business cycle (master data → purchasing → sales → expenses → inventory), a document→journal
+  cheat-sheet, how to read every financial report, integrity checks, an API smoke-test sequence, and
+  common gotchas. Linked from the docs index.
+
+---
+
 ## [2026-07-02 15:05:00 UTC]
 
 CHG-0095 — Expense vouchers: draft workflow + reversal (full parity with Sales/Purchasing)

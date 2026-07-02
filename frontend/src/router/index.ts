@@ -66,6 +66,8 @@ const router = createRouter({
           ],
         },
         { path: 'expenses', name: 'expenses', component: () => import('@/views/ExpensesView.vue'), meta: { titleKey: 'expenses.title' } },
+        { path: 'expenses/new', name: 'expenseCreate', component: () => import('@/views/ExpenseVoucherCreateView.vue'), meta: { titleKey: 'expenses.new' } },
+        { path: 'expenses/:id', name: 'expenseDetail', component: () => import('@/views/ExpenseVoucherDetailView.vue'), meta: { titleKey: 'expenses.title' } },
         { path: 'approvals', name: 'approvals', component: () => import('@/views/ApprovalsView.vue'), meta: { titleKey: 'approvals.title' } },
         { path: 'settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { titleKey: 'nav.settings' } },
       ],
