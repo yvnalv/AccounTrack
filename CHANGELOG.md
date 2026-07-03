@@ -18,7 +18,8 @@ CHG-0098 — CI/CD: GitHub Actions (CI on PR/main + manual GHCR deploy to VPS)
 - **Docs:** `DEPLOYMENT.md §5` rewritten from aspirational to the concrete implemented pipeline —
   required repo secrets (`VPS_HOST` / `VPS_USER` / `VPS_SSH_KEY` / `VPS_APP_DIR`), switching the VPS
   compose from `build:` to `image:` refs with an `ACCOUNTRACK_TAG` pin, making GHCR packages public
-  or logging in with a `read:packages` PAT, and deploy/rollback steps.
+  or logging in with a `read:packages` PAT, and deploy/rollback steps. `VPS_DEPLOYMENT_GUIDE.md` gains
+  §14, a concise "enable automated deploys" activation checklist.
 - No application code or schema change.
 
 ---
