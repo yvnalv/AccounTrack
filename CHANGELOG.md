@@ -1,5 +1,24 @@
 # Accountrack Changelog
 
+## [2026-07-02 17:30:00 UTC]
+
+CHG-0097 — Docs: VPS deployment guide (deploy alongside an existing Docker stack)
+
+- New [docs/VPS_DEPLOYMENT_GUIDE.md](docs/VPS_DEPLOYMENT_GUIDE.md) — a complete, reproducible runbook
+  for deploying Accountrack onto a VPS that already runs a Docker Compose stack with its own
+  PostgreSQL and an Nginx reverse proxy (e.g. alongside n8n). Covers, end to end: merging the two
+  `accountrack-*` services into the existing compose (reusing the existing `postgres` via a dedicated
+  role/database + the `api` network alias); cloning the repo with the exact-path/case gotchas;
+  creating the DB role/database; writing and locking down `.env` (`chmod 600`, `docker compose config`
+  check); the DNS A record; expanding the existing multi-domain (SAN) Let's Encrypt cert with
+  `certbot --standalone --expand` and persisting stop/start renewal hooks; adding the Nginx server
+  block (shared cert, reload-order caveat); build/up, verify, and turning off re-seeding; updating to
+  a new version; inspecting the VPS database from local pgAdmin over an SSH tunnel; and a
+  troubleshooting table of every issue encountered during a real deployment. Linked from the docs index.
+- Documentation-only change; no code or schema impact.
+
+---
+
 ## [2026-07-02 16:20:00 UTC]
 
 CHG-0096 — Expenses UI (draft workflow + reversal) and end-to-end guide
