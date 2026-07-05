@@ -20,7 +20,7 @@
 set -euo pipefail
 
 PG_CONTAINER="${PG_CONTAINER:-postgres}"
-PG_SUPERUSER="${PG_SUPERUSER:-abc}"
+PG_SUPERUSER="${PG_SUPERUSER:-yvnalvworks}"
 BACKUP_DIR="${BACKUP_DIR:-/root/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 DATABASES="${DATABASES:-accountrack postgresdb}"
