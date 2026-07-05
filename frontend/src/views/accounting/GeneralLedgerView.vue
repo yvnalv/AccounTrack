@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
 import { accountingApi } from '@/lib/accounting'
@@ -16,9 +16,13 @@ import FormField from '@/components/ui/FormField.vue'
 
 const { t } = useI18n()
 
+// Format dates from the LOCAL calendar (never mix local + toISOString/UTC, which can invert the
+// default range near midnight / month boundaries and make the ledger look empty).
 const now = new Date()
-const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-const today = now.toISOString().slice(0, 10)
+const pad = (n: number) => String(n).padStart(2, '0')
+const isoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+const monthStart = isoDate(new Date(now.getFullYear(), now.getMonth(), 1))
+const today = isoDate(now)
 
 const fromDate = ref(monthStart)
 const toDate = ref(today)
@@ -27,11 +31,11 @@ const report = ref<GeneralLedger | null>(null)
 const accounts = ref<AccountRef[]>([])
 const loading = ref(true)
 
+// A ledger must let you drill into ANY account — including control accounts (AR/AP/Inventory) that
+// are not directly postable — so we do NOT filter by allowPosting here.
 const accountOptions = computed<SelectOption[]>(() => [
   { value: '', label: t('accounting.gl.allAccounts') },
-  ...accounts.value
-    .filter((a) => a.allowPosting)
-    .map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` })),
+  ...accounts.value.map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` })),
 ])
 
 async function load() {
@@ -46,6 +50,11 @@ async function load() {
     loading.value = false
   }
 }
+
+// Apply immediately when the account is changed (dates keep the explicit "Apply" button, so typing a
+// date doesn't fire a request on every keystroke). The watch runs after accountId updates, avoiding
+// the @change/v-model ordering race.
+watch(accountId, () => load())
 
 onMounted(async () => {
   accounts.value = await accountingApi.accounts()

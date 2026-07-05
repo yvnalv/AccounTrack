@@ -23,9 +23,22 @@ CHG-0100 — Ops: automated nightly DB backups + auto-deploy CI/CD
 
 ---
 
-## [2026-07-02 18:05:00 UTC]
+## [2026-07-05 14:05:00 UTC]
 
-CHG-0098 — CI/CD: GitHub Actions (CI on PR/main + manual GHCR deploy to VPS)
+CHG-0099 — Fix: General Ledger account filter (frontend)
+
+- The GL report's **account filter now applies on selection** (a `watch` on the selected account
+  reloads the report), instead of silently requiring the separate "Apply" button — the behaviour that
+  read as "the filter doesn't work". Dates keep the explicit Apply button (so typing a date doesn't
+  fire a request per keystroke).
+- The account dropdown **no longer hides control accounts** — it previously filtered to
+  `allowPosting` accounts, which would exclude AR/AP/Inventory; a ledger must let you drill into any
+  account. All accounts are now selectable.
+- Fixed the default date range to format both bounds from the **local** calendar (it mixed a local
+  `monthStart` with a UTC `toISOString()` `today`, which could invert the range near midnight/month
+  boundaries and render an empty ledger).
+- Backend was verified correct end-to-end (account + date filtering, incl. through the SPA nginx
+  proxy); this was a frontend-only issue. Frontend typecheck clean.
 
 - **`.github/workflows/ci.yml`** (automatic, on PR + push to `main`): backend `dotnet build -c Release`
   (warnings-as-errors) + `dotnet test` against a PostgreSQL 16 **service container** (sets
