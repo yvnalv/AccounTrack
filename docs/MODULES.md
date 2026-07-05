@@ -22,14 +22,15 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 | Purchasing | ✅ Procure-to-pay + returns | Purchase Orders (Approval + Process Tracker + Notification); **Goods Receipt** (atomic inventory + Dr Inventory/Cr GR-IR); **Purchase Invoice** (atomic Dr GR-IR + VAT Input / Cr AP + AP subledger, three-way-match lite clears GR-IR); **Supplier Payment** (atomic Dr AP / Cr Cash-Bank + AP allocation); **Purchase Return / debit note** (atomic de-stock at cost + reverse AP/VAT-Input + variance, reduce payable, or **refund a paid bill to cash** — CHG-0047/0074); **returns list** (CHG-0074); **cancel + edit draft/pending PO** (CHG-0061/0070) |
 | Sales | ✅ Order-to-cash + returns | Sales Orders (Approval + event-driven status); **Delivery Order** (atomic stock issue + Dr COGS/Cr Inventory); **Sales Invoice** (atomic Dr AR / Cr Revenue + VAT Output + AR subledger); **Customer Payment** (atomic Dr Cash-Bank / Cr AR + AR allocation); **Sales Return / credit note** (atomic restock at cost + reverse Revenue/VAT/AR, reduce receivable, or **refund a paid invoice to cash** — CHG-0046/0074); **returns list** (CHG-0074); **cancel + edit draft/pending SO** (CHG-0061/0070) |
 | Reporting | ✅ Implemented | TB/P&L/BS/VAT/Cash Flow + AR/AP aging + **General Ledger / account detail (CHG-0058)** + **inventory valuation reconciling to the GL (CHG-0062)**, all with CSV/Excel/PDF export |
-| Expenses | ✅ Implemented | operating-expense vouchers paid from cash/bank **or on account (Cr AP, opens AP subledger item)**; categories→GL via posting rules (+ category edit/deactivate); atomic Dr Expense (+VAT Input) / Cr Cash-Bank\|AP (CHG-0048/0072); **threshold-gated approvals, posts on approval (CHG-0082)** |
+| Expenses | ✅ Implemented | operating-expense vouchers paid from cash/bank **or on account (Cr AP, opens AP subledger item)**; categories→GL via posting rules (+ category edit/deactivate); atomic Dr Expense (+VAT Input) / Cr Cash-Bank\|AP (CHG-0048/0072); **threshold-gated approvals, posts on approval (CHG-0082)**; **draft workflow — create/edit/submit/cancel — + reversal of posted vouchers, with matching UI (CHG-0095/0096; BR-EXP-4/7)** |
 | Data Import/Export | 🟡 Partial | Cross-cutting — CSV import for all master data (CHG-0049/0050); CSV+Excel export across all list menus (CHG-0051, ClosedXML); PDF documents — Invoice + Quotation (CHG-0052), PO + bill (CHG-0054, QuestPDF); report PDFs TB/P&L/BS/VAT (CHG-0053); brand logo embedded in all PDFs (CHG-0054). Excel import + async pending (ADR-0031) |
 | Manufacturing | ◻️ Planned | Phase 3 |
 
 > **CRUD status (ADR-0029):** master-data customers/suppliers/warehouses/products now have **Edit +
-> activate/deactivate** (CHG-0045); remaining master data (UoM/categories/tax-codes/CoA) and
-> status-gated **edit/cancel** for draft transactional documents are still planned. The "full CRUD"
-> notes below are the target.
+> activate/deactivate** (CHG-0045); remaining master data (UoM/categories/tax-codes/CoA) is still
+> planned. Status-gated **edit/cancel of drafts** is implemented for **Sales & Purchasing** orders
+> (CHG-0070) and now **Expenses** vouchers (create/edit/submit/cancel + reversal, CHG-0095/0096); other
+> transactional documents remain the target. The "full CRUD" notes below are the target.
 
 (Authoritative change history is in [`../CHANGELOG.md`](../CHANGELOG.md).)
 
@@ -156,7 +157,10 @@ module. Boundaries and communication rules are in ARCHITECTURE.md and INTEGRATIO
 - **Responsibilities:** expense vouchers (date, payee, lines), expense **categories** mastered
   (create/edit/activate-deactivate) and mapped to expense GL accounts via posting rules; automatic
   atomic posting (Dr Expense [+ VAT Input] / **Cr Cash-Bank when paid, or Cr AP + an AP subledger item
-  when on account**); approvals + process tracker.
+  when on account**); approvals + process tracker. **Draft workflow** — create as draft →
+  edit → submit (posts) → or cancel — plus **reversal** of a posted voucher via a mirror journal
+  (on-account reversal blocked once the payable is paid); a posted voucher is immutable
+  (BR-EXP-4/7, CHG-0095). Quick "save & post" one-shot is retained alongside the draft path.
 - **Depends on:** Master Data (categories/suppliers), Accounting (posting/AP subledger), Approval.
 - **Emits:** `ExpensePosted`.
 - **MVP:** create/list, post **paid or on account** (supplier + due date); category edit/deactivate
