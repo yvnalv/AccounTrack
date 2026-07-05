@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-07-02 18:05:00 UTC]
+
+CHG-0098 — CI/CD: GitHub Actions (CI on PR/main + manual GHCR deploy to VPS)
+
+- **`.github/workflows/ci.yml`** (automatic, on PR + push to `main`): backend `dotnet build -c Release`
+  (warnings-as-errors) + `dotnet test` against a PostgreSQL 16 **service container** (sets
+  `ACCOUNTRACK_TEST_PG` so the cross-tenant isolation integration tests run rather than skip); frontend
+  `npm ci` + `npm run build` (`vue-tsc --noEmit && vite build`). Concurrency-cancels superseded runs.
+- **`.github/workflows/deploy.yml`** (manual `workflow_dispatch`, image `tag` input): builds the API
+  (`Dockerfile.api`) and SPA (`./frontend`) images and pushes them to **GHCR**
+  (`ghcr.io/<owner>/accountrack-api` + `-web`, tagged with the input tag and the commit SHA, Buildx
+  GHA layer cache); then a `deploy` job (GitHub **`production`** environment, for optional required-
+  reviewer approval) SSHes into the VPS and runs `docker compose pull` + `up -d` for the two services.
+  The VPS **builds nothing** — it pulls ready images (protects the RAM-tight box). EF migrations apply
+  on API restart.
+- **Docs:** `DEPLOYMENT.md §5` rewritten from aspirational to the concrete implemented pipeline —
+  required repo secrets (`VPS_HOST` / `VPS_USER` / `VPS_SSH_KEY` / `VPS_APP_DIR`), switching the VPS
+  compose from `build:` to `image:` refs with an `ACCOUNTRACK_TAG` pin, making GHCR packages public
+  or logging in with a `read:packages` PAT, and deploy/rollback steps. `VPS_DEPLOYMENT_GUIDE.md` gains
+  §14, a concise "enable automated deploys" activation checklist.
+- No application code or schema change.
+
+---
+
 ## [2026-07-02 17:30:00 UTC]
 
 CHG-0097 — Docs: VPS deployment guide (deploy alongside an existing Docker stack)

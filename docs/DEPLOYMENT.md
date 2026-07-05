@@ -210,22 +210,70 @@ inject via environment variables / Docker secrets / a vault (SECURITY.md §6).
 - Idempotent seeders run after migration (permissions catalog, default CoA, `PPN11`, system
   accounts, default posting rules).
 
-## 5. CI/CD (GitHub Actions)
+## 5. CI/CD (GitHub Actions) — implemented (CHG-0098)
 
-**CI (on PR):**
-1. Restore + build (warnings-as-errors).
-2. Lint/format check (`dotnet format --verify-no-changes`, ESLint/Prettier).
-3. Unit + architecture + contract tests.
-4. Integration tests (PostgreSQL via Testcontainers/service container).
-5. Frontend build + Vitest.
-6. Dependency vulnerability scan (`dotnet list package --vulnerable`, `npm audit`).
-7. Security review of flagged changes (raw SQL / `IgnoreQueryFilters`).
+Two workflows live in [`.github/workflows/`](../.github/workflows/):
 
-**CD:**
-- Build + push images on merge to `main` (Dev), tag/release for UAT and Production.
-- Promote the same artifact across environments (build once, deploy many).
-- Production deploy is gated/approved; runs migrations as a discrete step; supports rollback to
-  the previous image.
+### CI — `ci.yml` (automatic)
+Runs on every **pull request** and every **push to `main`**. Pure quality gate, no deploy.
+- **Backend job:** `dotnet restore` → `dotnet build -c Release` (warnings-as-errors) →
+  `dotnet test` against a **PostgreSQL 16 service container** (env `ACCOUNTRACK_TEST_PG` so the
+  cross-tenant isolation integration tests actually run instead of skipping).
+- **Frontend job:** `npm ci` → `npm run build` (`vue-tsc --noEmit && vite build`).
+
+### CD — `deploy.yml` (manual, GHCR images)
+Chosen model (see CHG-0098): **build once in CI, the VPS only pulls** — nothing is compiled on the
+RAM-tight VPS. Triggered manually from **Actions → Deploy → Run workflow** with an image `tag` input.
+1. **build-push:** builds the API (`Dockerfile.api`, context `.`) and SPA (`./frontend`) images and
+   pushes them to **GHCR** as `ghcr.io/<owner>/accountrack-api` and `…/accountrack-web`, tagged with
+   both the chosen `tag` and the commit SHA (Buildx layer cache via GitHub Actions cache).
+2. **deploy:** SSHes into the VPS and runs `docker compose pull` + `up -d` for the two services.
+   EF migrations apply automatically as the API container restarts (`Database__AutoMigrate=true`);
+   idempotent seeders run only while `ACCOUNTRACK_SEED_ENABLED=true`.
+
+The `deploy` job targets the **`production`** GitHub Environment — add *required reviewers* to it in
+repo settings for a manual approval gate before anything touches the VPS.
+
+### One-time setup
+
+**a) Repository secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|--------|-------|
+| `VPS_HOST` | VPS IP/hostname (e.g. `157.230.242.234`) |
+| `VPS_USER` | SSH user (e.g. `root`) |
+| `VPS_SSH_KEY` | **private** key whose public half is in the VPS's `~/.ssh/authorized_keys` |
+| `VPS_APP_DIR` | dir holding the compose file (e.g. `/root/app`) |
+
+Create a dedicated deploy key: `ssh-keygen -t ed25519 -f deploy_key -N ""` → put `deploy_key.pub`
+into the VPS `~/.ssh/authorized_keys`, paste `deploy_key` (private) into `VPS_SSH_KEY`.
+
+**b) Switch the VPS compose from `build:` to `image:`** so the VPS pulls instead of builds — replace
+the two Accountrack services' `build:` blocks with image refs (keep everything else):
+```yaml
+  accountrack-api:
+    image: ghcr.io/yvnalv/accountrack-api:${ACCOUNTRACK_TAG:-latest}
+    # (remove the build: block; keep environment/expose/networks/depends_on)
+  accountrack-web:
+    image: ghcr.io/yvnalv/accountrack-web:${ACCOUNTRACK_TAG:-latest}
+    # (remove the build: block; keep expose/depends_on)
+```
+`ACCOUNTRACK_TAG` (optional, in `.env`) pins which tag runs; the deploy job exports it per run.
+
+**c) Let the VPS pull the images.** Either make the two GHCR packages **public** (GitHub → your
+profile → Packages → each package → visibility → Public — then no VPS login needed), **or** keep them
+private and log in once on the VPS with a PAT that has `read:packages`:
+```bash
+echo "<GHCR_PAT>" | docker login ghcr.io -u yvnalv --password-stdin
+```
+
+### Deploying & rolling back
+- **Deploy:** Actions → **Deploy** → *Run workflow* → set `tag` (`latest`, or a version like `v1.3.0`)
+  → Run. (Approve the `production` environment if you enabled reviewers.)
+- **Roll back:** re-run **Deploy** with a previous tag/SHA, or on the VPS set
+  `ACCOUNTRACK_TAG=<old-sha>` in `.env` and `docker compose up -d accountrack-api accountrack-web`.
+  Because posted data is immutable and migrations are additive, prefer rolling **forward** with a fix
+  unless a migration must be reverted (restore from backup — §8 — before down-migrating).
 
 ## 6. Configuration Keys (representative, all non-secret values in appsettings; secrets via env)
 ```
