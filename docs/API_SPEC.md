@@ -92,11 +92,12 @@ Sales           /quotations  /sales-orders  /delivery-orders  /sales-invoices
                 /customer-payments  /sales-returns
 Purchasing      /purchase-requests  /purchase-orders  /goods-receipts  /purchase-invoices
                 /supplier-payments  /purchase-returns
+Expenses        /expense-categories  /expense-vouchers  (+ /{id}/submit|cancel|reverse; /draft)
 Inventory       /inventory-transactions  /stock-adjustments  /stock-transfers  /stock-opnames
                 /stock-on-hand
 Accounting      /journal-entries  /fiscal-years  /fiscal-periods  /posting-rules
                 /reports/trial-balance  /reports/profit-loss  /reports/balance-sheet
-                /reports/cash-flow  /reports/ar-aging  /reports/ap-aging  /reports/vat
+                /reports/cash-flow  /reports/general-ledger  /reports/ar-aging  /reports/ap-aging  /reports/vat
 Approval        /approval-definitions  /approval-requests  /approval-requests/{id}/approve
 Process         /documents/{type}/{id}/timeline
 Audit           /audit-entries

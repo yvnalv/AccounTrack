@@ -8,12 +8,17 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-02 (last change **CHG-0094**)
-- **Build:** green — backend `net8.0` (329 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  **Deployable:** Docker stack (PostgreSQL + API + SPA/Nginx) verified via `docker compose up` — behind
-  your own reverse proxy; first boot migrates + seeds a working company/admin (CHG-0091).
+- **As of:** 2026-07-05 (last change **CHG-0100**)
+- **Build:** green — backend `net8.0` (334 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  **Deployed:** live on a VPS behind the owner's Nginx + Let's Encrypt (SAN cert), reusing an existing
+  dockerized PostgreSQL; **auto-deploy CI/CD** (GitHub Actions → build/test → GHCR images → SSH
+  `compose pull` on push to `main`; CHG-0098/0100) and **nightly PostgreSQL backups** (CHG-0100). See
+  [DEPLOYMENT.md](DEPLOYMENT.md) §5/§8 and [VPS_DEPLOYMENT_GUIDE.md](VPS_DEPLOYMENT_GUIDE.md).
   **Database provider migrated SQL Server → PostgreSQL (Npgsql), CHG-0094 / ADR-0032.**
-  Latest: **silent refresh-token rotation** — the SPA refreshes the access token in the background on
+  Latest: **Expenses draft workflow + reversal** — create/edit/submit/cancel drafts and reverse posted
+  vouchers, with matching UI (full parity with Sales/Purchasing; CHG-0095/0096); **General Ledger
+  account filter applies on selection + control accounts selectable** (CHG-0099); **silent
+  refresh-token rotation** — the SPA refreshes the access token in the background on
   401 and retries, instead of bouncing to login; sign-out revokes server-side (CHG-0090); **list export
   honors active filters** — Export downloads only the searched/filtered rows
   via a generic `POST /api/v1/export` (CHG-0089); **Settings tabs + modal overflow fix** — modals now cap to the viewport with a scrollable
@@ -119,7 +124,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Expenses module (ADR-0030):** ✅ complete — vouchers paid from cash/bank **or on account (Cr AP,
   opens an AP subledger item)**; category→GL via posting rules; atomic Dr Expense [+ VAT Input] /
   Cr Cash-Bank|AP; category edit + activate/deactivate (CHG-0072); **threshold-gated approvals — posts
-  on approval (CHG-0082)**. (BR-EXP-*.)
+  on approval (CHG-0082)**; **draft workflow (create/edit/submit/cancel) + reversal of posted vouchers,
+  with matching UI — full parity with Sales/Purchasing (CHG-0095/0096; BR-EXP-4/7)**. (BR-EXP-*.)
 - **Data Import/Export (ADR-0031):** 🟡 **CSV + Excel (.xlsx) import** for all four master-data
   entities (CHG-0049/0050; **Excel import — CHG-0080**); **CSV + Excel export** across all list menus —
   master data, sales orders, purchase orders, inventory on-hand, expenses (CHG-0051, ClosedXML/MIT);

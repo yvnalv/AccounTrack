@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-07-05 15:00:00 UTC]
+
+CHG-0101 — Docs sync: restore lost CHG-0098 entry; refresh STATUS.md & MODULES.md
+
+- **Restored `CHG-0098`** in this file — its header was dropped and its body absorbed into the
+  `CHG-0099` entry during a branch-merge conflict; split back into its own entry in the correct
+  chronological slot (historical entries are immutable — this repairs an accidental loss).
+- **STATUS.md** snapshot refreshed from CHG-0094 → CHG-0100: now reflects the live VPS deployment
+  (owner's Nginx + Let's Encrypt SAN cert, reused dockerized PostgreSQL), auto-deploy CI/CD, nightly
+  backups, the Expenses draft/reversal feature + UI, and the General Ledger filter fix; test count and
+  "Latest" narrative updated.
+- **MODULES.md** — Expenses row + detail updated for the draft workflow (create/edit/submit/cancel) +
+  reversal; the ADR-0029 CRUD note corrected (draft edit/cancel now implemented for Sales/Purchasing
+  and Expenses, not "planned").
+- **API_SPEC.md** — illustrative resource catalog gains the previously-omitted **Expenses** group
+  (`/expense-categories`, `/expense-vouchers` + submit/cancel/reverse/draft) and `/reports/general-ledger`.
+- Documentation-only; no code or schema impact.
+
+---
+
 ## [2026-07-05 14:20:00 UTC]
 
 CHG-0100 — Ops: automated nightly DB backups + auto-deploy CI/CD
@@ -39,6 +59,12 @@ CHG-0099 — Fix: General Ledger account filter (frontend)
   boundaries and render an empty ledger).
 - Backend was verified correct end-to-end (account + date filtering, incl. through the SPA nginx
   proxy); this was a frontend-only issue. Frontend typecheck clean.
+
+---
+
+## [2026-07-02 18:05:00 UTC]
+
+CHG-0098 — CI/CD: GitHub Actions (CI on PR/main + manual GHCR deploy to VPS)
 
 - **`.github/workflows/ci.yml`** (automatic, on PR + push to `main`): backend `dotnet build -c Release`
   (warnings-as-errors) + `dotnet test` against a PostgreSQL 16 **service container** (sets
