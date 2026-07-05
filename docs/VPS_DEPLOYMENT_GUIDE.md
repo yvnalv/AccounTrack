@@ -493,7 +493,45 @@ Leave that terminal open.
 
 ---
 
+## 14. Enable automated deploys (CI/CD) — optional
+
+Once the manual deploy works, switch to one-click deploys via **GitHub Actions**: images are built in
+CI and the VPS only **pulls** them — nothing is compiled on the box. Two workflows ship in the repo:
+`.github/workflows/ci.yml` (build + test on every PR/push) and `deploy.yml` (manual `workflow_dispatch`
+→ build+push to GHCR → SSH `docker compose pull && up -d`). Full reference: **[DEPLOYMENT.md §5](DEPLOYMENT.md)**.
+
+Quick activation:
+
+1. **Merge the workflows to `main`** (they're already in the repo under `.github/workflows/`).
+2. **Add repo secrets** — GitHub → Settings → Secrets and variables → Actions:
+   - `VPS_HOST=157.230.242.234`, `VPS_USER=root`, `VPS_APP_DIR=/root/app`
+   - `VPS_SSH_KEY` = a dedicated **deploy private key**:
+     ```bash
+     ssh-keygen -t ed25519 -f deploy_key -N ""
+     cat deploy_key.pub >> ~/.ssh/authorized_keys      # run on the VPS
+     # paste the contents of deploy_key (private) into the VPS_SSH_KEY secret
+     ```
+3. **Switch the two services in `docker-compose.yml` from `build:` to `image:`** so the VPS pulls:
+   ```yaml
+     accountrack-api:
+       image: ghcr.io/yvnalv/accountrack-api:${ACCOUNTRACK_TAG:-latest}
+     accountrack-web:
+       image: ghcr.io/yvnalv/accountrack-web:${ACCOUNTRACK_TAG:-latest}
+   ```
+4. **Let the VPS pull the images** — either make the two GHCR packages **Public** (GitHub → profile →
+   Packages → each → visibility → Public), or log in once on the VPS with a `read:packages` PAT:
+   ```bash
+   echo "<GHCR_PAT>" | docker login ghcr.io -u yvnalv --password-stdin
+   ```
+5. **Deploy:** GitHub → **Actions → Deploy → Run workflow** → `tag=latest`. The first run creates the
+   GHCR images and rolls them out; EF migrations apply as the API restarts.
+
+**Roll back:** re-run **Deploy** with an older tag/SHA, or on the VPS set `ACCOUNTRACK_TAG=<old-sha>` in
+`.env` and `docker compose up -d accountrack-api accountrack-web`.
+
+---
+
 ## Related docs
-[DEPLOYMENT.md](DEPLOYMENT.md) (environments & the standalone stack) ·
+[DEPLOYMENT.md](DEPLOYMENT.md) (environments, standalone stack & CI/CD §5) ·
 [END_TO_END_GUIDE.md](END_TO_END_GUIDE.md) (using the app) ·
 [SECURITY.md](SECURITY.md) · [DATABASE.md](DATABASE.md)
