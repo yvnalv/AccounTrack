@@ -210,29 +210,35 @@ inject via environment variables / Docker secrets / a vault (SECURITY.md §6).
 - Idempotent seeders run after migration (permissions catalog, default CoA, `PPN11`, system
   accounts, default posting rules).
 
-## 5. CI/CD (GitHub Actions) — implemented (CHG-0098)
+## 5. CI/CD (GitHub Actions) — implemented (CHG-0098, auto-deploy CHG-0100)
 
-Two workflows live in [`.github/workflows/`](../.github/workflows/):
+Three workflows in [`.github/workflows/`](../.github/workflows/):
 
-### CI — `ci.yml` (automatic)
-Runs on every **pull request** and every **push to `main`**. Pure quality gate, no deploy.
-- **Backend job:** `dotnet restore` → `dotnet build -c Release` (warnings-as-errors) →
-  `dotnet test` against a **PostgreSQL 16 service container** (env `ACCOUNTRACK_TEST_PG` so the
-  cross-tenant isolation integration tests actually run instead of skipping).
-- **Frontend job:** `npm ci` → `npm run build` (`vue-tsc --noEmit && vite build`).
+### `test.yml` — reusable build + test suite
+Called by both `ci.yml` and `deploy.yml` (`workflow_call`), so the gate is defined once:
+- **Backend:** `dotnet restore` → `dotnet build -c Release` (warnings-as-errors) → `dotnet test`
+  against a **PostgreSQL 16 service container** (env `ACCOUNTRACK_TEST_PG` so the cross-tenant
+  isolation integration tests actually run instead of skipping).
+- **Frontend:** `npm ci` → `npm run build` (`vue-tsc --noEmit && vite build`).
 
-### CD — `deploy.yml` (manual, GHCR images)
-Chosen model (see CHG-0098): **build once in CI, the VPS only pulls** — nothing is compiled on the
-RAM-tight VPS. Triggered manually from **Actions → Deploy → Run workflow** with an image `tag` input.
-1. **build-push:** builds the API (`Dockerfile.api`, context `.`) and SPA (`./frontend`) images and
+### CI — `ci.yml` (on pull requests)
+Runs the reusable `test.yml` on every **pull request** — the quality gate for proposed changes.
+
+### CD — `deploy.yml` (auto on push to `main`, GHCR images)
+**Model:** build once in Actions, the VPS only **pulls** — nothing is compiled on the RAM-tight VPS.
+Triggers **automatically on every push to `main`**, and is also runnable manually
+(**Actions → Deploy → Run workflow**) with an image `tag` (e.g. to roll back). Jobs run in order:
+1. **test:** the reusable `test.yml`. **Hard gate** — if it fails, nothing is built or shipped.
+2. **build-push:** builds the API (`Dockerfile.api`, context `.`) and SPA (`./frontend`) images and
    pushes them to **GHCR** as `ghcr.io/<owner>/accountrack-api` and `…/accountrack-web`, tagged with
-   both the chosen `tag` and the commit SHA (Buildx layer cache via GitHub Actions cache).
-2. **deploy:** SSHes into the VPS and runs `docker compose pull` + `up -d` for the two services.
+   both the run tag (`latest` on a push; the chosen tag on a manual run) and the commit SHA (Buildx
+   layer cache via GitHub Actions cache).
+3. **deploy:** SSHes into the VPS and runs `docker compose pull` + `up -d` for the two services.
    EF migrations apply automatically as the API container restarts (`Database__AutoMigrate=true`);
    idempotent seeders run only while `ACCOUNTRACK_SEED_ENABLED=true`.
 
 The `deploy` job targets the **`production`** GitHub Environment — add *required reviewers* to it in
-repo settings for a manual approval gate before anything touches the VPS.
+repo settings to turn auto-deploy into **approve-then-deploy** (a click gates the VPS step).
 
 ### One-time setup
 
@@ -292,9 +298,44 @@ Email:* (provider settings)      ; credentials via secret store
 - Future: OpenTelemetry traces/metrics, centralized logs (ElasticSearch).
 
 ## 8. Backups & DR
-- Regular automated PostgreSQL backups (`pg_dump`/`pg_basebackup`, optionally WAL archiving/PITR) with tested restore.
-- Migrations preceded by a backup in UAT/Prod.
-- Documented restore procedure and RPO/RTO targets (to be set with the business).
+
+**Automated nightly backups** (implemented, CHG-0100) — [`scripts/backup-postgres.sh`](../scripts/backup-postgres.sh)
+`pg_dump`s each database from the dockerized `postgres` container to a gzipped, timestamped file and
+prunes anything older than the retention window.
+
+**One-time setup on the VPS:**
+```bash
+chmod +x /root/projects/AccounTrack/scripts/backup-postgres.sh
+mkdir -p /root/backups
+
+# Install the nightly cron (02:00 Asia/Jakarta). `crontab -e` and add:
+CRON_TZ=Asia/Jakarta
+0 2 * * * /root/projects/AccounTrack/scripts/backup-postgres.sh >> /var/log/accountrack-backup.log 2>&1
+```
+Defaults (override via env in the cron line): `PG_CONTAINER=postgres`, `PG_SUPERUSER=abc`,
+`BACKUP_DIR=/root/backups`, `RETENTION_DAYS=14`, `DATABASES="accountrack postgresdb"`.
+
+**Verify / run once now:**
+```bash
+/root/projects/AccounTrack/scripts/backup-postgres.sh
+ls -lh /root/backups
+```
+
+**Restore a database** (destructive — it overwrites the target; back up first if unsure):
+```bash
+gunzip -c /root/backups/accountrack_YYYYmmdd-HHMMSS.sql.gz \
+  | docker exec -i postgres psql -U abc -d accountrack
+```
+The dumps use `--clean --if-exists`, so they drop-and-recreate objects and restore cleanly over an
+existing database. **Take a fresh backup before any production migration.**
+
+**Recommended hardening (follow-ups):**
+- **Offsite copy** — after the dump, `rclone copy /root/backups <remote>:accountrack-backups` (or
+  `scp`) so a lost VPS doesn't lose the backups. Add it as a line in the script or a second cron.
+- **Test restores periodically** — restore the latest dump into a scratch database and check the
+  trial balance balances.
+- **PITR (future)** — WAL archiving / `pg_basebackup` for point-in-time recovery once RPO/RTO targets
+  are set with the business.
 
 ## 9. Secrets
 - Dev: `dotnet user-secrets`. Dev/UAT/Prod: environment variables / Docker secrets / vault.

@@ -1,5 +1,28 @@
 # Accountrack Changelog
 
+## [2026-07-05 14:20:00 UTC]
+
+CHG-0100 — Ops: automated nightly DB backups + auto-deploy CI/CD
+
+- **Auto-deploy:** refactored the GitHub Actions into three workflows. A reusable **`test.yml`**
+  (`workflow_call`: backend `dotnet build/test` against a Postgres service + frontend
+  typecheck/build) is now the single quality gate. **`ci.yml`** runs it on pull requests.
+  **`deploy.yml`** now triggers **automatically on every push to `main`** (and still supports the
+  manual `workflow_dispatch` with a `tag` input): it runs `test` as a hard gate, then builds+pushes
+  the API/SPA images to GHCR, then SSH-deploys to the VPS (`docker compose pull` + `up -d`). Broken
+  code can't ship because the test job must pass first; the `production` environment can add a
+  required-reviewer approval to turn auto-deploy into approve-then-deploy.
+- **Backups:** new [`scripts/backup-postgres.sh`](scripts/backup-postgres.sh) — `pg_dump`s each
+  database (`accountrack`, `postgresdb`) from the dockerized `postgres` container to gzipped,
+  timestamped files (atomic `.partial` → rename), with configurable retention (default 14 days) and
+  old-dump pruning. `DEPLOYMENT.md §8` documents the one-time `chmod` + nightly cron
+  (`CRON_TZ=Asia/Jakarta`, 02:00), the restore command, and offsite/PITR follow-ups.
+- **Docs:** `DEPLOYMENT.md §5` updated for the reusable-test + auto-deploy topology; §8 rewritten
+  from aspirational to the concrete backup/restore runbook.
+- No application code or schema change.
+
+---
+
 ## [2026-07-05 14:05:00 UTC]
 
 CHG-0099 — Fix: General Ledger account filter (frontend)

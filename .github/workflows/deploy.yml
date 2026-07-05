@@ -1,11 +1,14 @@
 name: Deploy
 
-# Manual, one-click production deploy (DEPLOYMENT.md §CI/CD):
-#   1. Build the API + SPA images and push them to GitHub Container Registry (GHCR).
-#   2. SSH into the VPS and `docker compose pull && up -d` the two Accountrack services.
-# The VPS builds nothing — it just pulls ready images (protects the RAM-tight box).
-# EF migrations apply automatically when the API container restarts (Database__AutoMigrate=true).
+# Auto-deploy (DEPLOYMENT.md §5): on every push to main — run the tests, then build the API + SPA
+# images, push them to GHCR, and SSH into the VPS to `docker compose pull && up -d`. The VPS builds
+# nothing; it pulls ready images. EF migrations apply when the API container restarts.
+#
+# Also runnable manually (Actions → Deploy → Run workflow) with a chosen image `tag` — e.g. to roll
+# back by re-deploying a previous tag/SHA.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       tag:
@@ -19,11 +22,17 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: ${{ github.repository_owner }}   # lowercase GitHub owner, e.g. yvnalv
+  OWNER: ${{ github.repository_owner }}                 # lowercase GitHub owner, e.g. yvnalv
+  TAG: ${{ github.event.inputs.tag || 'latest' }}       # manual run → chosen tag; push → "latest"
 
 jobs:
+  # Gate: broken code never reaches the VPS. Same reusable suite CI runs on PRs.
+  test:
+    uses: ./.github/workflows/test.yml
+
   build-push:
     name: Build & push images to GHCR
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,7 +56,7 @@ jobs:
           file: Dockerfile.api
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/accountrack-api:${{ inputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.OWNER }}/accountrack-api:${{ env.TAG }}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/accountrack-api:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -58,7 +67,7 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/accountrack-web:${{ inputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.OWNER }}/accountrack-web:${{ env.TAG }}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/accountrack-web:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -67,8 +76,8 @@ jobs:
     name: Deploy to VPS
     needs: build-push
     runs-on: ubuntu-latest
-    # Optional: add required reviewers to the "production" environment in repo settings
-    # for a manual approval gate before this job runs.
+    # Optional: add required reviewers to the "production" environment in repo settings for a manual
+    # approval click before this job runs (turns auto-deploy into approve-then-deploy).
     environment: production
     steps:
       - name: Pull & restart on the VPS over SSH
@@ -80,8 +89,8 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.VPS_APP_DIR }}
-            # ACCOUNTRACK_TAG lets the compose file pin which image tag to run (defaults to latest).
-            export ACCOUNTRACK_TAG="${{ inputs.tag }}"
+            # ACCOUNTRACK_TAG pins which image tag the compose file runs (defaults to latest).
+            export ACCOUNTRACK_TAG="${{ env.TAG }}"
             docker compose pull accountrack-api accountrack-web
             docker compose up -d accountrack-api accountrack-web
             docker image prune -f
