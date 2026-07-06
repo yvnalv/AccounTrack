@@ -85,4 +85,15 @@ public sealed class StockCostBucket : TenantOwnedEntity, IAggregateRoot
         OnHandQty = Math.Round(OnHandQty - quantity, QtyScale, MidpointRounding.ToEven);
         return cost;
     }
+
+    /// <summary>
+    /// Overwrites the running on-hand and average with the result of a full moving-average replay
+    /// (ADR-0033). Used only by back-dated recompute, which recalculates the bucket from its whole
+    /// movement history rather than mutating it forward.
+    /// </summary>
+    public void SetState(decimal onHandQty, decimal avgUnitCost)
+    {
+        OnHandQty = Math.Round(onHandQty, QtyScale, MidpointRounding.ToEven);
+        AvgUnitCost = Math.Round(avgUnitCost, CostScale, MidpointRounding.ToEven);
+    }
 }
