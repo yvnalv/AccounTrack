@@ -1,5 +1,38 @@
 # Accountrack Changelog
 
+## [2026-07-06 14:46:55 UTC]
+
+CHG-0106 — Docs: restore lost CHG-0105 entry; de-duplicate STATUS snapshot line
+
+- **Restored `CHG-0105`** below — its entry was dropped resolving the CHANGELOG conflict when the
+  return-detail-pages branch (PR #13) merged after the three concurrent branches (PRs #10–#12); it is
+  re-inserted in its correct chronological slot (historical entries are immutable — this repairs an
+  accidental loss, as CHG-0101 did for CHG-0098).
+- **STATUS.md** — collapsed three stacked `As of:` lines (left by the same concurrent merges) back to
+  a single snapshot line (`CHG-0106`).
+- Documentation only; no code or schema impact.
+
+---
+
+## [2026-07-06 13:15:00 UTC]
+
+CHG-0105 — Frontend: standalone return-detail pages (Sales + Purchasing)
+
+- **New read-only detail pages** for sales credit notes and purchase debit notes
+  (`SalesReturnDetailView`, `PurchaseReturnDetailView`): header with number + credit/debit-note +
+  posted badges, the party and return date, a line table (qty, unit price, tax %, restock/de-stock
+  cost, line total), subtotal/tax/grand-total plus the at-cost restock/de-stock figure, and notes.
+- **Return list rows are now clickable** (`clickable` + `rowClick`) and route to the detail; a source
+  **Invoice PDF** download and a link to the originating **Sales/Purchase order** are provided.
+- New API-client calls `salesApi.getReturn` / `purchasingApi.getReturn` (`GET /sales-returns/{id}`,
+  `/purchase-returns/{id}`), detail types `SalesReturn`/`PurchaseReturn` (+ line types), two routes,
+  and `returns.detail.*` strings in the **en** and **id** locales.
+- Frontend builds clean (`vue-tsc --noEmit` + `vite build`). Verified the detail endpoint's DTO shape
+  matches the new types against the running API (created a real sales return and fetched it). Completes
+  the Returns UI (the last STATUS follow-up for returns).
+
+---
+
 ## [2026-07-06 12:20:00 UTC]
 
 CHG-0104 — Back-dated in-period inventory recompute (ADR-0033, Option A)
