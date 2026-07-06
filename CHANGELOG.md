@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-07-06 13:15:00 UTC]
+
+CHG-0105 — Frontend: standalone return-detail pages (Sales + Purchasing)
+
+- **New read-only detail pages** for sales credit notes and purchase debit notes
+  (`SalesReturnDetailView`, `PurchaseReturnDetailView`): header with number + credit/debit-note +
+  posted badges, the party and return date, a line table (qty, unit price, tax %, restock/de-stock
+  cost, line total), subtotal/tax/grand-total plus the at-cost restock/de-stock figure, and notes.
+- **Return list rows are now clickable** (`clickable` + `rowClick`) and route to the detail; a source
+  **Invoice PDF** download and a link to the originating **Sales/Purchase order** are provided.
+- New API-client calls `salesApi.getReturn` / `purchasingApi.getReturn` (`GET /sales-returns/{id}`,
+  `/purchase-returns/{id}`), detail types `SalesReturn`/`PurchaseReturn` (+ line types), two routes,
+  and `returns.detail.*` strings in the **en** and **id** locales.
+- Frontend builds clean (`vue-tsc --noEmit` + `vite build`). Verified the detail endpoint's DTO shape
+  matches the new types against the running API (created a real sales return and fetched it). Completes
+  the Returns UI (the last STATUS follow-up for returns).
+
+> Note: `CHG-0102`–`0104` are reserved by the concurrent idempotency (PR #10), ADR-0033 (PR #11), and
+> inventory back-dating (PR #12) branches; this entry uses `CHG-0105`.
+
+---
+
 ## [2026-07-05 15:00:00 UTC]
 
 CHG-0101 — Docs sync: restore lost CHG-0098 entry; refresh STATUS.md & MODULES.md
