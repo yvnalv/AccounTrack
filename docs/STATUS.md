@@ -8,7 +8,7 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-06 (last change **CHG-0106**)
+- **As of:** 2026-07-06 (last change **CHG-0107**)
 - **Build:** green — backend `net8.0` (334 tests); **frontend** `frontend/` builds (vue-tsc + vite).
   **Deployed:** live on a VPS behind the owner's Nginx + Let's Encrypt (SAN cert), reusing an existing
   dockerized PostgreSQL; **auto-deploy CI/CD** (GitHub Actions → build/test → GHCR images → SSH
@@ -94,7 +94,7 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
   opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI); **per-company
-  negative-stock policy (CHG-0073)**; ✅ **back-dated in-period moving-average recompute (CHG-0104, ADR-0033)**. Remaining: FIFO option
+  negative-stock policy (CHG-0073)**; ✅ **back-dated in-period moving-average recompute (CHG-0104, ADR-0033)** — with UI guidance + reject reasons surfaced on the Adjust/Opname forms (CHG-0107). Remaining: FIFO option
 - ✅ **Purchasing** (procure-to-pay complete) — Purchase Orders + Approval/Process-Tracker/Notification
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**

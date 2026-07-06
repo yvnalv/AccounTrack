@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Scale } from 'lucide-vue-next'
 import { inventoryApi } from '@/lib/inventory'
+import { apiErrorMessage } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
 import { exportTable } from '@/lib/exportTable'
 import { formatMoney, formatMoneyShort, formatNumber } from '@/lib/format'
@@ -88,6 +89,10 @@ const message = ref('')
 
 const form = ref({ increase: false, quantity: 0, unitCost: null as number | null, reason: '', counted: 0, notes: '', date: today })
 
+// A movement dated before today may sit before existing movements; posting it replays the bucket's
+// moving average and corrects later costs via an adjusting journal (ADR-0033).
+const isBackDated = computed(() => form.value.date < today)
+
 function open(mode_: Mode, row: Record<string, unknown>) {
   const r = row as unknown as Target
   mode.value = mode_
@@ -131,7 +136,7 @@ async function submit() {
       await reload()
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
+    error.value = apiErrorMessage(e, t('inventory.actionFailed'))
   } finally {
     saving.value = false
   }
@@ -199,7 +204,11 @@ async function submit() {
           <FormField :label="t('inventory.adjust.quantity')"><input v-model.number="form.quantity" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
           <FormField v-if="form.increase" :label="t('inventory.adjust.unitCost')"><input v-model.number="form.unitCost" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
           <FormField :label="t('inventory.adjust.reason')"><AppInput v-model="form.reason" /></FormField>
-          <FormField :label="t('inventory.adjust.date')"><AppInput v-model="form.date" type="date" /></FormField>
+          <FormField :label="t('inventory.adjust.date')">
+            <AppInput v-model="form.date" type="date" />
+            <p class="mt-1 text-xs text-text-muted">{{ t('inventory.backdate.hint') }}</p>
+            <p v-if="isBackDated" class="mt-1 text-xs text-warning">{{ t('inventory.backdate.warning') }}</p>
+          </FormField>
         </template>
 
         <template v-else>
@@ -209,7 +218,11 @@ async function submit() {
           <FormField :label="t('inventory.opname.countedQty')"><input v-model.number="form.counted" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
           <FormField :label="t('inventory.opname.unitCost')"><input v-model.number="form.unitCost" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
           <FormField :label="t('inventory.opname.notes')"><AppInput v-model="form.notes" /></FormField>
-          <FormField :label="t('inventory.opname.date')"><AppInput v-model="form.date" type="date" /></FormField>
+          <FormField :label="t('inventory.opname.date')">
+            <AppInput v-model="form.date" type="date" />
+            <p class="mt-1 text-xs text-text-muted">{{ t('inventory.backdate.hint') }}</p>
+            <p v-if="isBackDated" class="mt-1 text-xs text-warning">{{ t('inventory.backdate.warning') }}</p>
+          </FormField>
         </template>
 
         <p v-if="error" class="text-sm text-negative">{{ error }}</p>
