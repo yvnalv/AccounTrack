@@ -1,5 +1,24 @@
 # Accountrack Changelog
 
+## [2026-07-06 15:00:41 UTC]
+
+CHG-0107 — Frontend: surface back-dating on the Inventory Adjust/Opname forms
+
+- **Reject reasons are now visible.** The Adjust/Opname modal previously showed a generic axios error
+  (e.g. "Request failed with status code 409") on a business-rule failure. It now shows the server's
+  message — so ADR-0033 back-dating rejects read as their intent (e.g. "Back-dating this movement
+  would drive stock negative for a later movement", the cross-transfer and closed-period rejects).
+- New shared `apiErrorMessage(error, fallback)` helper in `lib/api.ts` extracts
+  `response.data.message` from a rejected request (business failures are 4xx, so axios rejects before
+  `unwrap` runs); wired into the Inventory view.
+- **Back-dating guidance** on both date fields: a persistent hint that an earlier date recomputes the
+  moving-average cost of later movements, plus a live amber warning when the chosen date is in the
+  past. `inventory.backdate.*` + `inventory.actionFailed` strings in **en** and **id**.
+- Frontend builds clean (`vue-tsc --noEmit` + `vite build`). Verified against the running API that a
+  back-dated reject returns the human-readable `message` the modal now displays.
+
+---
+
 ## [2026-07-06 14:46:55 UTC]
 
 CHG-0106 — Docs: restore lost CHG-0105 entry; de-duplicate STATUS snapshot line

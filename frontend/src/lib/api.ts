@@ -168,6 +168,18 @@ export function isConflict(error: unknown): boolean {
   return data?.error?.code === 'CONCURRENCY_CONFLICT'
 }
 
+/**
+ * The server's human-readable failure message from a rejected request. Business-rule failures come
+ * back as a 4xx `{ success:false, message }` envelope (axios rejects before `unwrap` runs), so the
+ * message lives on `error.response.data.message`; falls back to the thrown Error, then `fallback`.
+ */
+export function apiErrorMessage(error: unknown, fallback = 'Request failed'): string {
+  const serverMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+  if (serverMessage) return serverMessage
+  if (error instanceof Error && error.message) return error.message
+  return fallback
+}
+
 /** Unwraps the `{ success, data }` envelope, throwing the message on failure. */
 export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> {
   const { data } = await promise
