@@ -383,6 +383,11 @@ export default {
       note: 'Ledger value should equal the Inventory GL account (BR-INV-7).',
       empty: 'No inventory to value.',
     },
+    actionFailed: 'Could not post the movement.',
+    backdate: {
+      hint: 'Back-dating recomputes the moving-average cost of any later movements.',
+      warning: 'Back-dated — the cost of movements after this date will be recomputed. A stock transfer in between is rejected.',
+    },
     adjust: {
       action: 'Adjust',
       title: 'Adjust stock',
