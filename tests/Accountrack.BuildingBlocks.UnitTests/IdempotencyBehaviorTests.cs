@@ -18,6 +18,7 @@ public class IdempotencyBehaviorTests
     private readonly IIdempotencyContext _context = Substitute.For<IIdempotencyContext>();
     private readonly IIdempotencyStore _store = Substitute.For<IIdempotencyStore>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
+    private readonly IIdempotencyScope _scope = Substitute.For<IIdempotencyScope>();
 
     public IdempotencyBehaviorTests()
     {
@@ -25,7 +26,7 @@ public class IdempotencyBehaviorTests
     }
 
     private IdempotencyBehavior<TReq, Result<Guid>> Behavior<TReq>() where TReq : notnull =>
-        new(_context, _store, _tenant);
+        new(_context, _store, _tenant, _scope);
 
     [Fact]
     public async Task First_call_executes_handler_and_records_the_result()
@@ -99,6 +100,35 @@ public class IdempotencyBehaviorTests
             default);
 
         result.IsSuccess.Should().BeFalse();
+        await _store.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Scoped_key_is_published_for_the_coordinator_before_the_handler_runs()
+    {
+        _context.Key.Returns("key-1");
+        _store.TryGetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((Guid?)null);
+
+        await Behavior<IdempotentDoc>().Handle(
+            new IdempotentDoc("A"), () => Task.FromResult(Result.Success(Guid.NewGuid())), default);
+
+        _scope.Received(1).Begin(Arg.Is<string>(k => k.Contains("IdempotentDoc") && k.Contains("key-1")));
+        _scope.Received(1).Clear();
+    }
+
+    [Fact]
+    public async Task Key_written_in_transaction_is_not_recorded_again_on_a_separate_connection()
+    {
+        // The coordinator persisted the key atomically with the effects (exactly-once) and marked the
+        // scope written — the behavior must not double-write via the legacy separate-connection path.
+        _context.Key.Returns("key-1");
+        _store.TryGetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((Guid?)null);
+        _scope.Written.Returns(true);
+
+        var result = await Behavior<IdempotentDoc>().Handle(
+            new IdempotentDoc("A"), () => Task.FromResult(Result.Success(Guid.NewGuid())), default);
+
+        result.IsSuccess.Should().BeTrue();
         await _store.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 }

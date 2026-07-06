@@ -1,24 +1,79 @@
 # Accountrack Changelog
 
-## [2026-07-06 13:15:00 UTC]
+## [2026-07-06 12:20:00 UTC]
 
-CHG-0105 — Frontend: standalone return-detail pages (Sales + Purchasing)
+CHG-0104 — Back-dated in-period inventory recompute (ADR-0033, Option A)
 
-- **New read-only detail pages** for sales credit notes and purchase debit notes
-  (`SalesReturnDetailView`, `PurchaseReturnDetailView`): header with number + credit/debit-note +
-  posted badges, the party and return date, a line table (qty, unit price, tax %, restock/de-stock
-  cost, line total), subtotal/tax/grand-total plus the at-cost restock/de-stock figure, and notes.
-- **Return list rows are now clickable** (`clickable` + `rowClick`) and route to the detail; a source
-  **Invoice PDF** download and a link to the originating **Sales/Purchase order** are provided.
-- New API-client calls `salesApi.getReturn` / `purchasingApi.getReturn` (`GET /sales-returns/{id}`,
-  `/purchase-returns/{id}`), detail types `SalesReturn`/`PurchaseReturn` (+ line types), two routes,
-  and `returns.detail.*` strings in the **en** and **id** locales.
-- Frontend builds clean (`vue-tsc --noEmit` + `vite build`). Verified the detail endpoint's DTO shape
-  matches the new types against the running API (created a real sales return and fetched it). Completes
-  the Returns UI (the last STATUS follow-up for returns).
+- **Implements ADR-0033.** Posting a stock movement dated before an existing movement for the same
+  `(Company × Warehouse × Product)` now replays the whole cost bucket in chronological order:
+  running quantity/average and every later issue's cost are recomputed and **restated in place** (the
+  running snapshot is a rebuildable projection, ADR-0014), and the bucket is set to the recomputed
+  final state.
+- **GL stays correct without touching posted journals.** The COGS/variance change of already-posted
+  later issues is corrected by **one net adjusting journal** — `Dr/Cr Inventory ↔ COGS/Variance`,
+  accounts resolved via the posting-rule engine (ADR-0024) — dated at the back-dated movement, so the
+  GL period guard rejects a back-date into a closed period. Original journals remain immutable
+  (ADR-0009).
+- **Scope (v1):** the cross-module paths that carry a GL context — Goods Receipt, Delivery,
+  Adjustment, Opname, Returns. **Manual Receive and Transfer reject** back-dating (`BR-INV-4`); a
+  back-date before a later **transfer/production** movement (cross-bucket cost cascade, `BR-INV-5`) or
+  one that would drive a later movement negative (`BR-INV-3`) is rejected.
+- **New:** `MovingAverageReplay` (pure replay engine), `InventoryTransaction.Restate`,
+  `StockCostBucket.SetState`, chronological + max-date repository queries, `IInventoryLedger.IsBackDatedAsync`.
+  `InventoryLedgerService` gains the recompute path + the delta journal (posting-rule resolved).
+- **Tested:** the ADR worked example as pure-replay unit tests; a ledger-level test asserting the
+  Dr Inventory / Cr COGS 60 000 correction; full suite green (unit + 35 architecture-fitness + 28
+  PostgreSQL integration). **Verified live:** a back-dated cheaper receipt recomputed a later issue and
+  left on-hand 140 @ 9 000 = 1 260 000 with the trial balance balanced.
+- Docs: `DECISIONS.md` (ADR-0033 accepted, PR #11), `INVENTORY_DESIGN.md` §5, `MODULES.md`, `STATUS.md`.
 
-> Note: `CHG-0102`–`0104` are reserved by the concurrent idempotency (PR #10), ADR-0033 (PR #11), and
-> inventory back-dating (PR #12) branches; this entry uses `CHG-0105`.
+> Note: `CHG-0102`/`CHG-0103` are reserved by the concurrent idempotency (PR #10) and ADR-0033 design
+> (PR #11) branches; this entry uses `CHG-0104`. Merge order: #10 → #11 → this.
+## [2026-07-06 11:42:49 UTC]
+
+CHG-0103 — ADR-0033 accepted: back-dated in-period inventory recompute (design only)
+
+- **Decision recorded (no code yet).** Accepted [ADR-0033](docs/adr/0033-inventory-backdated-recompute.md)
+  giving effect to ADR-0017's "in-period back-dating triggers a forward recompute": **Option A —
+  forward-replay the affected moving-average cost bucket and post one net delta adjusting journal**
+  for the COGS/inventory-value difference, never editing posted journals (ADR-0009) or immutable
+  ledger facts. Bounded to the open period (ADR-0010/0017); the running snapshot columns are treated
+  as a rebuildable projection (ADR-0014); adjusting accounts resolve via the posting-rule engine
+  (ADR-0024); replay + adjustments commit atomically and are serialized on the bucket RowVersion
+  (ADR-0021).
+- **Scope note:** v1 is single-bucket replay; a back-date landing before a stock transfer out of the
+  bucket is rejected (cross-bucket cascade is a later enhancement).
+- Files: `docs/adr/0033-inventory-backdated-recompute.md` (new), `docs/DECISIONS.md`. Documentation
+  only — implementation to follow under a subsequent CHG.
+
+> Note: `CHG-0102` is reserved by the concurrent idempotency exactly-once change (PR #10); this
+> entry uses `CHG-0103` to avoid a duplicate id across the two in-flight branches.
+## [2026-07-06 10:48:44 UTC]
+
+CHG-0102 — Idempotency exactly-once for atomic posting flows (ADR-0021)
+
+- **Closed the crash-window double-post gap.** The idempotency key is now written **inside the same
+  database transaction as the business effects** for every command that commits through the
+  cross-module coordinator (`CrossModuleUnitOfWork`): Goods Receipt, Purchase/Sales Invoice,
+  Supplier/Customer Payment, Purchase/Sales Return, Delivery Order, Expense post, and stock
+  Adjust/Opname. Previously the key was saved on a separate connection *after* commit, so a crash in
+  the window between the two could let a retry re-execute and double-post.
+- **Mechanism.** New per-request `IIdempotencyScope` (`AmbientIdempotencyScope`) carries the scoped
+  key from `IdempotencyBehavior` to the coordinator, which persists it via the new
+  `IIdempotencyStore.WriteInTransactionAsync` on the shared connection/transaction before commit and
+  marks the scope written; the behavior then skips its legacy separate-connection `SaveAsync`.
+  Concurrent replays serialize on the `platform.IdempotencyKeys` primary key (`ON CONFLICT DO
+  NOTHING`): the loser rolls back its own effects and returns the winner's id.
+- **Unchanged when no key is present** — every non-idempotent path is byte-for-byte identical. The
+  per-module create/draft commands (Create SO/PO, Create Expense Draft, stock Receive) keep the
+  at-least-once fallback (a crash there can only duplicate a cancellable *draft*, no GL/ledger effect).
+- **Tests.** Extended `IdempotencyBehaviorTests` (key published to the scope; no double-write when the
+  coordinator already persisted it). Full suite green (unit + architecture-fitness + PostgreSQL
+  integration). Verified live: two identical POSTs sharing an `Idempotency-Key` returned the same id
+  and created exactly one document.
+- Files: `Idempotency.cs`, `IdempotencyStore.cs`, `AmbientIdempotencyScope.cs` (new),
+  `CrossModuleUnitOfWork.cs`, `IdempotencyBehavior.cs`, `Program.cs`; docs: `DECISIONS.md` (ADR-0021),
+  `STATUS.md`.
 
 ---
 

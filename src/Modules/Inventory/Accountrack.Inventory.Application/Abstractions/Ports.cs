@@ -14,6 +14,18 @@ public interface IInventoryTransactionRepository
 {
     void Add(InventoryTransaction transaction);
     Task<IReadOnlyList<InventoryTransaction>> ListAsync(Guid productId, Guid? warehouseId, CancellationToken ct);
+
+    /// <summary>
+    /// The tracked movements for a single cost bucket in <em>chronological</em> order
+    /// (MovementDate, then insertion order), for back-dated moving-average replay (ADR-0033). Returns
+    /// tracked entities so a recompute can restate them in place.
+    /// </summary>
+    Task<IReadOnlyList<InventoryTransaction>> ListForBucketChronologicalAsync(
+        Guid productId, Guid warehouseId, CancellationToken ct);
+
+    /// <summary>The latest movement date recorded for a cost bucket, or null if it has none — used to
+    /// detect a back-dated movement (ADR-0033).</summary>
+    Task<DateOnly?> MaxMovementDateAsync(Guid productId, Guid warehouseId, CancellationToken ct);
 }
 
 public interface IInventoryUnitOfWork
@@ -42,4 +54,8 @@ public interface IInventoryLedger
         CancellationToken ct);
 
     Task<decimal> GetOnHandAsync(Guid productId, Guid warehouseId, CancellationToken ct);
+
+    /// <summary>True if <paramref name="date"/> falls before the bucket's latest movement — i.e. this
+    /// movement is back-dated and (for supported paths) triggers a moving-average recompute (ADR-0033).</summary>
+    Task<bool> IsBackDatedAsync(Guid productId, Guid warehouseId, DateOnly date, CancellationToken ct);
 }

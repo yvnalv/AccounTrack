@@ -56,4 +56,18 @@ public sealed class InventoryTransaction : TenantOwnedEntity, IAggregateRoot
         decimal runningQtyAfter, decimal runningAvgCostAfter) =>
         new(productId, warehouseId, type, quantity, unitCost, totalCost,
             currency, movementDate, source, sourceDocumentId, description, runningQtyAfter, runningAvgCostAfter);
+
+    /// <summary>
+    /// Restates the <em>derived</em> valuation of this entry after a back-dated recompute (ADR-0033):
+    /// the cost an outbound movement left at, and the running-quantity/average snapshot. The immutable
+    /// <em>facts</em> (product, warehouse, type, quantity, date, source) are never touched — this only
+    /// rewrites the rebuildable projection the moving-average replay recomputes (ADR-0014).
+    /// </summary>
+    public void Restate(decimal unitCost, decimal totalCost, decimal runningQtyAfter, decimal runningAvgCostAfter)
+    {
+        UnitCost = unitCost;
+        TotalCost = totalCost;
+        RunningQtyAfter = runningQtyAfter;
+        RunningAvgCostAfter = runningAvgCostAfter;
+    }
 }
