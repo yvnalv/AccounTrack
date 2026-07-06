@@ -94,7 +94,7 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
   opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI); **per-company
-  negative-stock policy (CHG-0073)**. Remaining: back-dating recompute
+  negative-stock policy (CHG-0073)**. Remaining: back-dating recompute (design accepted — ADR-0033, Option A; implementation pending)
 - ✅ **Purchasing** (procure-to-pay complete) — Purchase Orders + Approval/Process-Tracker/Notification
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**

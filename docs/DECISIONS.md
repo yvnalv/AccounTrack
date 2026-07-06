@@ -640,3 +640,35 @@ an execution strategy.
 including the cross-tenant isolation suite (global query filters + tenancy stamping + concurrency
 token) — pass against a live database. All 12 module migrations apply cleanly (73 tables across 13
 schemas) and the platform-store DDL + `ON CONFLICT` idempotency were verified.
+
+---
+
+## ADR-0033: Back-dated in-period inventory recompute (moving-average replay + delta adjusting journals)
+
+- **Status:** Accepted (Option A) — **Date:** 2026-07-06 · full text: [adr/0033-inventory-backdated-recompute.md](adr/0033-inventory-backdated-recompute.md)
+
+**Context.** ADR-0017 already permits back-dating **within the current open period** and says it
+"triggers a forward recompute of the moving average," but that recompute is unimplemented (the
+outstanding inventory back-dating debt). The moving average is forward-only today, so a movement
+dated before existing ones leaves later averages, on-hand valuation, and every subsequent **COGS**
+wrong. The hard part is the GL: recomputing changes historical COGS already posted `Dr COGS / Cr
+Inventory`, but ADR-0009 makes posted journals immutable (reversal-only) — so the recompute must
+reconcile the GL **without editing** those journals.
+
+**Decision (proposed).** Forward-replay the affected cost bucket, bounded to the open period,
+rewriting the derived running columns and the bucket's final average (the running snapshots are a
+rebuildable projection per ADR-0014), and post **new net delta adjusting journals** for any
+COGS/inventory-value differences via the posting-rule engine (ADR-0024) — never touching posted
+journals or immutable ledger facts. The whole replay + adjustments commit in one cross-module
+transaction, serialized on the bucket RowVersion (ADR-0021). Movements dated in a closed period are
+rejected (ADR-0010/0017).
+
+**Options.** (A) forward replay + delta journals ← chosen; (B) reverse-and-repost each affected issue
+(audit noise); (C) recompute quantities only, defer COGS to a periodic revaluation (GL temporarily
+inconsistent); (D) forbid in-period back-dating (contradicts ADR-0017).
+
+**Consequences.** (+) Correct valuation after legitimate late entries; GL stays reconciled;
+immutability + closed-period locks preserved. (−) New recompute engine + adjusting-journal path;
+replay cost grows with in-period bucket activity. **Open edge:** transfers carry cost across
+warehouses (ADR-0015), so initial scope is single-bucket replay — a back-date before a transfer out
+of the bucket is rejected pending a later cross-bucket cascade.

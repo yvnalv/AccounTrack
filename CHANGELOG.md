@@ -1,5 +1,24 @@
 # Accountrack Changelog
 
+## [2026-07-06 11:42:49 UTC]
+
+CHG-0103 — ADR-0033 accepted: back-dated in-period inventory recompute (design only)
+
+- **Decision recorded (no code yet).** Accepted [ADR-0033](docs/adr/0033-inventory-backdated-recompute.md)
+  giving effect to ADR-0017's "in-period back-dating triggers a forward recompute": **Option A —
+  forward-replay the affected moving-average cost bucket and post one net delta adjusting journal**
+  for the COGS/inventory-value difference, never editing posted journals (ADR-0009) or immutable
+  ledger facts. Bounded to the open period (ADR-0010/0017); the running snapshot columns are treated
+  as a rebuildable projection (ADR-0014); adjusting accounts resolve via the posting-rule engine
+  (ADR-0024); replay + adjustments commit atomically and are serialized on the bucket RowVersion
+  (ADR-0021).
+- **Scope note:** v1 is single-bucket replay; a back-date landing before a stock transfer out of the
+  bucket is rejected (cross-bucket cascade is a later enhancement).
+- Files: `docs/adr/0033-inventory-backdated-recompute.md` (new), `docs/DECISIONS.md`. Documentation
+  only — implementation to follow under a subsequent CHG.
+
+> Note: `CHG-0102` is reserved by the concurrent idempotency exactly-once change (PR #10); this
+> entry uses `CHG-0103` to avoid a duplicate id across the two in-flight branches.
 ## [2026-07-06 10:48:44 UTC]
 
 CHG-0102 — Idempotency exactly-once for atomic posting flows (ADR-0021)
