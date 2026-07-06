@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Accountrack.Application.Abstractions.Idempotency;
 using Npgsql;
 
@@ -40,6 +41,37 @@ public sealed class IdempotencyStore : IIdempotencyStore
         cmd.Parameters.AddWithValue("k", scopedKey);
         cmd.Parameters.AddWithValue("r", resultId);
         await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<Guid> WriteInTransactionAsync(
+        DbConnection connection, DbTransaction transaction, string scopedKey, Guid resultId, CancellationToken ct)
+    {
+        // First writer wins. A concurrent duplicate blocks on the tentative unique-index entry until
+        // this transaction resolves; ON CONFLICT DO NOTHING then reports 0 rows to the loser.
+        await using var insert = connection.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = """
+            INSERT INTO platform."IdempotencyKeys" ("ScopedKey", "ResultId", "CreatedAtUtc")
+            VALUES (@k, @r, now())
+            ON CONFLICT ("ScopedKey") DO NOTHING;
+            """;
+        insert.Parameters.Add(new NpgsqlParameter("k", scopedKey));
+        insert.Parameters.Add(new NpgsqlParameter("r", resultId));
+
+        var rows = await insert.ExecuteNonQueryAsync(ct);
+        if (rows == 1)
+        {
+            return resultId;
+        }
+
+        // Lost the race: the key already exists (committed by the winner). Return its stored id so the
+        // caller can roll back its own effects and hand back the original result.
+        await using var select = connection.CreateCommand();
+        select.Transaction = transaction;
+        select.CommandText = "SELECT \"ResultId\" FROM platform.\"IdempotencyKeys\" WHERE \"ScopedKey\" = @k";
+        select.Parameters.Add(new NpgsqlParameter("k", scopedKey));
+        var existing = await select.ExecuteScalarAsync(ct);
+        return existing is Guid g ? g : resultId;
     }
 
     /// <summary>Creates the <c>platform.IdempotencyKeys</c> table if it does not exist (startup).</summary>

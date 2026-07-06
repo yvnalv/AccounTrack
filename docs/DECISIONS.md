@@ -348,10 +348,22 @@ double-posts. Marked commands: the create commands (Sales/Purchase Order) and al
 commands (Goods Receipt, Purchase Invoice, Supplier Payment, Delivery Order, Sales Invoice,
 Customer Payment) plus manual Journal posting.
 
-**Known limitation.** The result id is recorded *after* the command commits, so a crash in the
-narrow window between commit and `SaveAsync` would let a retry re-execute (double-post). True
-exactly-once requires writing the key inside the same transaction; that is a future hardening step
-once a durable outbox lands. RowVersion optimistic concurrency on documents is still pending.
+**Exactly-once for atomic flows (CHG-0102).** The idempotency key is now written **inside the same
+transaction as the business effects** for every command that commits through the cross-module
+coordinator (`CrossModuleUnitOfWork` — all posting flows: Goods Receipt, both Invoices, both
+Payments, both Returns, Delivery, Expense post, stock Adjust/Opname). The behavior publishes the
+scoped key on a per-request `IIdempotencyScope`; the coordinator persists it via
+`IIdempotencyStore.WriteInTransactionAsync` on the shared connection/transaction before commit, then
+marks the scope written so the behavior skips the legacy separate-connection save. Concurrency is
+serialized by the `IdempotencyKeys` primary key with `ON CONFLICT DO NOTHING`: a racing replay blocks
+on the tentative unique-index entry, loses (0 rows), rolls back its own effects, and returns the
+winner's id. This closes the old crash-window between commit and `SaveAsync` — effects and key now
+commit or roll back together.
+
+**Remaining.** The **per-module create/draft** commands (Create Sales/Purchase Order, Create Expense
+Draft, stock Receive) still commit via their module `SaveChangesAsync` and fall back to the
+at-least-once separate-connection `SaveAsync`; a crash could yield a duplicate *draft* (no GL/ledger
+effect, cancellable). Routing those through the coordinator too is a low-priority follow-up.
 
 **Amended (ADR-0032).** With the move to PostgreSQL, `RowVersion` is no longer a store-generated
 SQL Server `rowversion`. It is now a provider-agnostic `bytea` **concurrency token** whose value the
@@ -628,3 +640,35 @@ an execution strategy.
 including the cross-tenant isolation suite (global query filters + tenancy stamping + concurrency
 token) — pass against a live database. All 12 module migrations apply cleanly (73 tables across 13
 schemas) and the platform-store DDL + `ON CONFLICT` idempotency were verified.
+
+---
+
+## ADR-0033: Back-dated in-period inventory recompute (moving-average replay + delta adjusting journals)
+
+- **Status:** Accepted (Option A) — **Date:** 2026-07-06 · full text: [adr/0033-inventory-backdated-recompute.md](adr/0033-inventory-backdated-recompute.md)
+
+**Context.** ADR-0017 already permits back-dating **within the current open period** and says it
+"triggers a forward recompute of the moving average," but that recompute is unimplemented (the
+outstanding inventory back-dating debt). The moving average is forward-only today, so a movement
+dated before existing ones leaves later averages, on-hand valuation, and every subsequent **COGS**
+wrong. The hard part is the GL: recomputing changes historical COGS already posted `Dr COGS / Cr
+Inventory`, but ADR-0009 makes posted journals immutable (reversal-only) — so the recompute must
+reconcile the GL **without editing** those journals.
+
+**Decision (proposed).** Forward-replay the affected cost bucket, bounded to the open period,
+rewriting the derived running columns and the bucket's final average (the running snapshots are a
+rebuildable projection per ADR-0014), and post **new net delta adjusting journals** for any
+COGS/inventory-value differences via the posting-rule engine (ADR-0024) — never touching posted
+journals or immutable ledger facts. The whole replay + adjustments commit in one cross-module
+transaction, serialized on the bucket RowVersion (ADR-0021). Movements dated in a closed period are
+rejected (ADR-0010/0017).
+
+**Options.** (A) forward replay + delta journals ← chosen; (B) reverse-and-repost each affected issue
+(audit noise); (C) recompute quantities only, defer COGS to a periodic revaluation (GL temporarily
+inconsistent); (D) forbid in-period back-dating (contradicts ADR-0017).
+
+**Consequences.** (+) Correct valuation after legitimate late entries; GL stays reconciled;
+immutability + closed-period locks preserved. (−) New recompute engine + adjusting-journal path;
+replay cost grows with in-period bucket activity. **Open edge:** transfers carry cost across
+warehouses (ADR-0015), so initial scope is single-bucket replay — a back-date before a transfer out
+of the bucket is rejected pending a later cross-bucket cascade.
