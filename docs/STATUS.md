@@ -8,7 +8,7 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-05 (last change **CHG-0100**)
+- **As of:** 2026-07-06 (last change **CHG-0102**)
 - **Build:** green — backend `net8.0` (334 tests); **frontend** `frontend/` builds (vue-tsc + vite).
   **Deployed:** live on a VPS behind the owner's Nginx + Let's Encrypt (SAN cert), reusing an existing
   dockerized PostgreSQL; **auto-deploy CI/CD** (GitHub Actions → build/test → GHCR images → SSH
@@ -153,8 +153,11 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Idempotency for atomic flows:** ✅ command-level idempotency done (CHG-0040) —
   `IdempotencyBehavior` keyed off the `Idempotency-Key` header dedupes replays of the posting/create
   commands (ADR-0021). ✅ **RowVersion optimistic concurrency on SO/PO edits (CHG-0086)** + **all
-  master-data & CoA edits (CHG-0087)** — stale cross-request edits return 409. Remaining hardening:
-  write the idempotency key in the same transaction (exactly-once).
+  master-data & CoA edits (CHG-0087)** — stale cross-request edits return 409. ✅ **exactly-once for
+  atomic flows (CHG-0102)** — the key is written inside the same cross-module transaction as the
+  effects (via `IIdempotencyScope` + `WriteInTransactionAsync`), closing the commit/`SaveAsync`
+  crash-window. Remaining: route per-module create/draft commands (SO/PO/expense draft, stock
+  Receive) through the coordinator too (currently at-least-once → duplicate *draft* only).
 - **Frontend:** Vue 3 SPA — **pause for a UI/UX design discussion before building** (user
   preference: not template/AI-ish).
 
@@ -171,8 +174,8 @@ CRUD screen (**Sales** list + Sales-Order create/detail); then the other modules
 locale; **✅ refresh-token rotation (silent refresh + retry — CHG-0090)**; self-hosted font.
 
 Backend threads that can be picked up independently if desired (none block the frontend):
-- **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021). Remaining:
-  same-transaction key write (exactly-once) + RowVersion concurrency.
+- **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021); ✅ **same-transaction
+  key write / exactly-once (CHG-0102)**. Remaining: extend the same to per-module create/draft commands.
 - **Reporting:** Cash Flow, AR/AP aging, **VAT (CHG-0043)**, **General Ledger / account detail
   (CHG-0058)**, **inventory valuation (CHG-0062)** done. Reporting suite complete.
 - **Accounting:** ✅ period-close balance snapshots (CHG-0079); year-end close to retained earnings (CHG-0059).
@@ -187,7 +190,7 @@ template/AI-ish). Pause and raise it then.
 
 Other open threads (not blocking): a dev **customer seed** (none seeded today); **Inventory slice 2**
 remaining (back-dating recompute); **Accounting** period-close snapshots; purchase/sales
-**returns**; idempotency **exactly-once** hardening (same-transaction key + RowVersion).
+**returns**; idempotency **exactly-once** for atomic flows ✅ (CHG-0102).
 
 ## How to resume
 
