@@ -44,6 +44,12 @@ export default {
     },
   },
   theme: { toggle: 'Toggle theme', light: 'Light', dark: 'Dark' },
+  notifications: {
+    ariaLabel: 'Notifications',
+    title: 'Notifications',
+    markAllRead: 'Mark all read',
+    empty: "You're all caught up.",
+  },
   command: {
     placeholder: 'Type a command or search…',
     navigate: 'Navigate',

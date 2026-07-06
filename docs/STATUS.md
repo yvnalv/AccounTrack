@@ -166,6 +166,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   Receive) through the coordinator too (currently at-least-once → duplicate *draft* only).
 - **Frontend:** Vue 3 SPA — **pause for a UI/UX design discussion before building** (user
   preference: not template/AI-ish).
+- **Surfacing built-but-hidden backend in the UI:** ✅ **in-app notifications bell (CHG-0107)** —
+  the top-bar bell now lists notifications (popover, unread badge, mark-(all-)read, 60s poll).
+  Remaining: an **Audit trail** screen (Settings tab, `Audit.View`, `GET /audit-entries`) and the
+  **Process Tracker timeline** on document detail pages (`GET /documents/{type}/{id}/timeline`).
 
 ## ▶️ Next up (recommended)
 

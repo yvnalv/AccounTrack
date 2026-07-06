@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Bell, LogOut, Menu } from 'lucide-vue-next'
+import { LogOut, Menu } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import LanguageToggle from '@/components/ui/LanguageToggle.vue'
+import NotificationBell from '@/components/layout/NotificationBell.vue'
 
 defineProps<{ title: string; subtitle?: string }>()
 
@@ -50,13 +51,7 @@ function signOut() {
     <div class="flex items-center gap-2">
       <LanguageToggle />
       <ThemeToggle />
-      <button
-        type="button"
-        class="grid h-9 w-9 place-items-center rounded-full border border-border bg-surface text-text-muted transition-colors hover:text-text hover:bg-surface-2"
-        aria-label="Notifications"
-      >
-        <Bell :size="18" />
-      </button>
+      <NotificationBell />
 
       <div class="ml-1 flex items-center gap-3 border-l border-border pl-3">
         <div class="hidden text-right leading-tight sm:block">

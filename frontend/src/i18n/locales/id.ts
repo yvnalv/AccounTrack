@@ -45,6 +45,12 @@ export default {
     },
   },
   theme: { toggle: 'Ganti tema', light: 'Terang', dark: 'Gelap' },
+  notifications: {
+    ariaLabel: 'Notifikasi',
+    title: 'Notifikasi',
+    markAllRead: 'Tandai semua dibaca',
+    empty: 'Semua sudah dibaca.',
+  },
   command: {
     placeholder: 'Ketik perintah atau cari…',
     navigate: 'Navigasi',

@@ -25,6 +25,15 @@ export interface AuthResponse {
   companyIds: string[]
 }
 
+export interface NotificationDto {
+  id: string
+  title: string
+  body: string
+  isRead: boolean
+  readAtUtc: string | null
+  createdAt: string
+}
+
 export interface DashboardMonthlyPoint {
   month: string
   revenue: number

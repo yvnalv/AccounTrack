@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-07-06 16:45:00 UTC]
+
+CHG-0107 — Frontend: live in-app notifications (the bell)
+
+- **Wires up the previously dead notification bell** in the top bar to the existing Notification
+  module (CHG-0014). Clicking the bell opens a quiet popover listing the current user's
+  notifications newest-first; unread rows are tinted (`accent-soft`) with an accent dot and bold
+  title, each showing a relative timestamp ("2 hours ago" / "2 jam lalu").
+- An **unread-count badge** sits on the bell (capped at `9+`). Clicking a row marks it read; a
+  **"Mark all read"** action clears them all. Marking is optimistic and reverts on failure.
+- The bell **polls every 60 s** while mounted (no websocket in the stack yet) via a small Pinia
+  store; the popover closes on outside-click / Escape.
+- New: `NotificationBell.vue`, `stores/notifications.ts`, `lib/notifications.ts`, `NotificationDto`
+  type, a locale-aware `timeAgo` helper in `lib/format.ts`, and `notifications.*` strings (en + id).
+  Consumes `GET /api/v1/notifications` + `POST /api/v1/notifications/{id}/read` (no backend change).
+- Frontend builds clean (`vue-tsc --noEmit` + `vite build`).
+
+> Note: `CHG-0105` (returns detail pages) and `CHG-0106` (draft/create exactly-once) are on sibling
+> branches merging concurrently; this entry uses `CHG-0107`. Reconcile ordering on merge.
+
+---
+
 ## [2026-07-06 12:20:00 UTC]
 
 CHG-0104 — Back-dated in-period inventory recompute (ADR-0033, Option A)
