@@ -8,6 +8,7 @@ import type {
   PurchaseInvoiceSummary,
   PurchaseOrder,
   PurchaseOrderSummary,
+  PurchaseReturn,
   PurchaseReturnListItem,
   PurchaseReturnSummary,
   ReturnLineInput,
@@ -40,6 +41,7 @@ export const purchasingApi = {
   getInvoice: (invoiceId: string) => unwrap<PurchaseInvoice>(http.get(`/purchase-invoices/${invoiceId}`)),
   returns: (id: string) => unwrap<PurchaseReturnSummary[]>(http.get(`/purchase-orders/${id}/returns`)),
   allReturns: () => unwrap<PurchaseReturnListItem[]>(http.get('/purchase-returns')),
+  getReturn: (returnId: string) => unwrap<PurchaseReturn>(http.get(`/purchase-returns/${returnId}`)),
   createReturn: (
     invoiceId: string,
     body: {

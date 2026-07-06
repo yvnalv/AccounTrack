@@ -8,6 +8,7 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
+- **As of:** 2026-07-06 (last change **CHG-0105**)
 - **As of:** 2026-07-06 (last change **CHG-0104**)
 - **As of:** 2026-07-06 (last change **CHG-0102**)
 - **Build:** green — backend `net8.0` (334 tests); **frontend** `frontend/` builds (vue-tsc + vite).
@@ -117,7 +118,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   debit notes that restock/de-stock at cost, reverse Revenue/VAT/AR resp. AP/VAT-Input, and move the
   subledger; ✅ **settled-invoice refund + returns list screens (CHG-0074)** — returning a paid
   invoice refunds the excess to a chosen cash/bank account; dedicated sales/purchase returns lists.
-  Remaining: a standalone return-detail page.
+  ✅ **standalone return-detail pages (CHG-0105)** — clickable list rows open a read-only credit/debit-note
+  detail (lines, cost, totals, invoice PDF + source-document links). Returns UI complete.
 - **CRUD completion (ADR-0029):** ✅ master data Edit + activate/deactivate for customers/
   suppliers/warehouses/products (CHG-0045) **and Units/Categories/Tax-codes (CHG-0060)**; **draft
   SO/PO cancel (CHG-0061) + edit (CHG-0070); CoA edit + deactivate (CHG-0071)**; **distinct

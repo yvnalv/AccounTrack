@@ -104,6 +104,37 @@ export interface SalesReturnListItem {
   journalEntryId: string | null
 }
 
+export interface SalesReturnLine {
+  salesInvoiceLineId: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  taxRate: number
+  unitCost: number
+  lineNet: number
+  lineTax: number
+  lineTotal: number
+  lineCost: number
+}
+
+export interface SalesReturn {
+  id: string
+  number: string
+  salesInvoiceId: string
+  salesOrderId: string
+  customerId: string
+  warehouseId: string
+  currency: string
+  returnDate: string
+  subTotal: number
+  taxTotal: number
+  grandTotal: number
+  totalCost: number
+  journalEntryId: string | null
+  notes: string | null
+  lines: SalesReturnLine[]
+}
+
 export interface ReturnLineInput {
   salesInvoiceLineId: string
   quantity: number

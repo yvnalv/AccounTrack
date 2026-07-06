@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { purchasingApi } from '@/lib/purchasing'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
@@ -10,9 +11,14 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { Column } from '@/components/ui/types'
 
 const { t } = useI18n()
+const router = useRouter()
 
 const rows = ref<PurchaseReturnListItem[]>([])
 const loading = ref(true)
+
+function open(row: Record<string, unknown>) {
+  router.push({ name: 'purchaseReturnDetail', params: { id: String(row.id) } })
+}
 
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('returns.columns.number') },
@@ -42,7 +48,7 @@ onMounted(async () => {
 <template>
   <div class="space-y-4">
     <InsightCards :items="insights" />
-    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('returns.purchaseEmpty')">
+    <DataTable searchable clickable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('returns.purchaseEmpty')" @row-click="open">
       <template #cell-grandTotal="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-journalEntryId="{ value }">
         <StatusBadge v-if="value" tone="positive" :label="t('returns.posted')" />
