@@ -10,6 +10,11 @@ namespace Accountrack.Application.Abstractions.Behaviors;
 /// <c>Idempotency-Key</c> is present, a key is derived per (tenant, command type, key); if that key
 /// already produced a result the command is short-circuited and the original id is returned, so a
 /// retried request never double-posts. Applies only to commands returning <c>Result&lt;Guid&gt;</c>.
+///
+/// The key is published on the <see cref="IIdempotencyScope"/> before the handler runs. Handlers that
+/// commit through the cross-module transaction coordinator persist the key <em>inside</em> that
+/// transaction (exactly-once) and mark the scope written; this behavior then skips its own write. For
+/// any other handler the behavior records the key afterwards on a separate connection (at-least-once).
 /// </summary>
 public sealed class IdempotencyBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
@@ -17,12 +22,15 @@ public sealed class IdempotencyBehavior<TRequest, TResponse> : IPipelineBehavior
     private readonly IIdempotencyContext _context;
     private readonly IIdempotencyStore _store;
     private readonly ITenantContext _tenant;
+    private readonly IIdempotencyScope _scope;
 
-    public IdempotencyBehavior(IIdempotencyContext context, IIdempotencyStore store, ITenantContext tenant)
+    public IdempotencyBehavior(
+        IIdempotencyContext context, IIdempotencyStore store, ITenantContext tenant, IIdempotencyScope scope)
     {
         _context = context;
         _store = store;
         _tenant = tenant;
+        _scope = scope;
     }
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
@@ -41,12 +49,23 @@ public sealed class IdempotencyBehavior<TRequest, TResponse> : IPipelineBehavior
             return (TResponse)(object)Result.Success(priorResult);
         }
 
-        var response = await next();
-        if (response is Result<Guid> { IsSuccess: true } ok)
+        _scope.Begin(scopedKey);
+        try
         {
-            await _store.SaveAsync(scopedKey, ok.Value, ct);
-        }
+            var response = await next();
 
-        return response;
+            // The coordinator records the key atomically with the effects and sets Written; only fall
+            // back to a separate-connection write for handlers that did not run inside that transaction.
+            if (!_scope.Written && response is Result<Guid> { IsSuccess: true } ok)
+            {
+                await _store.SaveAsync(scopedKey, ok.Value, ct);
+            }
+
+            return response;
+        }
+        finally
+        {
+            _scope.Clear();
+        }
     }
 }

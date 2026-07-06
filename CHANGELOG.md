@@ -19,6 +19,32 @@ CHG-0103 — ADR-0033 accepted: back-dated in-period inventory recompute (design
 
 > Note: `CHG-0102` is reserved by the concurrent idempotency exactly-once change (PR #10); this
 > entry uses `CHG-0103` to avoid a duplicate id across the two in-flight branches.
+## [2026-07-06 10:48:44 UTC]
+
+CHG-0102 — Idempotency exactly-once for atomic posting flows (ADR-0021)
+
+- **Closed the crash-window double-post gap.** The idempotency key is now written **inside the same
+  database transaction as the business effects** for every command that commits through the
+  cross-module coordinator (`CrossModuleUnitOfWork`): Goods Receipt, Purchase/Sales Invoice,
+  Supplier/Customer Payment, Purchase/Sales Return, Delivery Order, Expense post, and stock
+  Adjust/Opname. Previously the key was saved on a separate connection *after* commit, so a crash in
+  the window between the two could let a retry re-execute and double-post.
+- **Mechanism.** New per-request `IIdempotencyScope` (`AmbientIdempotencyScope`) carries the scoped
+  key from `IdempotencyBehavior` to the coordinator, which persists it via the new
+  `IIdempotencyStore.WriteInTransactionAsync` on the shared connection/transaction before commit and
+  marks the scope written; the behavior then skips its legacy separate-connection `SaveAsync`.
+  Concurrent replays serialize on the `platform.IdempotencyKeys` primary key (`ON CONFLICT DO
+  NOTHING`): the loser rolls back its own effects and returns the winner's id.
+- **Unchanged when no key is present** — every non-idempotent path is byte-for-byte identical. The
+  per-module create/draft commands (Create SO/PO, Create Expense Draft, stock Receive) keep the
+  at-least-once fallback (a crash there can only duplicate a cancellable *draft*, no GL/ledger effect).
+- **Tests.** Extended `IdempotencyBehaviorTests` (key published to the scope; no double-write when the
+  coordinator already persisted it). Full suite green (unit + architecture-fitness + PostgreSQL
+  integration). Verified live: two identical POSTs sharing an `Idempotency-Key` returned the same id
+  and created exactly one document.
+- Files: `Idempotency.cs`, `IdempotencyStore.cs`, `AmbientIdempotencyScope.cs` (new),
+  `CrossModuleUnitOfWork.cs`, `IdempotencyBehavior.cs`, `Program.cs`; docs: `DECISIONS.md` (ADR-0021),
+  `STATUS.md`.
 
 ---
 

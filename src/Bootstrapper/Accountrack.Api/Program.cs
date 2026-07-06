@@ -52,9 +52,12 @@ builder.Services.AddScoped<ITenantContext, HttpContextTenantContext>();
 
 // Idempotency for atomic posting flows (ADR-0021): key from the Idempotency-Key header; results are
 // recorded in platform.IdempotencyKeys so a replayed command returns the original id instead of
-// double-posting. The store uses its own connection (never the shared cross-module transaction).
+// double-posting. For flows that commit through the cross-module coordinator the key is written on
+// that same transaction (exactly-once); the scope is the per-request handshake between the two.
 builder.Services.AddScoped<Accountrack.Application.Abstractions.Idempotency.IIdempotencyContext,
     HttpContextIdempotencyContext>();
+builder.Services.AddScoped<Accountrack.Application.Abstractions.Idempotency.IIdempotencyScope,
+    Accountrack.Infrastructure.Common.Idempotency.AmbientIdempotencyScope>();
 builder.Services.AddSingleton<Accountrack.Application.Abstractions.Idempotency.IIdempotencyStore>(
     new Accountrack.Infrastructure.Common.Idempotency.IdempotencyStore(
         builder.Configuration.GetConnectionString("Default")!));
