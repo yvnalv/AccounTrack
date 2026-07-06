@@ -18,6 +18,27 @@ export function formatPercent(value: number, fractionDigits = 1): string {
   return `${idID(fractionDigits, fractionDigits).format(value)}%`
 }
 
+/** Locale-aware relative time ("2 hours ago", "2 jam lalu"); falls back to the raw string if unparseable. */
+export function timeAgo(iso: string, locale = 'en'): string {
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return iso
+  const diffSec = Math.round((then - Date.now()) / 1000)
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [
+    ['year', 31_536_000],
+    ['month', 2_592_000],
+    ['day', 86_400],
+    ['hour', 3_600],
+    ['minute', 60],
+  ]
+  for (const [unit, secs] of units) {
+    if (Math.abs(diffSec) >= secs) {
+      return rtf.format(Math.round(diffSec / secs), unit)
+    }
+  }
+  return rtf.format(Math.round(diffSec), 'second')
+}
+
 /**
  * Compact money for KPI tiles where space is tight (e.g. "IDR 5,9B", "IDR 28M").
  * Uses K / M / B / T suffixes; below 1,000 it falls back to the full number.
