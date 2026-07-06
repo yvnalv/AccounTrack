@@ -1,5 +1,34 @@
 # Accountrack Changelog
 
+## [2026-07-06 12:20:00 UTC]
+
+CHG-0104 — Back-dated in-period inventory recompute (ADR-0033, Option A)
+
+- **Implements ADR-0033.** Posting a stock movement dated before an existing movement for the same
+  `(Company × Warehouse × Product)` now replays the whole cost bucket in chronological order:
+  running quantity/average and every later issue's cost are recomputed and **restated in place** (the
+  running snapshot is a rebuildable projection, ADR-0014), and the bucket is set to the recomputed
+  final state.
+- **GL stays correct without touching posted journals.** The COGS/variance change of already-posted
+  later issues is corrected by **one net adjusting journal** — `Dr/Cr Inventory ↔ COGS/Variance`,
+  accounts resolved via the posting-rule engine (ADR-0024) — dated at the back-dated movement, so the
+  GL period guard rejects a back-date into a closed period. Original journals remain immutable
+  (ADR-0009).
+- **Scope (v1):** the cross-module paths that carry a GL context — Goods Receipt, Delivery,
+  Adjustment, Opname, Returns. **Manual Receive and Transfer reject** back-dating (`BR-INV-4`); a
+  back-date before a later **transfer/production** movement (cross-bucket cost cascade, `BR-INV-5`) or
+  one that would drive a later movement negative (`BR-INV-3`) is rejected.
+- **New:** `MovingAverageReplay` (pure replay engine), `InventoryTransaction.Restate`,
+  `StockCostBucket.SetState`, chronological + max-date repository queries, `IInventoryLedger.IsBackDatedAsync`.
+  `InventoryLedgerService` gains the recompute path + the delta journal (posting-rule resolved).
+- **Tested:** the ADR worked example as pure-replay unit tests; a ledger-level test asserting the
+  Dr Inventory / Cr COGS 60 000 correction; full suite green (unit + 35 architecture-fitness + 28
+  PostgreSQL integration). **Verified live:** a back-dated cheaper receipt recomputed a later issue and
+  left on-hand 140 @ 9 000 = 1 260 000 with the trial balance balanced.
+- Docs: `DECISIONS.md` (ADR-0033 accepted, PR #11), `INVENTORY_DESIGN.md` §5, `MODULES.md`, `STATUS.md`.
+
+> Note: `CHG-0102`/`CHG-0103` are reserved by the concurrent idempotency (PR #10) and ADR-0033 design
+> (PR #11) branches; this entry uses `CHG-0104`. Merge order: #10 → #11 → this.
 ## [2026-07-06 11:42:49 UTC]
 
 CHG-0103 — ADR-0033 accepted: back-dated in-period inventory recompute (design only)

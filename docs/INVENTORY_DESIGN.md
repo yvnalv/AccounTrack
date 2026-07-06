@@ -79,14 +79,24 @@ reconciled so ledger value = Σ TotalCost.
   `InventoryLedgerService.IssueAsync`, so it applies uniformly to deliveries, purchase returns,
   adjustments, transfers, and opname — callers no longer pass an `allowNegative` flag.
 
-## 5. Chronology & Back-Dating — ADR-0017
+## 5. Chronology & Back-Dating — ADR-0017 / ADR-0033
 
 - Movements post in **chronological order** within an Open period.
-- Back-dating into a **Closed/Locked** period is **forbidden** (mirrors accounting periods).
-- Back-dating within the **current open period** is allowed but triggers a **forward recompute**
-  of `RunningQty/RunningAvgCost` for the affected bucket from the insertion point, and reposts
-  any dependent COGS deltas via reversal+repost. Because closed periods are immutable, recompute
-  is bounded to the open period.
+- Back-dating into a **Closed/Locked** period is **forbidden** (mirrors accounting periods) — the
+  back-dated movement (and its recompute delta) carry the back-date, so the GL poster's period guard
+  rejects them.
+- Back-dating within the **current open period** is allowed and triggers a **full moving-average
+  replay** of the affected `(Company × Warehouse × Product)` bucket (ADR-0033, implemented CHG-0104):
+  the whole bucket is replayed in chronological order, `RunningQty/RunningAvgCost` and each later
+  issue's cost are recomputed and **restated in place** (the running snapshot is a rebuildable
+  projection, ADR-0014), and the bucket is set to the recomputed final state.
+- The COGS/variance change of already-posted later issues is corrected by **one net adjusting journal**
+  (`Dr/Cr Inventory ↔ COGS/Variance`, accounts via the posting-rule engine) — posted journals stay
+  immutable (ADR-0009). Because closed periods are immutable, recompute is bounded to the open period.
+- **Scope (v1):** supported on the cross-module paths that carry a GL context — Goods Receipt,
+  Delivery, Adjustment, Opname, Returns. **Manual Receive and Transfer reject** back-dating
+  (`BR-INV-4`), as does a back-date before a later **transfer/production** movement (`BR-INV-5`,
+  cross-bucket cost cascade) or one that would drive a later movement negative (`BR-INV-3`).
 
 ## 6. Operations → Ledger + GL
 

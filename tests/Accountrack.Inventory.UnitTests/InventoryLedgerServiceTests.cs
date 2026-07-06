@@ -2,7 +2,9 @@ using Accountrack.Application.Abstractions.Context;
 using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Application.Services;
 using Accountrack.Inventory.Domain;
+using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Company;
+using Accountrack.SharedKernel.Results;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
@@ -16,14 +18,27 @@ public class InventoryLedgerServiceTests
     private readonly IInventoryTransactionRepository _txns = Substitute.For<IInventoryTransactionRepository>();
     private readonly ICompanyDirectory _companies = Substitute.For<ICompanyDirectory>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
+    private readonly IGeneralLedgerPoster _gl = Substitute.For<IGeneralLedgerPoster>();
+    private readonly IPostingAccountResolver _accounts = Substitute.For<IPostingAccountResolver>();
     private readonly Guid _product = Guid.NewGuid();
     private readonly Guid _warehouse = Guid.NewGuid();
+    private static readonly Guid InventoryAccount = Guid.NewGuid();
+    private static readonly Guid CogsAccount = Guid.NewGuid();
+    private static readonly Guid VarianceAccount = Guid.NewGuid();
 
     private InventoryLedgerService Service(bool allowNegative = false)
     {
         _companies.GetBoolSettingAsync(Arg.Any<Guid>(), CompanySettingKeys.AllowNegativeStock, Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(allowNegative);
-        return new(_buckets, _txns, _companies, _tenant);
+        _accounts.ResolveAsync("InventoryRecompute", PostingKeys.Inventory, Arg.Any<PostingSelector>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(InventoryAccount));
+        _accounts.ResolveAsync("InventoryRecompute", PostingKeys.Cogs, Arg.Any<PostingSelector>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(CogsAccount));
+        _accounts.ResolveAsync("InventoryRecompute", PostingKeys.InventoryVariance, Arg.Any<PostingSelector>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(VarianceAccount));
+        _gl.PostAsync(Arg.Any<LedgerPostingRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(Guid.NewGuid()));
+        return new(_buckets, _txns, _companies, _tenant, _gl, _accounts);
     }
 
     [Fact]
@@ -119,5 +134,47 @@ public class InventoryLedgerServiceTests
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("INVENTORY.INSUFFICIENT_STOCK");
+    }
+
+    [Fact]
+    public async Task Back_dated_cheaper_receipt_recomputes_later_COGS_and_posts_the_delta_journal()
+    {
+        // Existing bucket: Jun-1 receipt 100 @ 10 000, Jun-5 sales issue of 60 (COGS 600 000).
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun5 = new DateOnly(2026, 6, 5);
+        var receipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 10000m, 1_000_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 100m, 10000m);
+        var issue = InventoryTransaction.Record(_product, _warehouse, MovementType.Issue, 60m, 10000m, 600_000m,
+            "IDR", jun5, MovementSource.Sales, null, null, 40m, 10000m);
+
+        var bucket = StockCostBucket.Create(_product, _warehouse, "IDR");
+        bucket.Receive(100m, 10000m);
+        bucket.Issue(60m, allowNegative: false); // on hand 40 @ 10 000
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucket);
+        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(jun5);
+        _txns.ListForBucketChronologicalAsync(_product, _warehouse, Arg.Any<CancellationToken>())
+            .Returns(new[] { receipt, issue });
+
+        // Back-date a cheaper receipt of 100 @ 8 000 to May-28 — before both existing movements.
+        var result = await Service().ReceiveAsync(
+            _product, _warehouse, "IDR", 100m, 8000m, new DateOnly(2026, 5, 28),
+            MovementType.Receipt, MovementSource.Purchasing, null, "Late purchase", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CostApplied.Should().Be(800_000m);          // the new receipt itself: 100 @ 8 000
+
+        // The later issue is restated from 600 000 to 60 @ 9 000 = 540 000.
+        issue.TotalCost.Should().Be(540_000m);
+        issue.RunningAvgCostAfter.Should().Be(9000m);
+
+        // The bucket ends at 140 on hand @ 9 000.
+        bucket.OnHandQty.Should().Be(140m);
+        bucket.AvgUnitCost.Should().Be(9000m);
+
+        // One correcting journal: Dr Inventory 60 000 / Cr COGS 60 000 (COGS was overstated by 60 000).
+        var call = _gl.ReceivedCalls().Should().ContainSingle().Which;
+        var request = (LedgerPostingRequest)call.GetArguments()[0]!;
+        request.Lines.Should().ContainSingle(l => l.AccountId == CogsAccount && l.Credit == 60_000m && l.Debit == 0m);
+        request.Lines.Should().ContainSingle(l => l.AccountId == InventoryAccount && l.Debit == 60_000m && l.Credit == 0m);
     }
 }

@@ -96,6 +96,13 @@ public sealed class ReceiveStockHandler : ICommandHandler<ReceiveStockCommand, S
             return Error.NotFound("INVENTORY.COMPANY_NOT_FOUND", "Active company not found.");
         }
 
+        // A manual receipt commits through the module unit of work, not the cross-module transaction, so
+        // it cannot post the GL correction a back-dated recompute needs (ADR-0033). Reject it here.
+        if (await _ledger.IsBackDatedAsync(request.ProductId, request.WarehouseId, request.Date, ct))
+        {
+            return InventoryErrors.BackDatingNotSupported;
+        }
+
         var result = await _ledger.ReceiveAsync(
             request.ProductId, request.WarehouseId, company.FunctionalCurrency, request.Quantity, request.UnitCost,
             request.Date, MovementType.Receipt, MovementSource.Manual, null, request.Description, ct);
@@ -219,6 +226,14 @@ public sealed class TransferStockHandler : ICommandHandler<TransferStockCommand,
         if (request.FromWarehouseId == request.ToWarehouseId)
         {
             return InventoryErrors.SameWarehouse;
+        }
+
+        // A transfer commits through the module unit of work, not the cross-module transaction, so a
+        // back-dated recompute could not post its GL correction (ADR-0033). Reject either side.
+        if (await _ledger.IsBackDatedAsync(request.ProductId, request.FromWarehouseId, request.Date, ct)
+            || await _ledger.IsBackDatedAsync(request.ProductId, request.ToWarehouseId, request.Date, ct))
+        {
+            return InventoryErrors.BackDatingNotSupported;
         }
 
         // Issue from source at its moving average; the cost travels to the destination.

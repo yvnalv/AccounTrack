@@ -38,4 +38,20 @@ public sealed class InventoryTransactionRepository : IInventoryTransactionReposi
             .ThenByDescending(t => t.CreatedAt)
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<InventoryTransaction>> ListForBucketChronologicalAsync(
+        Guid productId, Guid warehouseId, CancellationToken ct) =>
+        await _db.InventoryTransactions
+            .Where(t => t.ProductId == productId && t.WarehouseId == warehouseId)
+            .OrderBy(t => t.MovementDate)
+            .ThenBy(t => t.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<DateOnly?> MaxMovementDateAsync(Guid productId, Guid warehouseId, CancellationToken ct)
+    {
+        var dates = _db.InventoryTransactions
+            .Where(t => t.ProductId == productId && t.WarehouseId == warehouseId)
+            .Select(t => (DateOnly?)t.MovementDate);
+        return await dates.MaxAsync(ct);
+    }
 }
