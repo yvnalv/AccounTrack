@@ -378,6 +378,11 @@ export default {
       note: 'Nilai buku harus sama dengan akun Persediaan di buku besar (BR-INV-7).',
       empty: 'Tidak ada persediaan untuk dinilai.',
     },
+    actionFailed: 'Gagal memposting pergerakan.',
+    backdate: {
+      hint: 'Tanggal mundur menghitung ulang biaya rata-rata bergerak untuk pergerakan setelahnya.',
+      warning: 'Tanggal mundur — biaya pergerakan setelah tanggal ini akan dihitung ulang. Transfer stok di antaranya akan ditolak.',
+    },
     adjust: {
       action: 'Sesuaikan',
       title: 'Penyesuaian stok',

@@ -8,9 +8,7 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-06 (last change **CHG-0105**)
-- **As of:** 2026-07-06 (last change **CHG-0104**)
-- **As of:** 2026-07-06 (last change **CHG-0102**)
+- **As of:** 2026-07-06 (last change **CHG-0107**)
 - **Build:** green — backend `net8.0` (334 tests); **frontend** `frontend/` builds (vue-tsc + vite).
   **Deployed:** live on a VPS behind the owner's Nginx + Let's Encrypt (SAN cert), reusing an existing
   dockerized PostgreSQL; **auto-deploy CI/CD** (GitHub Actions → build/test → GHCR images → SSH
@@ -96,8 +94,7 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
   opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI); **per-company
-  negative-stock policy (CHG-0073)**; ✅ **back-dated in-period moving-average recompute (CHG-0104, ADR-0033)**. Remaining: FIFO option
-  negative-stock policy (CHG-0073)**. Remaining: back-dating recompute (design accepted — ADR-0033, Option A; implementation pending)
+  negative-stock policy (CHG-0073)**; ✅ **back-dated in-period moving-average recompute (CHG-0104, ADR-0033)** — with UI guidance + reject reasons surfaced on the Adjust/Opname forms (CHG-0107). Remaining: FIFO option
 - ✅ **Purchasing** (procure-to-pay complete) — Purchase Orders + Approval/Process-Tracker/Notification
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**
@@ -194,11 +191,8 @@ After order-to-cash, the backend is MVP-functional end to end — the natural ne
 frontend**, which requires the **UI/UX design discussion** before any build (user preference: not
 template/AI-ish). Pause and raise it then.
 
-Other open threads (not blocking): **Inventory** FIFO option + cross-bucket (transfer) back-dating;
-**Accounting** period-close snapshots; purchase/sales **returns** detail page.
-Other open threads (not blocking): a dev **customer seed** (none seeded today); **Inventory slice 2**
-remaining (back-dating recompute); **Accounting** period-close snapshots; purchase/sales
-**returns**; idempotency **exactly-once** for atomic flows ✅ (CHG-0102).
+Other open threads (not blocking): **Inventory** FIFO option + cross-bucket (transfer) back-dating.
+(Idempotency exactly-once ✅ CHG-0102; inventory back-dating ✅ CHG-0104; returns detail ✅ CHG-0105.)
 
 ## How to resume
 
