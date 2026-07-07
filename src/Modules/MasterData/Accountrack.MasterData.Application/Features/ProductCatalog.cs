@@ -2,6 +2,7 @@ using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.MasterData.Application.Abstractions;
 using Accountrack.MasterData.Application.Contracts;
 using Accountrack.MasterData.Domain;
+using Accountrack.SharedKernel.Inventory;
 using Accountrack.SharedKernel.Results;
 using FluentValidation;
 
@@ -98,7 +99,8 @@ public sealed class GetCategoriesHandler : IQueryHandler<GetCategoriesQuery, IRe
 // ---- Products ----
 public sealed record CreateProductCommand(
     string Code, string Name, Guid BaseUomId, Guid? CategoryId,
-    bool IsStockTracked, bool IsSold, bool IsPurchased) : ICommand<Guid>;
+    bool IsStockTracked, bool IsSold, bool IsPurchased,
+    CostingMethod CostingMethod = CostingMethod.MovingAverage) : ICommand<Guid>;
 
 public sealed class CreateProductValidator : AbstractValidator<CreateProductCommand>
 {
@@ -132,7 +134,7 @@ public sealed class CreateProductHandler : ICommandHandler<CreateProductCommand,
 
         var product = Product.Create(
             code, request.Name, request.BaseUomId, request.CategoryId,
-            request.IsStockTracked, request.IsSold, request.IsPurchased);
+            request.IsStockTracked, request.IsSold, request.IsPurchased, request.CostingMethod);
         _products.Add(product);
         await _uow.SaveChangesAsync(ct);
         return product.Id;
@@ -151,6 +153,6 @@ public sealed class GetProductsHandler : IQueryHandler<GetProductsQuery, IReadOn
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<ProductDto>>(items.Select(p => new ProductDto(
             p.Id, p.Code, p.Name, p.BaseUomId, p.CategoryId, p.IsStockTracked, p.IsSold, p.IsPurchased, p.IsActive,
-            p.RowVersion)).ToList());
+            p.RowVersion, p.CostingMethod)).ToList());
     }
 }

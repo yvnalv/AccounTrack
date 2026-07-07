@@ -8,8 +8,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-07 (last change **CHG-0108**)
-- **Build:** green — backend `net8.0` (334 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-07-07 (last change **CHG-0109**)
+- **Build:** green — backend `net8.0` (346 tests); **frontend** `frontend/` builds (vue-tsc + vite).
   **Deployed:** live on a VPS behind the owner's Nginx + Let's Encrypt (SAN cert), reusing an existing
   dockerized PostgreSQL; **auto-deploy CI/CD** (GitHub Actions → build/test → GHCR images → SSH
   `compose pull` on push to `main`; CHG-0098/0100) and **nightly PostgreSQL backups** (CHG-0100). See
@@ -94,7 +94,7 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
   opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI); **per-company
-  negative-stock policy (CHG-0073)**; ✅ **back-dated in-period moving-average recompute (CHG-0104, ADR-0033)** — with UI guidance + reject reasons surfaced on the Adjust/Opname forms (CHG-0107). Remaining: FIFO option
+  negative-stock policy (CHG-0073)**; ✅ **back-dated in-period moving-average recompute (CHG-0104, ADR-0033)** — with UI guidance + reject reasons surfaced on the Adjust/Opname forms (CHG-0107); ✅ **per-product FIFO costing (CHG-0109, ADR-0034)** — cost layers, consumed oldest-first, valuation reconciled to the GL. Remaining: FIFO back-dating; cross-bucket (transfer) back-dating
 - ✅ **Purchasing** (procure-to-pay complete) — Purchase Orders + Approval/Process-Tracker/Notification
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**
@@ -141,7 +141,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Inventory slice 2:** ✅ GL posting on stock adjustments (Dr/Cr Inventory↔Variance) + stock opname
   done (CHG-0057); ✅ **per-company negative-stock policy (CHG-0073)**; ✅ **back-dated in-period
   moving-average recompute (CHG-0104, ADR-0033)** — replay + net Inventory↔COGS/Variance adjusting
-  journal, on the cross-module paths. Remaining: FIFO option; cross-bucket (transfer) back-dating.
+  journal, on the cross-module paths. ✅ **per-product FIFO costing (CHG-0109, ADR-0034)**. Remaining:
+  FIFO back-dating; cross-bucket (transfer) back-dating.
   (Transfers are GL-neutral under a single Inventory control account.)
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
   `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
@@ -189,7 +190,7 @@ Backend threads that can be picked up independently if desired (none block the f
   (CHG-0058)**, **inventory valuation (CHG-0062)** done. Reporting suite complete.
 - **Accounting:** ✅ period-close balance snapshots (CHG-0079); year-end close to retained earnings (CHG-0059).
 - **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); ✅ per-company
-  negative-stock policy (CHG-0073); ✅ back-dated in-period recompute (CHG-0104, ADR-0033); remaining: FIFO option.
+  negative-stock policy (CHG-0073); ✅ back-dated in-period recompute (CHG-0104, ADR-0033); ✅ per-product FIFO costing (CHG-0109, ADR-0034); remaining: FIFO back-dating + cross-bucket (transfer) back-dating.
 - **Returns:** purchase & sales returns/credit notes.
 - A dev **customer seed** (none seeded today; created via API in e2e).
 
@@ -197,7 +198,7 @@ After order-to-cash, the backend is MVP-functional end to end — the natural ne
 frontend**, which requires the **UI/UX design discussion** before any build (user preference: not
 template/AI-ish). Pause and raise it then.
 
-Other open threads (not blocking): **Inventory** FIFO option + cross-bucket (transfer) back-dating.
+Other open threads (not blocking): **Inventory** FIFO back-dating + cross-bucket (transfer) back-dating (FIFO forward costing ✅ CHG-0109).
 (Idempotency exactly-once ✅ CHG-0102; inventory back-dating ✅ CHG-0104; returns detail ✅ CHG-0105.)
 
 ## How to resume

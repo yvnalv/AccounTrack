@@ -69,14 +69,17 @@ configurable per company with the stated default.
 
 - **BR-INV-1 (invariant)** `InventoryTransaction` is the source of truth; on-hand and value are
   derived from it.
-- **BR-INV-2 (invariant)** Costing is moving weighted average per (Company × Warehouse × Product).
+- **BR-INV-2 (config, default moving average)** Costing is chosen **per product** (ADR-0034):
+  moving weighted average (default) or **FIFO** (first-in, first-out), set at creation and immutable
+  thereafter. Both are maintained per (Company × Warehouse × Product) bucket; FIFO consumes the oldest
+  cost layers first and values on-hand as the sum of open layers.
 - **BR-INV-3 (config, default disallow)** An issue that would drive on-hand negative is rejected;
   negative stock is opt-in per company via the `Inventory.AllowNegativeStock` company setting
   (resolved centrally in the inventory ledger, so it applies uniformly to deliveries, returns,
   adjustments, transfers, and opname). (CHG-0073, ADR-0016.)
 - **BR-INV-4 (invariant)** Movements post chronologically; no back-dating into a closed period.
 - **BR-INV-5** Back-dating within the open period triggers a forward recompute of the affected
-  cost bucket.
+  cost bucket (moving-average products only — see BR-INV-10).
 - **BR-INV-6 (invariant)** A transfer carries source moving-average cost to the destination
   warehouse.
 - **BR-INV-7** Inventory valuation reconciles to the Inventory GL account.
@@ -84,6 +87,9 @@ configurable per company with the stated default.
   approval.
 - **BR-INV-9 (invariant)** Every costed movement that affects the GL is posted atomically with
   its journal.
+- **BR-INV-10 (v1 limit, ADR-0034)** Back-dating a movement for a **FIFO** product is rejected;
+  FIFO is forward-only in v1 (layer reconstruction across an inserted movement is a later
+  enhancement). Enter FIFO movements dated on or after the latest existing movement.
 
 ## Sales
 

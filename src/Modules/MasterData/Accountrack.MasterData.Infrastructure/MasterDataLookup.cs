@@ -1,6 +1,7 @@
 using Accountrack.MasterData.Domain;
 using Accountrack.MasterData.Infrastructure.Persistence;
 using Accountrack.Modules.Contracts.MasterData;
+using Accountrack.SharedKernel.Inventory;
 using Microsoft.EntityFrameworkCore;
 
 namespace Accountrack.MasterData.Infrastructure;
@@ -23,6 +24,10 @@ public sealed class MasterDataLookup : IMasterDataLookup
 
     public Task<bool> WarehouseExistsAsync(Guid warehouseId, CancellationToken ct) =>
         _db.Set<Warehouse>().AnyAsync(w => w.Id == warehouseId, ct);
+
+    public async Task<CostingMethod> GetCostingMethodAsync(Guid productId, CancellationToken ct) =>
+        await _db.Set<Product>().Where(p => p.Id == productId)
+            .Select(p => p.CostingMethod).FirstOrDefaultAsync(ct);
 
     public async Task<IReadOnlyDictionary<Guid, string>> ResolveNamesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct)
     {

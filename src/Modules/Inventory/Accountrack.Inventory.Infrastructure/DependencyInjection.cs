@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryUnitOfWork>(sp => sp.GetRequiredService<InventoryDbContext>());
         services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<InventoryDbContext>());
         services.AddScoped<IStockBucketRepository, StockBucketRepository>();
+        services.AddScoped<IStockCostLayerRepository, StockCostLayerRepository>();
         services.AddScoped<IInventoryTransactionRepository, InventoryTransactionRepository>();
         services.AddScoped<IInventoryLedger, InventoryLedgerService>();
         services.AddScoped<IInventoryPosting, InventoryPostingService>();

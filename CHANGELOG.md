@@ -1,5 +1,34 @@
 # Accountrack Changelog
 
+## [2026-07-07 07:39:49 UTC]
+
+CHG-0109 — Inventory: FIFO costing as a per-product option (ADR-0034)
+
+- **Adds FIFO (first-in, first-out) costing** alongside the existing moving average, chosen **per
+  product** at creation and **immutable thereafter** (like the base UoM — it underpins historical
+  valuation). Moving average stays the default and its code path is unchanged.
+- **Domain:** `CostingMethod` enum (SharedKernel); `Product.CostingMethod`; `StockCostBucket` now
+  carries the method (inherited from the product when the bucket is first created) and gains
+  `IssueFifo`; new `StockCostLayer` entity + pure, unit-tested `FifoCosting` (consume oldest layers
+  first). A FIFO receipt opens a cost layer; a FIFO issue consumes the oldest layers and posts their
+  summed cost as COGS.
+- **Cross-module:** `IMasterDataLookup.GetCostingMethodAsync` lets the Inventory ledger read a
+  product's method without touching Master Data tables (ADR-0007). The inventory-valuation report
+  values FIFO buckets as the sum of their open layers, so it still reconciles to the GL Inventory
+  account (BR-INV-7).
+- **v1 scope:** FIFO is forward-only — **back-dating a movement for a FIFO product is rejected**
+  (`BR-INV-10`, `INVENTORY.BACKDATING_FIFO_NOT_SUPPORTED`); moving-average back-dating (ADR-0033) is
+  unchanged. Opt-in negative stock costs any layer shortfall at the last average.
+- **Frontend:** product create/edit gains a costing-method selector (disabled on edit, with an
+  immutability hint); `masterData.products.costing.*` strings (en + id).
+- **Migrations:** `Products.CostingMethod` and `StockCostBuckets.CostingMethod` (default 0 =
+  MovingAverage for existing rows); new `StockCostLayers` table.
+- Full backend suite green (**346 passed**, +12: pure FIFO math + FIFO ledger receive/issue/
+  back-dating-reject); frontend builds clean. Docs: **ADR-0034**, INVENTORY_DESIGN §1/§3/§10,
+  BUSINESS_RULES BR-INV-2/5/10, DECISIONS index (also backfilled ADR-0033).
+
+---
+
 ## [2026-07-07 04:37:21 UTC]
 
 CHG-0108 — Frontend: surface the Audit trail + document Process-Tracker timeline

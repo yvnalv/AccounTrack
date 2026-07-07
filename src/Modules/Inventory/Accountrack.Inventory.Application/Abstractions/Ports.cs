@@ -28,6 +28,19 @@ public interface IInventoryTransactionRepository
     Task<DateOnly?> MaxMovementDateAsync(Guid productId, Guid warehouseId, CancellationToken ct);
 }
 
+public interface IStockCostLayerRepository
+{
+    void Add(StockCostLayer layer);
+
+    /// <summary>Open (RemainingQty &gt; 0) FIFO layers for a bucket, oldest-first (MovementDate, then
+    /// insertion order) — the consumption order for an issue (ADR-0034). Returns tracked entities so a
+    /// consumed layer's remaining quantity persists.</summary>
+    Task<IReadOnlyList<StockCostLayer>> ListOpenForBucketAsync(Guid productId, Guid warehouseId, CancellationToken ct);
+
+    /// <summary>All open layers for the tenant (RemainingQty &gt; 0), for FIFO inventory valuation.</summary>
+    Task<IReadOnlyList<StockCostLayer>> ListOpenAsync(CancellationToken ct);
+}
+
 public interface IInventoryUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken ct);

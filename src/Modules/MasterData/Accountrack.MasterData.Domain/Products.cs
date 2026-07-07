@@ -1,4 +1,5 @@
 using Accountrack.SharedKernel.Domain;
+using Accountrack.SharedKernel.Inventory;
 
 namespace Accountrack.MasterData.Domain;
 
@@ -74,6 +75,7 @@ public sealed class Product : TenantOwnedEntity, IAggregateRoot, IHasCode
         IsSold = true;
         IsPurchased = true;
         IsActive = true;
+        CostingMethod = CostingMethod.MovingAverage;
     }
 
     /// <summary>The product code / SKU (unique per company).</summary>
@@ -86,15 +88,24 @@ public sealed class Product : TenantOwnedEntity, IAggregateRoot, IHasCode
     public bool IsPurchased { get; private set; }
     public bool IsActive { get; private set; }
 
+    /// <summary>
+    /// The inventory cost-flow method for this product (ADR-0034). Set at creation and immutable
+    /// thereafter — changing it would corrupt historical valuation, so <see cref="Update"/> never
+    /// touches it. The product's stock buckets inherit this method.
+    /// </summary>
+    public CostingMethod CostingMethod { get; private set; }
+
     public static Product Create(
         string code, string name, Guid baseUomId, Guid? categoryId,
-        bool isStockTracked = true, bool isSold = true, bool isPurchased = true)
+        bool isStockTracked = true, bool isSold = true, bool isPurchased = true,
+        CostingMethod costingMethod = CostingMethod.MovingAverage)
     {
         var product = new Product(code.Trim().ToUpperInvariant(), name.Trim(), baseUomId, categoryId)
         {
             IsStockTracked = isStockTracked,
             IsSold = isSold,
             IsPurchased = isPurchased,
+            CostingMethod = costingMethod,
         };
         return product;
     }

@@ -37,6 +37,7 @@ public sealed class MasterDataDbContext : BaseDbContext, IMasterDataUnitOfWork
             CodedConfig(b, codeLen: 64, nameLen: 200);
             b.ToTable("Products");
             b.HasIndex(p => p.BaseUomId);
+            b.Property(p => p.CostingMethod).HasConversion<int>();
         });
 
         modelBuilder.Entity<Customer>(b =>

@@ -4,6 +4,9 @@ export interface NamedRef {
   name: string
 }
 
+/** Inventory cost-flow method for a product (ADR-0034); serialized as a string by the API. */
+export type CostingMethod = 'MovingAverage' | 'Fifo'
+
 export interface Product extends NamedRef {
   baseUomId: string
   categoryId: string | null
@@ -12,6 +15,7 @@ export interface Product extends NamedRef {
   isPurchased: boolean
   isActive: boolean
   rowVersion: string | null
+  costingMethod: CostingMethod
 }
 
 export interface Customer extends NamedRef {
@@ -59,6 +63,7 @@ export interface CreateProduct {
   isStockTracked: boolean
   isSold: boolean
   isPurchased: boolean
+  costingMethod: CostingMethod
 }
 
 export interface CreateCustomer {
