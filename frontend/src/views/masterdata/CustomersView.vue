@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
@@ -25,9 +26,14 @@ import type { Column } from '@/components/ui/types'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const router = useRouter()
 const auth = useAuthStore()
 const rows = ref<Customer[]>([])
 const filteredRows = ref<Record<string, unknown>[]>([])
+
+function openDetail(row: Record<string, unknown>) {
+  router.push({ name: 'masterDataCustomerDetail', params: { id: String(row.id) } })
+}
 
 // AR outstanding per customer (what they owe us), from the AR subledger aging.
 const receivableByCustomer = ref(new Map<string, number>())
@@ -187,7 +193,7 @@ async function toggleActive(row: Customer) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.customers.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')" @row-click="openDetail">
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
       <template #cell-creditLimit="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-receivable="{ value, row }">
@@ -200,11 +206,13 @@ async function toggleActive(row: Customer) {
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
       </template>
       <template #cell-actions="{ row }">
-        <RowActions
-          :row="(row as unknown as Customer)"
-          @edit="openEdit(row as unknown as Customer)"
-          @toggle="toggleActive(row as unknown as Customer)"
-        />
+        <span @click.stop>
+          <RowActions
+            :row="(row as unknown as Customer)"
+            @edit="openEdit(row as unknown as Customer)"
+            @toggle="toggleActive(row as unknown as Customer)"
+          />
+        </span>
       </template>
     </DataTable>
 

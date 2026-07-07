@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-07-07 14:26:01 UTC]
+
+CHG-0115 — Master data: customer / supplier / warehouse detail pages (phase 2)
+
+- **Clickable rows** on the Customers, Suppliers and Warehouses lists now open a detail page (Edit
+  and Deactivate stay as row actions via `@click.stop`).
+- **Customer detail** — profile (tax id, terms, credit limit, price list), 4 KPI cards (receivable,
+  overdue, #orders, lifetime sales) and sections: **Open invoices** (AR), **Sales orders**
+  (click-through to the order) and **Payments received**.
+- **Supplier detail** — mirror with **Open bills** (AP), **Purchase orders** and **Payments made**;
+  KPIs payable / overdue / #POs / lifetime purchases.
+- **Warehouse detail** — KPIs (stock value, SKUs, units on hand) and a **stock-contents** table
+  (product, on-hand, avg cost, value) with a total.
+- New lib calls `salesApi.customerPayments` / `purchasingApi.supplierPayments`; consumes existing
+  `/ar|ap/open-items`, `/sales-orders`, `/purchase-orders`, `/stock/on-hand`. All cross-module reads
+  degrade gracefully without the relevant permission. Routes `masterData{Customer,Supplier,Warehouse}Detail`.
+  Frontend only; `party.*` / `warehouseDetail.*` strings (en + id). Builds clean.
+
+---
+
 ## [2026-07-07 14:04:31 UTC]
 
 CHG-0114 — Master data as dedicated pages + insight columns (phase 1)

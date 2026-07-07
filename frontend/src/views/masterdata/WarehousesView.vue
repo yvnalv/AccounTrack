@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
@@ -23,9 +24,14 @@ import type { Column } from '@/components/ui/types'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const router = useRouter()
 const auth = useAuthStore()
 const rows = ref<Warehouse[]>([])
 const filteredRows = ref<Record<string, unknown>[]>([])
+
+function openDetail(row: Record<string, unknown>) {
+  router.push({ name: 'masterDataWarehouseDetail', params: { id: String(row.id) } })
+}
 
 // Stock value + SKU count per warehouse, from the inventory ledger.
 const valueByWarehouse = ref(new Map<string, number>())
@@ -152,7 +158,7 @@ async function toggleActive(row: Warehouse) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.warehouses.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')" @row-click="openDetail">
       <template #cell-address="{ value }">{{ value || '—' }}</template>
       <template #cell-skus="{ value }">{{ formatNumber(Number(value)) }}</template>
       <template #cell-stockValue="{ value }">
@@ -162,7 +168,9 @@ async function toggleActive(row: Warehouse) {
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
       </template>
       <template #cell-actions="{ row }">
-        <RowActions :row="(row as unknown as Warehouse)" @edit="openEdit(row as unknown as Warehouse)" @toggle="toggleActive(row as unknown as Warehouse)" />
+        <span @click.stop>
+          <RowActions :row="(row as unknown as Warehouse)" @edit="openEdit(row as unknown as Warehouse)" @toggle="toggleActive(row as unknown as Warehouse)" />
+        </span>
       </template>
     </DataTable>
 

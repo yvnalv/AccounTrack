@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
@@ -25,9 +26,14 @@ import type { Column } from '@/components/ui/types'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const router = useRouter()
 const auth = useAuthStore()
 const rows = ref<Supplier[]>([])
 const filteredRows = ref<Record<string, unknown>[]>([])
+
+function openDetail(row: Record<string, unknown>) {
+  router.push({ name: 'masterDataSupplierDetail', params: { id: String(row.id) } })
+}
 
 // AP outstanding per supplier (what we owe them), from the AP subledger aging.
 const payableBySupplier = ref(new Map<string, number>())
@@ -179,7 +185,7 @@ async function toggleActive(row: Supplier) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.suppliers.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')" @row-click="openDetail">
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
       <template #cell-payable="{ value, row }">
         <span v-if="Number(value) <= 0" class="text-text-muted">—</span>
@@ -191,7 +197,9 @@ async function toggleActive(row: Supplier) {
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
       </template>
       <template #cell-actions="{ row }">
-        <RowActions :row="(row as unknown as Supplier)" @edit="openEdit(row as unknown as Supplier)" @toggle="toggleActive(row as unknown as Supplier)" />
+        <span @click.stop>
+          <RowActions :row="(row as unknown as Supplier)" @edit="openEdit(row as unknown as Supplier)" @toggle="toggleActive(row as unknown as Supplier)" />
+        </span>
       </template>
     </DataTable>
 

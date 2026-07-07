@@ -3,6 +3,7 @@ import type {
   CreatePurchaseOrder,
   CreateSupplierPayment,
   GoodsReceiptSummary,
+  SupplierPaymentSummary,
   PoLineQuantityInput,
   PurchaseInvoice,
   PurchaseInvoiceSummary,
@@ -16,6 +17,8 @@ import type {
 
 export const purchasingApi = {
   list: () => unwrap<PurchaseOrderSummary[]>(http.get('/purchase-orders')),
+  supplierPayments: (supplierId: string) =>
+    unwrap<SupplierPaymentSummary[]>(http.get('/supplier-payments', { params: { supplierId } })),
   get: (id: string) => unwrap<PurchaseOrder>(http.get(`/purchase-orders/${id}`)),
   create: (body: CreatePurchaseOrder) => unwrap<string>(http.post('/purchase-orders', body)),
   update: (id: string, body: CreatePurchaseOrder, rowVersion?: string | null) =>
