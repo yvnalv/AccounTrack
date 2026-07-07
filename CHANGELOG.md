@@ -1,5 +1,17 @@
 # Accountrack Changelog
 
+## [2026-07-07 12:55:57 UTC]
+
+CHG-0112 — Frontend: richer product list (category, UoM, prices, costing)
+
+- The **Products** master-data table now shows meaningful columns beyond code/name: **Category**,
+  **Unit** (base UoM), **Sale price**, **Purchase price**, **Costing method**, and **Stock-tracked**,
+  alongside Status. Category name and UoM code are resolved (searchable + exported), not raw ids.
+- Sale/Purchase price render as money (or "—" when unset); costing shows Moving average / FIFO.
+- Frontend only; no backend or schema change. Builds clean (vue-tsc + vite).
+
+---
+
 ## [2026-07-07 12:31:03 UTC]
 
 CHG-0111 — Pricing: product base price + shared discount lists (ADR-0036, supersedes ADR-0035)

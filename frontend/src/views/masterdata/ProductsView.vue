@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Check, Minus, Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
 import { isConflict } from '@/lib/api'
+import { formatMoney } from '@/lib/format'
 import { exportTable } from '@/lib/exportTable'
 import { useCsvImport } from '@/composables/useCsvImport'
 import type { CostingMethod, NamedRef, Product } from '@/types/masterdata'
@@ -68,9 +69,12 @@ const costingMethodOptions = computed(() => [
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('masterData.fields.code') },
   { key: 'name', label: t('masterData.fields.name') },
+  { key: 'categoryName', label: t('masterData.fields.category') },
+  { key: 'uomCode', label: t('masterData.fields.uom') },
+  { key: 'salePrice', label: t('masterData.products.salePrice'), align: 'right', numeric: true },
+  { key: 'purchasePrice', label: t('masterData.products.purchasePrice'), align: 'right', numeric: true },
+  { key: 'costingMethod', label: t('masterData.products.costing.label') },
   { key: 'isStockTracked', label: t('masterData.fields.stockTracked') },
-  { key: 'isSold', label: t('masterData.fields.sold') },
-  { key: 'isPurchased', label: t('masterData.fields.purchased') },
   { key: 'isActive', label: t('masterData.status') },
   { key: 'actions', label: t('masterData.actions'), align: 'right' },
 ])
@@ -80,6 +84,17 @@ const categoryOptions = computed(() => [
   { value: '', label: t('masterData.products.noCategory') },
   ...categories.value.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
 ])
+
+// Enrich rows with resolved category name + UoM code so those columns are readable and searchable.
+const uomCodeById = computed(() => new Map(uoms.value.map((u) => [u.id, u.code])))
+const categoryNameById = computed(() => new Map(categories.value.map((c) => [c.id, c.name])))
+const tableRows = computed(() =>
+  rows.value.map((p) => ({
+    ...p,
+    categoryName: (p.categoryId && categoryNameById.value.get(p.categoryId)) || '—',
+    uomCode: uomCodeById.value.get(p.baseUomId) ?? '—',
+  })),
+)
 
 async function load() {
   loading.value = true
@@ -193,14 +208,17 @@ async function toggleActive(row: Product) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.products.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')">
+      <template #cell-salePrice="{ value }">
+        <span :class="value == null ? 'text-text-muted' : 'text-text'">{{ value == null ? '—' : formatMoney(Number(value)) }}</span>
+      </template>
+      <template #cell-purchasePrice="{ value }">
+        <span :class="value == null ? 'text-text-muted' : 'text-text'">{{ value == null ? '—' : formatMoney(Number(value)) }}</span>
+      </template>
+      <template #cell-costingMethod="{ value }">
+        {{ value === 'Fifo' ? t('masterData.products.costing.fifo') : t('masterData.products.costing.movingAverage') }}
+      </template>
       <template #cell-isStockTracked="{ value }">
-        <Check v-if="value" :size="16" class="text-positive" /><Minus v-else :size="16" class="text-text-muted" />
-      </template>
-      <template #cell-isSold="{ value }">
-        <Check v-if="value" :size="16" class="text-positive" /><Minus v-else :size="16" class="text-text-muted" />
-      </template>
-      <template #cell-isPurchased="{ value }">
         <Check v-if="value" :size="16" class="text-positive" /><Minus v-else :size="16" class="text-text-muted" />
       </template>
       <template #cell-isActive="{ value }">
