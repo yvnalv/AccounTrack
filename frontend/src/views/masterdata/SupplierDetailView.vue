@@ -2,15 +2,17 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Wallet } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
 import { pricingApi } from '@/lib/pricing'
 import { accountingApi } from '@/lib/accounting'
 import { purchasingApi } from '@/lib/purchasing'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
+import { useAuthStore } from '@/stores/auth'
 import type { Supplier } from '@/types/masterdata'
 import type { SubledgerOpenItem } from '@/types/accounting'
 import type { PurchaseOrderSummary, SupplierPaymentSummary } from '@/types/purchasing'
+import AppButton from '@/components/ui/AppButton.vue'
 import AppCard from '@/components/ui/AppCard.vue'
 import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -18,8 +20,14 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const id = computed(() => String(route.params.id))
+const canPay = computed(() => auth.has('Purchasing.Post'))
+
+function paySupplier() {
+  router.push({ name: 'purchasingPaySupplier', query: { supplierId: id.value } })
+}
 const loading = ref(true)
 const supplier = ref<Supplier | null>(null)
 const priceListName = ref<string | null>(null)
@@ -89,6 +97,9 @@ function openOrder(orderId: string) {
           </div>
           <p class="mt-1 text-sm text-text-muted">{{ supplier.code }}</p>
         </div>
+        <AppButton v-if="canPay && payable > 0" @click="paySupplier">
+          <Wallet :size="16" /> {{ t('party.paySupplier') }}
+        </AppButton>
       </div>
 
       <InsightCards :items="insights" />

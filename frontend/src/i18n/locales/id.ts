@@ -710,6 +710,8 @@ export default {
   party: {
     backToCustomers: 'Kembali ke pelanggan',
     backToSuppliers: 'Kembali ke pemasok',
+    receivePayment: 'Terima pembayaran',
+    paySupplier: 'Bayar pemasok',
     notFound: 'Tidak ditemukan.',
     profile: 'Profil',
     days: 'hari',
@@ -732,6 +734,11 @@ export default {
     noOrders: 'Belum ada pesanan penjualan.',
     noPurchaseOrders: 'Belum ada pesanan pembelian.',
     noPayments: 'Belum ada pembayaran.',
+  },
+  productDetail: {
+    byWarehouse: 'Stok per gudang',
+    history: 'Riwayat pergerakan',
+    warehouse: 'Gudang',
   },
   warehouseDetail: {
     back: 'Kembali ke gudang',

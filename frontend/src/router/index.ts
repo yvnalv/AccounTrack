@@ -55,6 +55,7 @@ const router = createRouter({
         },
         // Master data — each a top-level page (ADR consistency); route names kept stable.
         { path: 'products', name: 'masterDataProducts', component: () => import('@/views/masterdata/ProductsView.vue'), meta: { titleKey: 'masterData.tabs.products' } },
+        { path: 'products/:id', name: 'masterDataProductDetail', component: () => import('@/views/masterdata/ProductDetailView.vue'), meta: { titleKey: 'masterData.tabs.products' } },
         { path: 'customers', name: 'masterDataCustomers', component: () => import('@/views/masterdata/CustomersView.vue'), meta: { titleKey: 'masterData.tabs.customers' } },
         { path: 'customers/:id', name: 'masterDataCustomerDetail', component: () => import('@/views/masterdata/CustomerDetailView.vue'), meta: { titleKey: 'masterData.tabs.customers' } },
         { path: 'suppliers', name: 'masterDataSuppliers', component: () => import('@/views/masterdata/SuppliersView.vue'), meta: { titleKey: 'masterData.tabs.suppliers' } },

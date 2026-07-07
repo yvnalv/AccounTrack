@@ -709,6 +709,8 @@ export default {
   party: {
     backToCustomers: 'Back to customers',
     backToSuppliers: 'Back to suppliers',
+    receivePayment: 'Receive payment',
+    paySupplier: 'Pay supplier',
     notFound: 'Not found.',
     profile: 'Profile',
     days: 'days',
@@ -731,6 +733,11 @@ export default {
     noOrders: 'No sales orders yet.',
     noPurchaseOrders: 'No purchase orders yet.',
     noPayments: 'No payments yet.',
+  },
+  productDetail: {
+    byWarehouse: 'Stock by warehouse',
+    history: 'Movement history',
+    warehouse: 'Warehouse',
   },
   warehouseDetail: {
     back: 'Back to warehouses',

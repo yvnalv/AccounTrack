@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-07-07 14:54:16 UTC]
+
+CHG-0116 — Actionable balances + product history/detail page
+
+- **Pay from the party detail.** The customer detail shows a **Receive payment** button and the
+  supplier detail a **Pay supplier** button (shown when there's an outstanding balance and the user
+  has `Sales.Post` / `Purchasing.Post`). They open the payment screen **preselected** to that party,
+  with their open items ready to allocate — the receive-payment / pay-supplier views now read a
+  `?customerId` / `?supplierId` query param.
+- **Product detail page.** Product rows are now clickable → a detail page that **traces
+  purchase/sales history**: header (category, unit, costing), 4 KPI cards (in stock, stock value,
+  average cost, sale price), a **stock-by-warehouse** table, and a **movement history** table
+  (receipts in / issues out / adjustments / transfers with source, signed qty and running balance),
+  reusing the inventory stock-card labels.
+- New route `masterDataProductDetail`; Edit/Deactivate stay row actions (`@click.stop`). Reads
+  existing endpoints (`/stock/card`, `/stock/on-hand`, `/ar|ap/open-items`); cross-module reads
+  degrade gracefully. Frontend only; `party.*` / `productDetail.*` strings (en + id). Builds clean.
+
+---
+
 ## [2026-07-07 14:26:01 UTC]
 
 CHG-0115 — Master data: customer / supplier / warehouse detail pages (phase 2)
