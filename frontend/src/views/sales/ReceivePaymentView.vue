@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
@@ -26,6 +26,7 @@ interface AllocRow {
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 
 const customers = ref<NamedRef[]>([])
 const accounts = ref<AccountRef[]>([])
@@ -40,6 +41,11 @@ onMounted(async () => {
   const [c, a] = await Promise.all([masterData.customers(), accountingApi.accounts()])
   customers.value = c
   accounts.value = cashAccounts(a)
+  // Preselect the customer when arriving from a customer detail page (watch loads their open items).
+  const preselect = route.query.customerId
+  if (typeof preselect === 'string' && c.some((x) => x.id === preselect)) {
+    form.value.customerId = preselect
+  }
 })
 
 const customerOptions = computed(() => customers.value.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })))

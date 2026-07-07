@@ -1,5 +1,70 @@
 # Accountrack Changelog
 
+## [2026-07-07 14:54:16 UTC]
+
+CHG-0116 — Actionable balances + product history/detail page
+
+- **Pay from the party detail.** The customer detail shows a **Receive payment** button and the
+  supplier detail a **Pay supplier** button (shown when there's an outstanding balance and the user
+  has `Sales.Post` / `Purchasing.Post`). They open the payment screen **preselected** to that party,
+  with their open items ready to allocate — the receive-payment / pay-supplier views now read a
+  `?customerId` / `?supplierId` query param.
+- **Product detail page.** Product rows are now clickable → a detail page that **traces
+  purchase/sales history**: header (category, unit, costing), 4 KPI cards (in stock, stock value,
+  average cost, sale price), a **stock-by-warehouse** table, and a **movement history** table
+  (receipts in / issues out / adjustments / transfers with source, signed qty and running balance),
+  reusing the inventory stock-card labels.
+- New route `masterDataProductDetail`; Edit/Deactivate stay row actions (`@click.stop`). Reads
+  existing endpoints (`/stock/card`, `/stock/on-hand`, `/ar|ap/open-items`); cross-module reads
+  degrade gracefully. Frontend only; `party.*` / `productDetail.*` strings (en + id). Builds clean.
+
+---
+
+## [2026-07-07 14:26:01 UTC]
+
+CHG-0115 — Master data: customer / supplier / warehouse detail pages (phase 2)
+
+- **Clickable rows** on the Customers, Suppliers and Warehouses lists now open a detail page (Edit
+  and Deactivate stay as row actions via `@click.stop`).
+- **Customer detail** — profile (tax id, terms, credit limit, price list), 4 KPI cards (receivable,
+  overdue, #orders, lifetime sales) and sections: **Open invoices** (AR), **Sales orders**
+  (click-through to the order) and **Payments received**.
+- **Supplier detail** — mirror with **Open bills** (AP), **Purchase orders** and **Payments made**;
+  KPIs payable / overdue / #POs / lifetime purchases.
+- **Warehouse detail** — KPIs (stock value, SKUs, units on hand) and a **stock-contents** table
+  (product, on-hand, avg cost, value) with a total.
+- New lib calls `salesApi.customerPayments` / `purchasingApi.supplierPayments`; consumes existing
+  `/ar|ap/open-items`, `/sales-orders`, `/purchase-orders`, `/stock/on-hand`. All cross-module reads
+  degrade gracefully without the relevant permission. Routes `masterData{Customer,Supplier,Warehouse}Detail`.
+  Frontend only; `party.*` / `warehouseDetail.*` strings (en + id). Builds clean.
+
+---
+
+## [2026-07-07 14:04:31 UTC]
+
+CHG-0114 — Master data as dedicated pages + insight columns (phase 1)
+
+- **Sidebar restructure.** Products, Customers, Suppliers and Warehouses are now their own top-level
+  sidebar pages under a new **Master data** section; Units, Categories, Tax codes and Price lists
+  remain grouped on a slim **Setup** page. Route names are unchanged (⌘K palette still works).
+- **Consistent layout — 4 insight cards** on every master-data list (was 3), matching the other
+  modules.
+- **Products:** new **In stock** column (summed across warehouses) + cards Total · Active ·
+  **Stock value** · **Out of stock**.
+- **Customers:** new **Owes us** (AR outstanding) column, red when overdue + cards Total · Active ·
+  **Total receivable** · **Overdue**.
+- **Suppliers:** new **We owe** (AP outstanding) column + cards Total · Active · **Total payable** ·
+  **Overdue**.
+- **Warehouses:** insight cards added (Total · Active · **Stock value** · **SKUs**) + **SKUs** and
+  **Stock value** columns.
+- Reads existing endpoints (`/stock/on-hand`, `/ar/aging`, `/ap/aging`); the cross-module fetches
+  **degrade gracefully** if the user lacks Inventory/Accounting.View. Frontend only; no backend or
+  schema change. `nav.*` / master-data column strings (en + id). Builds clean.
+- Phase 2 (next): clickable rows → **Customer / Supplier / Warehouse detail pages** (transaction
+  history, stock contents).
+
+---
+
 ## [2026-07-07 13:11:43 UTC]
 
 CHG-0113 — Deliveries list + clarify the delivery COGS figure

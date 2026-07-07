@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
 import { pricingApi } from '@/lib/pricing'
+import { accountingApi } from '@/lib/accounting'
 import { isConflict } from '@/lib/api'
 import { exportTable } from '@/lib/exportTable'
+import { formatMoney, formatMoneyShort } from '@/lib/format'
 import { useCsvImport } from '@/composables/useCsvImport'
 import type { PriceList, Supplier } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -23,9 +26,20 @@ import type { Column } from '@/components/ui/types'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const router = useRouter()
 const auth = useAuthStore()
 const rows = ref<Supplier[]>([])
 const filteredRows = ref<Record<string, unknown>[]>([])
+
+function openDetail(row: Record<string, unknown>) {
+  router.push({ name: 'masterDataSupplierDetail', params: { id: String(row.id) } })
+}
+
+// AP outstanding per supplier (what we owe them), from the AP subledger aging.
+const payableBySupplier = ref(new Map<string, number>())
+const overdueBySupplier = ref(new Map<string, number>())
+const payableTotal = ref(0)
+const overdueTotal = ref(0)
 
 const insights = computed<Insight[]>(() => {
   const total = rows.value.length
@@ -33,9 +47,18 @@ const insights = computed<Insight[]>(() => {
   return [
     { label: t('masterData.tabs.suppliers'), value: String(total) },
     { label: t('common.insights.active'), value: String(active), tone: 'positive' },
-    { label: t('common.insights.inactive'), value: String(total - active), tone: total - active > 0 ? 'negative' : 'neutral' },
+    { label: t('masterData.suppliers.payable'), value: formatMoneyShort(payableTotal.value), tone: 'accent' },
+    { label: t('masterData.suppliers.overdue'), value: formatMoneyShort(overdueTotal.value), tone: overdueTotal.value > 0 ? 'negative' : 'neutral' },
   ]
 })
+
+const tableRows = computed(() =>
+  rows.value.map((s) => ({
+    ...s,
+    payable: payableBySupplier.value.get(s.id) ?? 0,
+    overdue: overdueBySupplier.value.get(s.id) ?? 0,
+  })),
+)
 
 const io = masterData.supplierImport
 const { fileInput, open: importOpen, preview: importPreview, busy: importBusy, error: importError, canCommit, pick, onFileChosen, commit: commitImport } =
@@ -60,6 +83,7 @@ const columns = computed<Column[]>(() => [
   { key: 'name', label: t('masterData.fields.name') },
   { key: 'taxId', label: t('masterData.fields.taxId') },
   { key: 'paymentTermDays', label: t('masterData.fields.terms'), align: 'right', numeric: true },
+  { key: 'payable', label: t('masterData.suppliers.payable'), align: 'right', numeric: true },
   { key: 'isActive', label: t('masterData.status') },
   { key: 'actions', label: t('masterData.actions'), align: 'right' },
 ])
@@ -70,6 +94,24 @@ async function load() {
     const [s, lists] = await Promise.all([masterData.suppliers(), pricingApi.list()])
     rows.value = s
     purchaseLists.value = lists.filter((l) => l.type === 'Purchase')
+
+    // AP is cross-module (Accounting.View); degrade gracefully if the user lacks it.
+    const aging = await accountingApi.apAging().catch(() => null)
+    const payable = new Map<string, number>()
+    const overdue = new Map<string, number>()
+    let pTotal = 0
+    let oTotal = 0
+    for (const r of aging?.rows ?? []) {
+      const od = r.days1To30 + r.days31To60 + r.days61To90 + r.days90Plus
+      payable.set(r.partyId, r.total)
+      overdue.set(r.partyId, od)
+      pTotal += r.total
+      oTotal += od
+    }
+    payableBySupplier.value = payable
+    overdueBySupplier.value = overdue
+    payableTotal.value = pTotal
+    overdueTotal.value = oTotal
   } finally {
     loading.value = false
   }
@@ -143,13 +185,21 @@ async function toggleActive(row: Supplier) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.suppliers.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')" @row-click="openDetail">
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
+      <template #cell-payable="{ value, row }">
+        <span v-if="Number(value) <= 0" class="text-text-muted">—</span>
+        <span v-else :class="Number(row.overdue) > 0 ? 'text-negative' : 'text-text'">
+          {{ formatMoney(Number(value)) }}
+        </span>
+      </template>
       <template #cell-isActive="{ value }">
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
       </template>
       <template #cell-actions="{ row }">
-        <RowActions :row="(row as unknown as Supplier)" @edit="openEdit(row as unknown as Supplier)" @toggle="toggleActive(row as unknown as Supplier)" />
+        <span @click.stop>
+          <RowActions :row="(row as unknown as Supplier)" @edit="openEdit(row as unknown as Supplier)" @toggle="toggleActive(row as unknown as Supplier)" />
+        </span>
       </template>
     </DataTable>
 

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Check, Minus, Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
+import { inventoryApi } from '@/lib/inventory'
 import { isConflict } from '@/lib/api'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatMoneyShort, formatNumber } from '@/lib/format'
 import { exportTable } from '@/lib/exportTable'
 import { useCsvImport } from '@/composables/useCsvImport'
 import type { CostingMethod, NamedRef, Product } from '@/types/masterdata'
@@ -23,17 +25,31 @@ import type { Column } from '@/components/ui/types'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
+const router = useRouter()
 const auth = useAuthStore()
 const rows = ref<Product[]>([])
 const filteredRows = ref<Record<string, unknown>[]>([])
 
+function openDetail(row: Record<string, unknown>) {
+  router.push({ name: 'masterDataProductDetail', params: { id: String(row.id) } })
+}
+
+// Current stock per product (summed across warehouses), from the inventory ledger.
+const stockQtyByProduct = ref(new Map<string, number>())
+const stockValueByProduct = ref(new Map<string, number>())
+const stockValueTotal = ref(0)
+
 const insights = computed<Insight[]>(() => {
   const total = rows.value.length
   const active = rows.value.filter((r) => r.isActive).length
+  const outOfStock = rows.value.filter(
+    (r) => r.isActive && r.isStockTracked && (stockQtyByProduct.value.get(r.id) ?? 0) <= 0,
+  ).length
   return [
     { label: t('masterData.tabs.products'), value: String(total) },
     { label: t('common.insights.active'), value: String(active), tone: 'positive' },
-    { label: t('common.insights.inactive'), value: String(total - active), tone: total - active > 0 ? 'negative' : 'neutral' },
+    { label: t('masterData.products.stockValue'), value: formatMoneyShort(stockValueTotal.value), tone: 'accent' },
+    { label: t('masterData.products.outOfStock'), value: String(outOfStock), tone: outOfStock > 0 ? 'negative' : 'neutral' },
   ]
 })
 
@@ -71,6 +87,7 @@ const columns = computed<Column[]>(() => [
   { key: 'name', label: t('masterData.fields.name') },
   { key: 'categoryName', label: t('masterData.fields.category') },
   { key: 'uomCode', label: t('masterData.fields.uom') },
+  { key: 'currentStock', label: t('masterData.products.currentStock'), align: 'right', numeric: true },
   { key: 'salePrice', label: t('masterData.products.salePrice'), align: 'right', numeric: true },
   { key: 'purchasePrice', label: t('masterData.products.purchasePrice'), align: 'right', numeric: true },
   { key: 'costingMethod', label: t('masterData.products.costing.label') },
@@ -93,6 +110,7 @@ const tableRows = computed(() =>
     ...p,
     categoryName: (p.categoryId && categoryNameById.value.get(p.categoryId)) || '—',
     uomCode: uomCodeById.value.get(p.baseUomId) ?? '—',
+    currentStock: p.isStockTracked ? (stockQtyByProduct.value.get(p.id) ?? 0) : null,
   })),
 )
 
@@ -107,6 +125,20 @@ async function load() {
     rows.value = p
     uoms.value = u
     categories.value = c
+
+    // Stock is cross-module (Inventory.View); degrade gracefully if the user lacks it.
+    const onHand = await inventoryApi.onHand().catch(() => [])
+    const qty = new Map<string, number>()
+    const value = new Map<string, number>()
+    let totalValue = 0
+    for (const s of onHand) {
+      qty.set(s.productId, (qty.get(s.productId) ?? 0) + s.onHandQty)
+      value.set(s.productId, (value.get(s.productId) ?? 0) + s.value)
+      totalValue += s.value
+    }
+    stockQtyByProduct.value = qty
+    stockValueByProduct.value = value
+    stockValueTotal.value = totalValue
   } finally {
     loading.value = false
   }
@@ -208,7 +240,14 @@ async function toggleActive(row: Product) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.products.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')" @row-click="openDetail">
+      <template #cell-currentStock="{ value, row }">
+        <span v-if="value == null" class="text-text-muted">—</span>
+        <span v-else :class="Number(value) <= 0 ? 'text-negative' : 'text-text'">
+          {{ formatNumber(Number(value)) }}
+          <span class="text-xs text-text-muted">{{ row.uomCode }}</span>
+        </span>
+      </template>
       <template #cell-salePrice="{ value }">
         <span :class="value == null ? 'text-text-muted' : 'text-text'">{{ value == null ? '—' : formatMoney(Number(value)) }}</span>
       </template>
@@ -225,7 +264,9 @@ async function toggleActive(row: Product) {
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
       </template>
       <template #cell-actions="{ row }">
-        <RowActions :row="(row as unknown as Product)" @edit="openEdit(row as unknown as Product)" @toggle="toggleActive(row as unknown as Product)" />
+        <span @click.stop>
+          <RowActions :row="(row as unknown as Product)" @edit="openEdit(row as unknown as Product)" @toggle="toggleActive(row as unknown as Product)" />
+        </span>
       </template>
     </DataTable>
 

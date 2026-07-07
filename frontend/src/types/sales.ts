@@ -51,6 +51,15 @@ export interface DeliveryListItem {
   journalEntryId: string | null
 }
 
+export interface CustomerPaymentSummary {
+  id: string
+  number: string
+  customerId: string
+  paymentDate: string
+  totalAmount: number
+  journalEntryId: string | null
+}
+
 export interface SalesInvoiceSummary {
   id: string
   number: string

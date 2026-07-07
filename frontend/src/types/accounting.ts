@@ -11,6 +11,30 @@ export interface SubledgerOpenItem {
   status: string
 }
 
+/** One party's outstanding, split into aging buckets. */
+export interface AgingRow {
+  partyId: string
+  current: number
+  days1To30: number
+  days31To60: number
+  days61To90: number
+  days90Plus: number
+  total: number
+}
+
+/** AR/AP aging report: per-party rows plus company totals. */
+export interface AgingReport {
+  type: string
+  asOfDate: string
+  rows: AgingRow[]
+  current: number
+  days1To30: number
+  days31To60: number
+  days61To90: number
+  days90Plus: number
+  total: number
+}
+
 export interface AccountRef {
   id: string
   code: string

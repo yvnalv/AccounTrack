@@ -16,6 +16,15 @@ export interface PurchaseOrderSummary {
   orderDate: string
 }
 
+export interface SupplierPaymentSummary {
+  id: string
+  number: string
+  supplierId: string
+  paymentDate: string
+  totalAmount: number
+  journalEntryId: string | null
+}
+
 export interface PurchaseOrderLine {
   id: string
   productId: string
