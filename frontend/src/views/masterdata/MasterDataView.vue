@@ -12,6 +12,7 @@ const tabs = [
   { to: { name: 'masterDataUnits' }, label: t('masterData.tabs.unitsOfMeasure') },
   { to: { name: 'masterDataCategories' }, label: t('masterData.tabs.categories') },
   { to: { name: 'masterDataTaxCodes' }, label: t('masterData.tabs.taxCodes') },
+  { to: { name: 'masterDataPriceLists' }, label: t('masterData.tabs.priceLists') },
 ]
 </script>
 

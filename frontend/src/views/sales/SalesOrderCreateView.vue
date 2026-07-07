@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData } from '@/lib/masterData'
+import { pricingApi } from '@/lib/pricing'
 import { useCompanyStore } from '@/stores/company'
 import { formatMoney } from '@/lib/format'
 import type { NamedRef, Product } from '@/types/masterdata'
@@ -91,6 +92,19 @@ function removeLine(i: number) {
   lines.splice(i, 1)
 }
 
+// Price auto-fill (ADR-0035): resolve the customer's applicable prices, prefill each line's unit
+// price on product-select (still editable). Changing customer refreshes prices for un-priced lines.
+const priceMap = ref<Record<string, number>>({})
+function applyPrice(line: LineForm) {
+  const price = priceMap.value[line.productId]
+  if (price !== undefined) line.unitPrice = price
+}
+async function loadPrices() {
+  priceMap.value = form.customerId ? await pricingApi.resolve('Sales', form.customerId) : {}
+  lines.forEach((l) => { if (l.productId && !l.unitPrice) applyPrice(l) })
+}
+watch(() => form.customerId, loadPrices)
+
 const validLines = computed(() => lines.filter((l) => l.productId && l.quantity > 0))
 const canSubmit = computed(() => !!form.customerId && !!form.warehouseId && validLines.value.length > 0)
 
@@ -169,7 +183,7 @@ async function submit() {
           <tbody>
             <tr v-for="(line, i) in lines" :key="i" class="border-b border-border last:border-0">
               <td class="px-4 py-2">
-                <select v-model="line.productId" class="field-input">
+                <select v-model="line.productId" class="field-input" @change="applyPrice(line)">
                   <option value="" disabled>{{ t('sales.form.selectProduct') }}</option>
                   <option v-for="o in productOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                 </select>

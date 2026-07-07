@@ -20,6 +20,7 @@ export interface Customer extends NamedRef {
   creditLimit: number
   isActive: boolean
   rowVersion: string | null
+  salesPriceListId: string | null
 }
 
 export interface Supplier extends NamedRef {
@@ -27,6 +28,32 @@ export interface Supplier extends NamedRef {
   paymentTermDays: number
   isActive: boolean
   rowVersion: string | null
+  purchasePriceListId: string | null
+}
+
+// Price lists (ADR-0035)
+export type PriceListType = 'Sales' | 'Purchase'
+
+export interface PriceList {
+  id: string
+  name: string
+  type: PriceListType
+  isDefault: boolean
+  isActive: boolean
+  itemCount: number
+  rowVersion: string | null
+}
+
+export interface PriceListItem {
+  id: string
+  productId: string
+  unitPrice: number
+}
+
+export interface CreatePriceList {
+  name: string
+  type: PriceListType
+  isDefault: boolean
 }
 
 export interface Warehouse extends NamedRef {
@@ -67,6 +94,7 @@ export interface CreateCustomer {
   taxId: string | null
   paymentTermDays: number
   creditLimit: number
+  salesPriceListId?: string | null
 }
 
 export interface CreateSupplier {
@@ -74,6 +102,7 @@ export interface CreateSupplier {
   name: string
   taxId: string | null
   paymentTermDays: number
+  purchasePriceListId?: string | null
 }
 
 export interface CreateWarehouse {

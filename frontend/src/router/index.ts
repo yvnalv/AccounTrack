@@ -65,6 +65,7 @@ const router = createRouter({
             { path: 'units', name: 'masterDataUnits', component: () => import('@/views/masterdata/UnitsOfMeasureView.vue') },
             { path: 'categories', name: 'masterDataCategories', component: () => import('@/views/masterdata/CategoriesView.vue') },
             { path: 'tax-codes', name: 'masterDataTaxCodes', component: () => import('@/views/masterdata/TaxCodesView.vue') },
+            { path: 'price-lists', name: 'masterDataPriceLists', component: () => import('@/views/masterdata/PriceListsView.vue') },
           ],
         },
         { path: 'expenses', name: 'expenses', component: () => import('@/views/ExpensesView.vue'), meta: { titleKey: 'expenses.title' } },
