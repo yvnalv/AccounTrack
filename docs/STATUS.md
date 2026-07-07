@@ -8,8 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-07 (last change **CHG-0113**)
+- **As of:** 2026-07-07 (last change **CHG-0114**)
 - **Build:** green — backend `net8.0` (350 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **master data as dedicated sidebar pages** (Products/Customers/Suppliers/Warehouses; Setup
+  page for Units/Categories/Tax/Prices) with 4 insight cards + informative columns — in-stock (products),
+  receivable (customers), payable (suppliers), stock value/SKUs (warehouses) (CHG-0114, phase 1).
+  Phase 2 next: per-party / per-warehouse detail pages.
   Latest: **richer product list** (category/UoM/prices/costing columns; CHG-0112); **Deliveries list**
   (Sales → Deliveries) + the delivery figure clarified as **cost of goods (COGS)**, not the sale price
   (CHG-0113).

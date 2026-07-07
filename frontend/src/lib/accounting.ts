@@ -1,6 +1,7 @@
 import { http, unwrap } from './api'
 import type {
   AccountRef,
+  AgingReport,
   CloseFiscalYearResult,
   FiscalYear,
   PeriodBalance,
@@ -14,6 +15,10 @@ export const accountingApi = {
   /** Open (unsettled) AP items for a supplier. */
   apOpenItems: (partyId: string) =>
     unwrap<SubledgerOpenItem[]>(http.get('/ap/open-items', { params: { partyId } })),
+  /** AR aging with a per-customer row (outstanding + overdue buckets). */
+  arAging: () => unwrap<AgingReport>(http.get('/ar/aging')),
+  /** AP aging with a per-supplier row (outstanding + overdue buckets). */
+  apAging: () => unwrap<AgingReport>(http.get('/ap/aging')),
   accounts: () => unwrap<AccountRef[]>(http.get('/accounts')),
   createAccount: (body: { code: string; name: string; type: string; isControlAccount: boolean; controlType: string }) =>
     unwrap<string>(http.post('/accounts', body)),

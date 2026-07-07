@@ -53,16 +53,17 @@ const router = createRouter({
             { path: 'accounts', name: 'accountingAccounts', component: () => import('@/views/accounting/ChartOfAccountsView.vue') },
           ],
         },
+        // Master data — each a top-level page (ADR consistency); route names kept stable.
+        { path: 'products', name: 'masterDataProducts', component: () => import('@/views/masterdata/ProductsView.vue'), meta: { titleKey: 'masterData.tabs.products' } },
+        { path: 'customers', name: 'masterDataCustomers', component: () => import('@/views/masterdata/CustomersView.vue'), meta: { titleKey: 'masterData.tabs.customers' } },
+        { path: 'suppliers', name: 'masterDataSuppliers', component: () => import('@/views/masterdata/SuppliersView.vue'), meta: { titleKey: 'masterData.tabs.suppliers' } },
+        { path: 'warehouses', name: 'masterDataWarehouses', component: () => import('@/views/masterdata/WarehousesView.vue'), meta: { titleKey: 'masterData.tabs.warehouses' } },
         {
           path: 'master-data',
           component: () => import('@/views/masterdata/MasterDataView.vue'),
-          meta: { titleKey: 'masterData.title' },
+          meta: { titleKey: 'masterData.setup' },
           children: [
-            { path: '', name: 'masterData', redirect: { name: 'masterDataProducts' } },
-            { path: 'products', name: 'masterDataProducts', component: () => import('@/views/masterdata/ProductsView.vue') },
-            { path: 'customers', name: 'masterDataCustomers', component: () => import('@/views/masterdata/CustomersView.vue') },
-            { path: 'suppliers', name: 'masterDataSuppliers', component: () => import('@/views/masterdata/SuppliersView.vue') },
-            { path: 'warehouses', name: 'masterDataWarehouses', component: () => import('@/views/masterdata/WarehousesView.vue') },
+            { path: '', name: 'masterData', redirect: { name: 'masterDataUnits' } },
             { path: 'units', name: 'masterDataUnits', component: () => import('@/views/masterdata/UnitsOfMeasureView.vue') },
             { path: 'categories', name: 'masterDataCategories', component: () => import('@/views/masterdata/CategoriesView.vue') },
             { path: 'tax-codes', name: 'masterDataTaxCodes', component: () => import('@/views/masterdata/TaxCodesView.vue') },

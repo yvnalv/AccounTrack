@@ -11,11 +11,15 @@ import {
   Truck,
   Boxes,
   BookOpen,
-  Database,
   CheckSquare,
   Settings,
   Receipt,
   Search,
+  Package,
+  Users,
+  Building2,
+  Warehouse,
+  SlidersHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-vue-next'
@@ -51,9 +55,18 @@ const groups: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: t('nav.sections.masterData'),
+    items: [
+      { to: { name: 'masterDataProducts' }, icon: Package, label: t('nav.products') },
+      { to: { name: 'masterDataCustomers' }, icon: Users, label: t('nav.customers') },
+      { to: { name: 'masterDataSuppliers' }, icon: Building2, label: t('nav.suppliers') },
+      { to: { name: 'masterDataWarehouses' }, icon: Warehouse, label: t('nav.warehouses') },
+      { to: { name: 'masterData' }, icon: SlidersHorizontal, label: t('nav.setup') },
+    ],
+  },
+  {
     label: t('nav.sections.system'),
     items: [
-      { to: { name: 'masterData' }, icon: Database, label: t('nav.masterData') },
       { to: { name: 'approvals' }, icon: CheckSquare, label: t('nav.approvals') },
       { to: { name: 'settings' }, icon: Settings, label: t('nav.settings') },
     ],

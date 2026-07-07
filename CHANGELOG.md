@@ -1,5 +1,30 @@
 # Accountrack Changelog
 
+## [2026-07-07 14:04:31 UTC]
+
+CHG-0114 — Master data as dedicated pages + insight columns (phase 1)
+
+- **Sidebar restructure.** Products, Customers, Suppliers and Warehouses are now their own top-level
+  sidebar pages under a new **Master data** section; Units, Categories, Tax codes and Price lists
+  remain grouped on a slim **Setup** page. Route names are unchanged (⌘K palette still works).
+- **Consistent layout — 4 insight cards** on every master-data list (was 3), matching the other
+  modules.
+- **Products:** new **In stock** column (summed across warehouses) + cards Total · Active ·
+  **Stock value** · **Out of stock**.
+- **Customers:** new **Owes us** (AR outstanding) column, red when overdue + cards Total · Active ·
+  **Total receivable** · **Overdue**.
+- **Suppliers:** new **We owe** (AP outstanding) column + cards Total · Active · **Total payable** ·
+  **Overdue**.
+- **Warehouses:** insight cards added (Total · Active · **Stock value** · **SKUs**) + **SKUs** and
+  **Stock value** columns.
+- Reads existing endpoints (`/stock/on-hand`, `/ar/aging`, `/ap/aging`); the cross-module fetches
+  **degrade gracefully** if the user lacks Inventory/Accounting.View. Frontend only; no backend or
+  schema change. `nav.*` / master-data column strings (en + id). Builds clean.
+- Phase 2 (next): clickable rows → **Customer / Supplier / Warehouse detail pages** (transaction
+  history, stock contents).
+
+---
+
 ## [2026-07-07 13:11:43 UTC]
 
 CHG-0113 — Deliveries list + clarify the delivery COGS figure

@@ -4,9 +4,10 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
 import { pricingApi } from '@/lib/pricing'
+import { accountingApi } from '@/lib/accounting'
 import { isConflict } from '@/lib/api'
 import { exportTable } from '@/lib/exportTable'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatMoneyShort } from '@/lib/format'
 import { useCsvImport } from '@/composables/useCsvImport'
 import type { Customer, PriceList } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -28,15 +29,30 @@ const auth = useAuthStore()
 const rows = ref<Customer[]>([])
 const filteredRows = ref<Record<string, unknown>[]>([])
 
+// AR outstanding per customer (what they owe us), from the AR subledger aging.
+const receivableByCustomer = ref(new Map<string, number>())
+const overdueByCustomer = ref(new Map<string, number>())
+const receivableTotal = ref(0)
+const overdueTotal = ref(0)
+
 const insights = computed<Insight[]>(() => {
   const total = rows.value.length
   const active = rows.value.filter((r) => r.isActive).length
   return [
     { label: t('masterData.tabs.customers'), value: String(total) },
     { label: t('common.insights.active'), value: String(active), tone: 'positive' },
-    { label: t('common.insights.inactive'), value: String(total - active), tone: total - active > 0 ? 'negative' : 'neutral' },
+    { label: t('masterData.customers.receivable'), value: formatMoneyShort(receivableTotal.value), tone: 'accent' },
+    { label: t('masterData.customers.overdue'), value: formatMoneyShort(overdueTotal.value), tone: overdueTotal.value > 0 ? 'negative' : 'neutral' },
   ]
 })
+
+const tableRows = computed(() =>
+  rows.value.map((c) => ({
+    ...c,
+    receivable: receivableByCustomer.value.get(c.id) ?? 0,
+    overdue: overdueByCustomer.value.get(c.id) ?? 0,
+  })),
+)
 const loading = ref(true)
 const modalOpen = ref(false)
 const saving = ref(false)
@@ -63,6 +79,7 @@ const columns = computed<Column[]>(() => [
   { key: 'taxId', label: t('masterData.fields.taxId') },
   { key: 'paymentTermDays', label: t('masterData.fields.terms'), align: 'right', numeric: true },
   { key: 'creditLimit', label: t('masterData.fields.creditLimit'), align: 'right', numeric: true },
+  { key: 'receivable', label: t('masterData.customers.receivable'), align: 'right', numeric: true },
   { key: 'isActive', label: t('masterData.status') },
   { key: 'actions', label: t('masterData.actions'), align: 'right' },
 ])
@@ -73,6 +90,24 @@ async function load() {
     const [c, lists] = await Promise.all([masterData.customers(), pricingApi.list()])
     rows.value = c
     salesLists.value = lists.filter((l) => l.type === 'Sales')
+
+    // AR is cross-module (Accounting.View); degrade gracefully if the user lacks it.
+    const aging = await accountingApi.arAging().catch(() => null)
+    const receivable = new Map<string, number>()
+    const overdue = new Map<string, number>()
+    let rTotal = 0
+    let oTotal = 0
+    for (const r of aging?.rows ?? []) {
+      const od = r.days1To30 + r.days31To60 + r.days61To90 + r.days90Plus
+      receivable.set(r.partyId, r.total)
+      overdue.set(r.partyId, od)
+      rTotal += r.total
+      oTotal += od
+    }
+    receivableByCustomer.value = receivable
+    overdueByCustomer.value = overdue
+    receivableTotal.value = rTotal
+    overdueTotal.value = oTotal
   } finally {
     loading.value = false
   }
@@ -152,9 +187,15 @@ async function toggleActive(row: Customer) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.customers.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable v-model:filtered="filteredRows" searchable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')">
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
       <template #cell-creditLimit="{ value }">{{ formatMoney(Number(value)) }}</template>
+      <template #cell-receivable="{ value, row }">
+        <span v-if="Number(value) <= 0" class="text-text-muted">—</span>
+        <span v-else :class="Number(row.overdue) > 0 ? 'text-negative' : 'text-text'">
+          {{ formatMoney(Number(value)) }}
+        </span>
+      </template>
       <template #cell-isActive="{ value }">
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />
       </template>
