@@ -18,6 +18,25 @@ public sealed class StockBucketRepository : IStockBucketRepository
     public void Add(StockCostBucket bucket) => _db.StockCostBuckets.Add(bucket);
 }
 
+public sealed class StockCostLayerRepository : IStockCostLayerRepository
+{
+    private readonly InventoryDbContext _db;
+    public StockCostLayerRepository(InventoryDbContext db) => _db = db;
+
+    public void Add(StockCostLayer layer) => _db.StockCostLayers.Add(layer);
+
+    public async Task<IReadOnlyList<StockCostLayer>> ListOpenForBucketAsync(
+        Guid productId, Guid warehouseId, CancellationToken ct) =>
+        await _db.StockCostLayers
+            .Where(l => l.ProductId == productId && l.WarehouseId == warehouseId && l.RemainingQty > 0m)
+            .OrderBy(l => l.MovementDate)
+            .ThenBy(l => l.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<StockCostLayer>> ListOpenAsync(CancellationToken ct) =>
+        await _db.StockCostLayers.Where(l => l.RemainingQty > 0m).ToListAsync(ct);
+}
+
 public sealed class InventoryTransactionRepository : IInventoryTransactionRepository
 {
     private readonly InventoryDbContext _db;

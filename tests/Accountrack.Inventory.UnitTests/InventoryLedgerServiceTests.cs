@@ -17,6 +17,7 @@ public class InventoryLedgerServiceTests
 {
     private static readonly DateOnly Date = new(2026, 6, 13);
     private readonly IStockBucketRepository _buckets = Substitute.For<IStockBucketRepository>();
+    private readonly IStockCostLayerRepository _layers = Substitute.For<IStockCostLayerRepository>();
     private readonly IInventoryTransactionRepository _txns = Substitute.For<IInventoryTransactionRepository>();
     private readonly ICompanyDirectory _companies = Substitute.For<ICompanyDirectory>();
     private readonly IMasterDataLookup _masterData = Substitute.For<IMasterDataLookup>();
@@ -43,7 +44,9 @@ public class InventoryLedgerServiceTests
             .Returns(Result.Success(Guid.NewGuid()));
         _masterData.GetCostingMethodAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(CostingMethod.MovingAverage);
-        return new(_buckets, _txns, _companies, _masterData, _tenant, _gl, _accounts);
+        _layers.ListOpenForBucketAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(new List<StockCostLayer>());
+        return new(_buckets, _layers, _txns, _companies, _masterData, _tenant, _gl, _accounts);
     }
 
     [Fact]
@@ -94,6 +97,76 @@ public class InventoryLedgerServiceTests
         result.Value.CostApplied.Should().Be(550m);
         result.Value.RunningQtyAfter.Should().Be(15m);
         _txns.Received(1).Add(Arg.Any<InventoryTransaction>());
+    }
+
+    // ---- FIFO costing (ADR-0034) ----
+
+    private StockCostBucket FifoBucket(params (decimal Qty, decimal Cost)[] receipts)
+    {
+        var bucket = StockCostBucket.Create(_product, _warehouse, "IDR", CostingMethod.Fifo);
+        foreach (var (q, c) in receipts)
+        {
+            bucket.Receive(q, c);
+        }
+
+        return bucket;
+    }
+
+    private void SeedFifoLayers(params (decimal Qty, decimal Cost)[] layers)
+    {
+        var rows = layers
+            .Select(l => StockCostLayer.Create(_product, _warehouse, "IDR", Guid.NewGuid(), Date, l.Cost, l.Qty))
+            .ToList();
+        _layers.ListOpenForBucketAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(rows);
+    }
+
+    [Fact]
+    public async Task Fifo_receipt_opens_a_cost_layer()
+    {
+        var bucket = FifoBucket((10m, 100m));
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucket);
+
+        var result = await Service().ReceiveAsync(
+            _product, _warehouse, "IDR", 5m, 120m, Date, MovementType.Receipt, MovementSource.Manual, null, null,
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _layers.Received(1).Add(Arg.Is<StockCostLayer>(l => l.RemainingQty == 5m && l.UnitCost == 120m));
+    }
+
+    [Fact]
+    public async Task Fifo_issue_consumes_the_oldest_layers_first()
+    {
+        var bucket = FifoBucket((10m, 100m), (10m, 120m)); // on hand 20, value 2,200
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucket);
+
+        var service = Service();
+        SeedFifoLayers((10m, 100m), (10m, 120m)); // after Service() so it isn't clobbered by the Arg.Any default
+
+        var result = await service.IssueAsync(
+            _product, _warehouse, 15m, Date, MovementType.Issue, MovementSource.Sales, null, null,
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CostApplied.Should().Be(1600m);      // 10@100 + 5@120
+        result.Value.RunningQtyAfter.Should().Be(5m);
+        result.Value.RunningAvgCostAfter.Should().Be(120m); // the remaining layer's cost
+    }
+
+    [Fact]
+    public async Task Fifo_back_dated_movement_is_rejected()
+    {
+        var bucket = FifoBucket((10m, 100m));
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucket);
+        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>())
+            .Returns(Date.AddDays(5)); // an existing later movement → this one is back-dated
+
+        var result = await Service().ReceiveAsync(
+            _product, _warehouse, "IDR", 5m, 120m, Date, MovementType.Receipt, MovementSource.Manual, null, null,
+            CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("INVENTORY.BACKDATING_FIFO_NOT_SUPPORTED");
     }
 
     [Fact]

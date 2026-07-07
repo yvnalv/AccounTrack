@@ -43,6 +43,8 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0030 | Expenses module (operating-expense vouchers) | Accepted | 2026-06-19 |
 | 0031 | Data import (CSV/Excel) and export (CSV/Excel/PDF) | Accepted | 2026-06-19 |
 | 0032 | PostgreSQL (Npgsql) as the database provider, replacing SQL Server | Accepted | 2026-07-02 |
+| 0033 | Back-dated in-period inventory recompute (moving-average replay + delta journals) | Accepted | 2026-07-06 |
+| 0034 | FIFO costing as a per-product option alongside moving average | Accepted | 2026-07-07 |
 
 ---
 
@@ -672,3 +674,32 @@ immutability + closed-period locks preserved. (−) New recompute engine + adjus
 replay cost grows with in-period bucket activity. **Open edge:** transfers carry cost across
 warehouses (ADR-0015), so initial scope is single-bucket replay — a back-date before a transfer out
 of the bucket is rejected pending a later cross-bucket cascade.
+
+---
+
+## ADR-0034: FIFO costing as a per-product option alongside moving average
+
+- **Status:** Accepted — **Date:** 2026-07-07 — full text: [adr/0034-inventory-fifo-costing.md](adr/0034-inventory-fifo-costing.md)
+
+**Context.** Moving average (ADR-0015) is MVP costing, but trading/distribution businesses need
+**FIFO** for some goods. INVENTORY_DESIGN.md §10 reserved a cost-layer structure so FIFO would be a
+plug-in, not a schema migration. Costing only changes how an *issue* is valued; the ledger stays the
+source of truth (ADR-0014) and valuation must keep reconciling to the GL (BR-INV-7).
+
+**Decision.** Costing method is a **per-product** choice (`MovingAverage` | `Fifo`), set at creation
+and immutable thereafter (like base UoM). A product's stock buckets inherit its method
+(`StockCostBucket.CostingMethod`, read cross-module via `IMasterDataLookup.GetCostingMethodAsync`).
+FIFO opens a `StockCostLayer` per inbound movement and consumes the **oldest layers first** on issue
+(pure `FifoCosting`); FIFO on-hand value = Σ open layers, used by the valuation report so it
+reconciles to the GL. Moving average is unchanged. **v1 is forward-only: back-dating a FIFO product
+is rejected (BR-INV-10)**; negative-stock shortfall is costed at the last average.
+
+**Options.** (A) per-product method + cost layers ← chosen; (B) per-company method (too coarse —
+businesses mix methods); (C) global FIFO with average derived (rewrites the working average path for
+no gain).
+
+**Consequences.** (+) FIFO without a schema rewrite; average path + tests untouched; valuation stays
+GL-reconciled; method locked to protect historical valuation. (−) FIFO back-dating unsupported in v1
+(explicit reject); a FIFO bucket keeps a layer table scanned for valuation; its average is display-only.
+**Follow-ups:** FIFO back-dated layer reconstruction; cross-bucket (transfer) back-dating (future
+ADR-0035); optional import column + company-level default costing method.

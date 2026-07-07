@@ -98,6 +98,40 @@ public sealed class StockCostBucket : TenantOwnedEntity, IAggregateRoot
     }
 
     /// <summary>
+    /// Applies a FIFO issue (ADR-0034): reduces on-hand by <paramref name="quantity"/> and recomputes
+    /// the derived display average from the remaining value (current value − <paramref name="costOfIssue"/>).
+    /// The cost of the issue is computed from the bucket's cost layers by the caller, not from the
+    /// average; this only keeps <see cref="OnHandQty"/> and the derived <see cref="AvgUnitCost"/> in step.
+    /// Rejects going negative unless <paramref name="allowNegative"/>.
+    /// </summary>
+    public void IssueFifo(decimal quantity, decimal costOfIssue, bool allowNegative)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Issue quantity must be positive.");
+        }
+
+        if (!allowNegative && quantity > OnHandQty)
+        {
+            throw new InvalidOperationException(
+                $"Insufficient stock: on hand {OnHandQty}, requested {quantity}.");
+        }
+
+        var remainingValue = (OnHandQty * AvgUnitCost) - costOfIssue;
+        OnHandQty = Math.Round(OnHandQty - quantity, QtyScale, MidpointRounding.ToEven);
+
+        if (OnHandQty > 0)
+        {
+            AvgUnitCost = Math.Round(remainingValue / OnHandQty, CostScale, MidpointRounding.ToEven);
+        }
+        else if (OnHandQty == 0)
+        {
+            AvgUnitCost = 0m;
+        }
+        // Negative on-hand (allowNegative): keep the last average for the next receipt to reconcile.
+    }
+
+    /// <summary>
     /// Overwrites the running on-hand and average with the result of a full moving-average replay
     /// (ADR-0033). Used only by back-dated recompute, which recalculates the bucket from its whole
     /// movement history rather than mutating it forward.

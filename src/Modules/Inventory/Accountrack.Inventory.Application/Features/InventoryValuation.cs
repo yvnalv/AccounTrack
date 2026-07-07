@@ -6,6 +6,7 @@ using Accountrack.Inventory.Application.Contracts;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Company;
 using Accountrack.Modules.Contracts.MasterData;
+using Accountrack.SharedKernel.Inventory;
 using Accountrack.SharedKernel.Pdf;
 using Accountrack.SharedKernel.Results;
 using MediatR;
@@ -26,16 +27,18 @@ public sealed class GetInventoryValuationHandler : IQueryHandler<GetInventoryVal
     private const decimal Tolerance = 1m;
 
     private readonly IStockBucketRepository _buckets;
+    private readonly IStockCostLayerRepository _layers;
     private readonly IMasterDataLookup _lookup;
     private readonly IGeneralLedgerBalances _gl;
     private readonly ICompanyDirectory _companies;
     private readonly ITenantContext _tenant;
 
     public GetInventoryValuationHandler(
-        IStockBucketRepository buckets, IMasterDataLookup lookup, IGeneralLedgerBalances gl,
-        ICompanyDirectory companies, ITenantContext tenant)
+        IStockBucketRepository buckets, IStockCostLayerRepository layers, IMasterDataLookup lookup,
+        IGeneralLedgerBalances gl, ICompanyDirectory companies, ITenantContext tenant)
     {
         _buckets = buckets;
+        _layers = layers;
         _lookup = lookup;
         _gl = gl;
         _companies = companies;
@@ -48,12 +51,20 @@ public sealed class GetInventoryValuationHandler : IQueryHandler<GetInventoryVal
         var company = await _companies.GetAsync(_tenant.CompanyId, ct);
         var currency = company?.FunctionalCurrency ?? buckets.FirstOrDefault()?.Currency ?? "IDR";
 
+        // FIFO buckets are valued at the sum of their open cost layers (the authoritative figure);
+        // moving-average buckets at on-hand × average (ADR-0034).
+        var layerValueByBucket = (await _layers.ListOpenAsync(ct))
+            .GroupBy(l => (l.ProductId, l.WarehouseId))
+            .ToDictionary(g => g.Key, g => g.Sum(l => Math.Round(l.RemainingQty * l.UnitCost, 4)));
+
         var byProduct = buckets
             .GroupBy(b => b.ProductId)
             .Select(g =>
             {
                 var qty = g.Sum(b => b.OnHandQty);
-                var value = g.Sum(b => Math.Round(b.OnHandQty * b.AvgUnitCost, 4));
+                var value = g.Sum(b => b.CostingMethod == CostingMethod.Fifo
+                    ? layerValueByBucket.GetValueOrDefault((b.ProductId, b.WarehouseId), 0m)
+                    : Math.Round(b.OnHandQty * b.AvgUnitCost, 4));
                 return (ProductId: g.Key, Qty: qty, Value: value);
             })
             .Where(x => x.Qty != 0 || x.Value != 0)
