@@ -75,6 +75,30 @@ public sealed class GetDeliveriesForSalesOrderHandler
     }
 }
 
+public sealed record GetDeliveriesQuery : IQuery<IReadOnlyList<DeliveryOrderListItemDto>>;
+
+public sealed class GetDeliveriesHandler : IQueryHandler<GetDeliveriesQuery, IReadOnlyList<DeliveryOrderListItemDto>>
+{
+    private readonly IDeliveryOrderRepository _deliveries;
+    private readonly IMasterDataLookup _masterData;
+    public GetDeliveriesHandler(IDeliveryOrderRepository deliveries, IMasterDataLookup masterData)
+    {
+        _deliveries = deliveries;
+        _masterData = masterData;
+    }
+
+    public async Task<Result<IReadOnlyList<DeliveryOrderListItemDto>>> Handle(GetDeliveriesQuery request, CancellationToken ct)
+    {
+        var items = await _deliveries.ListAsync(ct);
+        var names = await _masterData.ResolveNamesAsync(items.Select(d => d.CustomerId).Distinct().ToList(), ct);
+        return Result.Success<IReadOnlyList<DeliveryOrderListItemDto>>(items
+            .Select(d => new DeliveryOrderListItemDto(
+                d.Id, d.Number, d.DeliveryDate, d.SalesOrderId, d.CustomerId,
+                names.GetValueOrDefault(d.CustomerId, "—"), d.TotalCost, d.JournalEntryId))
+            .ToList());
+    }
+}
+
 public sealed record GetSalesInvoiceQuery(Guid Id) : IQuery<SalesInvoiceDto>;
 
 public sealed class GetSalesInvoiceHandler : IQueryHandler<GetSalesInvoiceQuery, SalesInvoiceDto>

@@ -24,6 +24,11 @@ public sealed record DeliveryOrderDto(
 public sealed record DeliveryOrderSummaryDto(
     Guid Id, string Number, Guid SalesOrderId, DateOnly DeliveryDate, decimal TotalCost, Guid? JournalEntryId);
 
+/// <summary>A row in the company-wide Delivery Orders list (COGS = cost of goods shipped).</summary>
+public sealed record DeliveryOrderListItemDto(
+    Guid Id, string Number, DateOnly DeliveryDate, Guid SalesOrderId, Guid CustomerId, string CustomerName,
+    decimal TotalCost, Guid? JournalEntryId);
+
 public sealed record SalesInvoiceLineDto(
     Guid Id, Guid SalesOrderLineId, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
     decimal LineNet, decimal LineTax, decimal LineTotal, decimal ReturnableQuantity);

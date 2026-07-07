@@ -8,8 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-07 (last change **CHG-0111**)
-- **Build:** green — backend `net8.0` (337 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-07-07 (last change **CHG-0113**)
+- **Build:** green — backend `net8.0` (350 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **richer product list** (category/UoM/prices/costing columns; CHG-0112); **Deliveries list**
+  (Sales → Deliveries) + the delivery figure clarified as **cost of goods (COGS)**, not the sale price
+  (CHG-0113).
   Latest: **pricing reworked (CHG-0111, ADR-0036, supersedes ADR-0035)** — the base price now lives on
   the product (`SalePrice`/`PurchasePrice`, auto-fills order lines); price lists became **shared
   discount rules** (a % off base + optional per-product overrides), fixing the per-customer
