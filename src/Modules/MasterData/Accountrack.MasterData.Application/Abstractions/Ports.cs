@@ -30,8 +30,6 @@ public interface IPriceListRepository
 
     Task<Domain.PriceList?> GetAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<Domain.PriceList>> ListAsync(CancellationToken ct);
-    Task<IReadOnlyList<Domain.PriceList>> ListByTypeAsync(Domain.PriceListType type, CancellationToken ct);
-    Task<Domain.PriceList?> GetDefaultAsync(Domain.PriceListType type, CancellationToken ct);
 
     Task<IReadOnlyList<Domain.PriceListItem>> GetItemsAsync(Guid priceListId, CancellationToken ct);
     Task<Domain.PriceListItem?> GetItemAsync(Guid priceListId, Guid productId, CancellationToken ct);

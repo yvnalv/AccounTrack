@@ -44,11 +44,9 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0031 | Data import (CSV/Excel) and export (CSV/Excel/PDF) | Accepted | 2026-06-19 |
 | 0032 | PostgreSQL (Npgsql) as the database provider, replacing SQL Server | Accepted | 2026-07-02 |
 | 0033 | Back-dated in-period inventory recompute (moving-average replay + delta journals) | Accepted | 2026-07-06 |
-<<<<<<< feat/pricing-lists
-| 0035 | Price lists (Sales/Purchase) with company default + party overrides | Accepted | 2026-07-07 |
-=======
 | 0034 | FIFO costing as a per-product option alongside moving average | Accepted | 2026-07-07 |
->>>>>>> main
+| 0035 | Price lists (Sales/Purchase) with company default + party overrides | Superseded by ADR-0036 | 2026-07-07 |
+| 0036 | Product base price + shared discount lists (supersedes ADR-0035) | Accepted | 2026-07-07 |
 
 ---
 
@@ -681,32 +679,6 @@ of the bucket is rejected pending a later cross-bucket cascade.
 
 ---
 
-<<<<<<< feat/pricing-lists
-## ADR-0035: Price lists (Sales/Purchase) with company default + party overrides
-
-- **Status:** Accepted — **Date:** 2026-07-07 — full text: [adr/0035-price-lists.md](adr/0035-price-lists.md)
-
-**Context.** Order lines needed a unit price but the product master never modeled price, so lines were
-typed from zero. Businesses keep sell/buy prices per product, often per customer/supplier, and expect
-the line to auto-fill (still editable). Pricing must not change accounting (the entered price already
-posts) and must respect module boundaries (ADR-0007) and single functional currency (ADR-0013).
-
-**Decision.** Price lists in Master Data, typed **Sales** or **Purchase**, holding a per-product
-`unitPrice`. One list per type may be the company **default**; a customer's `SalesPriceListId` /
-supplier's `PurchasePriceListId` overrides it. Resolution for `(type, party)` = default overlaid by
-the party list → a `productId → price` map the order forms use to prefill lines. Because price only
-prefills the existing `unitPrice`, there is **no posting impact and no cross-module service**. v1 =
-default + per-party lists; **no** quantity breaks, date-effective versioning, discounts, or
-multi-currency (later slices on the same model).
-
-**Options.** (A) price lists with default + party override ← chosen; (B) a single default price field
-on Product (can't do per-party pricing); (C) a full pricing engine now (large, slow first drop).
-
-**Consequences.** (+) Order lines auto-fill from real data; per-party pricing; zero accounting risk;
-the model extends to breaks/dates/discounts without a rewrite. (−) Assignment is a plain FK per party
-(one list per type); prices are functional-currency only. **Follow-ups:** quantity breaks +
-date-effective versioning; discounts; multi-currency price lists; price columns in product import.
-=======
 ## ADR-0034: FIFO costing as a per-product option alongside moving average
 
 - **Status:** Accepted — **Date:** 2026-07-07 — full text: [adr/0034-inventory-fifo-costing.md](adr/0034-inventory-fifo-costing.md)
@@ -733,4 +705,59 @@ GL-reconciled; method locked to protect historical valuation. (−) FIFO back-da
 (explicit reject); a FIFO bucket keeps a layer table scanned for valuation; its average is display-only.
 **Follow-ups:** FIFO back-dated layer reconstruction; cross-bucket (transfer) back-dating (future
 ADR-0035); optional import column + company-level default costing method.
->>>>>>> main
+
+---
+
+## ADR-0035: Price lists (Sales/Purchase) with company default + party overrides
+
+- **Status:** Superseded by ADR-0036 — **Date:** 2026-07-07 — full text: [adr/0035-price-lists.md](adr/0035-price-lists.md)
+
+**Context.** Order lines needed a unit price but the product master never modeled price, so lines were
+typed from zero. Businesses keep sell/buy prices per product, often per customer/supplier, and expect
+the line to auto-fill (still editable). Pricing must not change accounting (the entered price already
+posts) and must respect module boundaries (ADR-0007) and single functional currency (ADR-0013).
+
+**Decision.** Price lists in Master Data, typed **Sales** or **Purchase**, holding a per-product
+`unitPrice`. One list per type may be the company **default**; a customer's `SalesPriceListId` /
+supplier's `PurchasePriceListId` overrides it. Resolution for `(type, party)` = default overlaid by
+the party list → a `productId → price` map the order forms use to prefill lines. Because price only
+prefills the existing `unitPrice`, there is **no posting impact and no cross-module service**. v1 =
+default + per-party lists; **no** quantity breaks, date-effective versioning, discounts, or
+multi-currency (later slices on the same model).
+
+**Options.** (A) price lists with default + party override ← chosen; (B) a single default price field
+on Product (can't do per-party pricing); (C) a full pricing engine now (large, slow first drop).
+
+**Consequences.** (+) Order lines auto-fill from real data; per-party pricing; zero accounting risk;
+the model extends to breaks/dates/discounts without a rewrite. (−) Assignment is a plain FK per party
+(one list per type); prices are functional-currency only. **Follow-ups:** quantity breaks +
+date-effective versioning; discounts; multi-currency price lists; price columns in product import.
+
+> **Superseded (2026-07-07) by ADR-0036** — the base price now lives on the product and price lists
+> became shared discount rules.
+
+---
+
+## ADR-0036: Product base price + shared discount lists (supersedes ADR-0035)
+
+- **Status:** Accepted — **Date:** 2026-07-07 — full text: [adr/0036-product-base-price-pricing.md](adr/0036-product-base-price-pricing.md)
+
+**Context.** ADR-0035 modeled pricing as price lists only — a list per customer with a row per
+product (N×M maintenance) and no base price. Feedback: hard to add prices, hard to maintain. Mainstream
+SMB ERPs put the base price on the product and use optional shared discount lists.
+
+**Decision.** Add `Product.SalePrice`/`PurchasePrice` (nullable) as the default that auto-fills order
+lines. Reframe a price list as a **shared** rule: a `DiscountPercent` off the base price plus optional
+per-product fixed overrides; many parties share one list (e.g. "Wholesale −10%"). Remove the
+company-default-list concept (the product base price is the default). Resolution for `(type, party,
+product)`: override → % off base → product base → manual. No posting impact; lists soft-deactivate.
+
+**Options.** (A) base price + shared discount lists ← chosen; (B) base price only (no per-party
+pricing); (C) base price + customer groups (coarser; subsumed by lists); (D) keep ADR-0035 (the N×M
+burden being fixed).
+
+**Consequences.** (+) Common case = one price on the product; a segment deal = one shared list; a
+special = one override row. Maintenance N×M → N + a few rules. (−) Migration drops `PriceList.IsDefault`,
+adds the three price columns (dev data only); resolution reads all products to apply a percentage
+(fine at SMB scale). **Follow-ups:** quantity breaks, date-effective versioning, discounts,
+multi-currency lists, price columns in product import.

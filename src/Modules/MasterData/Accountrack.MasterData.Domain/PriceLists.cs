@@ -10,39 +10,49 @@ public enum PriceListType
 }
 
 /// <summary>
-/// A named set of per-product prices for either Sales or Purchasing (ADR-0035). One list per type may
-/// be the company <see cref="IsDefault"/>; customers/suppliers may point at a specific list that
-/// overrides the default. Prices are in the company functional currency (one per company, ADR-0013).
+/// A shared pricing rule for Sales or Purchasing (ADR-0035): a percentage discount off the product's
+/// base price (<c>Product.SalePrice</c>/<c>PurchasePrice</c>), plus optional per-product fixed-price
+/// overrides (<see cref="PriceListItem"/>). Many customers/suppliers can point at one list (e.g.
+/// "Wholesale −10%"); a party with no list simply gets the product base price. Amounts are in the
+/// company functional currency (ADR-0013).
 /// </summary>
 public sealed class PriceList : TenantOwnedEntity, IAggregateRoot
 {
+    private const int PctScale = 4;
+
     private PriceList() { }
 
-    private PriceList(string name, PriceListType type, bool isDefault)
+    private PriceList(string name, PriceListType type, decimal discountPercent)
     {
         Name = name;
         Type = type;
-        IsDefault = isDefault;
+        DiscountPercent = Clamp(discountPercent);
         IsActive = true;
     }
 
     public string Name { get; private set; } = default!;
     public PriceListType Type { get; private set; }
 
-    /// <summary>The fallback list for its <see cref="Type"/> when a party has no specific assignment.</summary>
-    public bool IsDefault { get; private set; }
+    /// <summary>Percentage off the product base price applied to every product (0–100); per-product
+    /// overrides win over it. 0 means "overrides only".</summary>
+    public decimal DiscountPercent { get; private set; }
     public bool IsActive { get; private set; }
 
-    public static PriceList Create(string name, PriceListType type, bool isDefault = false) =>
-        new(name.Trim(), type, isDefault);
+    public static PriceList Create(string name, PriceListType type, decimal discountPercent = 0m) =>
+        new(name.Trim(), type, discountPercent);
 
-    public void Update(string name) => Name = name.Trim();
-
-    public void SetDefault(bool isDefault) => IsDefault = isDefault;
+    public void Update(string name, decimal discountPercent)
+    {
+        Name = name.Trim();
+        DiscountPercent = Clamp(discountPercent);
+    }
 
     public void Activate() => IsActive = true;
 
     public void Deactivate() => IsActive = false;
+
+    private static decimal Clamp(decimal pct) =>
+        Math.Round(Math.Clamp(pct, 0m, 100m), PctScale, MidpointRounding.ToEven);
 }
 
 /// <summary>A single product's price within a <see cref="PriceList"/> (ADR-0035).</summary>

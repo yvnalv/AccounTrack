@@ -95,10 +95,19 @@ public sealed class Product : TenantOwnedEntity, IAggregateRoot, IHasCode
     /// </summary>
     public CostingMethod CostingMethod { get; private set; }
 
+    /// <summary>Default sell price per base UoM (ADR-0035). Prefills sales order lines; a customer's
+    /// price list may override or discount it. Null means "no default price" (line stays manual).</summary>
+    public decimal? SalePrice { get; private set; }
+
+    /// <summary>Default buy price per base UoM (ADR-0035). Prefills purchase order lines; a supplier's
+    /// price list may override or discount it. Null means "no default price".</summary>
+    public decimal? PurchasePrice { get; private set; }
+
     public static Product Create(
         string code, string name, Guid baseUomId, Guid? categoryId,
         bool isStockTracked = true, bool isSold = true, bool isPurchased = true,
-        CostingMethod costingMethod = CostingMethod.MovingAverage)
+        CostingMethod costingMethod = CostingMethod.MovingAverage,
+        decimal? salePrice = null, decimal? purchasePrice = null)
     {
         var product = new Product(code.Trim().ToUpperInvariant(), name.Trim(), baseUomId, categoryId)
         {
@@ -106,6 +115,8 @@ public sealed class Product : TenantOwnedEntity, IAggregateRoot, IHasCode
             IsSold = isSold,
             IsPurchased = isPurchased,
             CostingMethod = costingMethod,
+            SalePrice = salePrice,
+            PurchasePrice = purchasePrice,
         };
         return product;
     }
@@ -116,13 +127,17 @@ public sealed class Product : TenantOwnedEntity, IAggregateRoot, IHasCode
     /// Edits the mutable fields. Code and base UoM are immutable after creation (the base UoM
     /// underpins inventory costing — changing it would corrupt historical valuation).
     /// </summary>
-    public void Update(string name, Guid? categoryId, bool isStockTracked, bool isSold, bool isPurchased)
+    public void Update(
+        string name, Guid? categoryId, bool isStockTracked, bool isSold, bool isPurchased,
+        decimal? salePrice, decimal? purchasePrice)
     {
         Name = name.Trim();
         CategoryId = categoryId;
         IsStockTracked = isStockTracked;
         IsSold = isSold;
         IsPurchased = isPurchased;
+        SalePrice = salePrice;
+        PurchasePrice = purchasePrice;
     }
 
     public void Activate() => IsActive = true;

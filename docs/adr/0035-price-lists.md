@@ -1,9 +1,13 @@
 # ADR-0035: Price lists (Sales/Purchase) with company default + party overrides
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0036](0036-product-base-price-pricing.md)
 - **Date:** 2026-07-07
 - **Deciders:** Product owner, engineering
 - **Tags:** master-data | sales | purchasing
+
+> **Superseded (2026-07-07).** The "price lists only" model below forced a list-per-customer ×
+> row-per-product maintenance burden. **ADR-0036** moves the base price onto the product and reframes
+> price lists as optional shared discount rules. The rest of this record is kept for history.
 
 ## Context
 

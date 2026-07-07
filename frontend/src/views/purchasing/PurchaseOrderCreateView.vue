@@ -85,12 +85,15 @@ const grandTotal = computed(() => subTotal.value + taxTotal.value)
 const addLine = () => lines.push({ productId: '', quantity: 1, unitPrice: 0, taxPct: defaultTaxPct.value, description: '' })
 const removeLine = (i: number) => lines.splice(i, 1)
 
-// Price auto-fill (ADR-0035): resolve the supplier's applicable purchase prices, prefill each line's
-// unit price on product-select (still editable). Changing supplier refreshes prices for un-priced lines.
+// Price auto-fill (ADR-0035): the product's base purchase price is the default; the chosen supplier's
+// price list may override or discount it. Prefills each line on product-select (still editable).
 const priceMap = ref<Record<string, number>>({})
+function basePrice(productId: string): number | null {
+  return products.value.find((p) => p.id === productId)?.purchasePrice ?? null
+}
 function applyPrice(line: LineForm) {
-  const price = priceMap.value[line.productId]
-  if (price !== undefined) line.unitPrice = price
+  const price = priceMap.value[line.productId] ?? basePrice(line.productId)
+  if (price != null) line.unitPrice = price
 }
 async function loadPrices() {
   priceMap.value = form.supplierId ? await pricingApi.resolve('Purchase', form.supplierId) : {}

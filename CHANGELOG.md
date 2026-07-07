@@ -1,8 +1,29 @@
 # Accountrack Changelog
 
-## [2026-07-07 08:39:50 UTC]
+## [2026-07-07 12:31:03 UTC]
 
-CHG-0110 — Price lists: per-product Sales/Purchase pricing with order auto-fill (ADR-0035)
+CHG-0111 — Pricing: product base price + shared discount lists (ADR-0036, supersedes ADR-0035)
+
+- **Reworks CHG-0110's pricing model** after feedback that a price list per customer (a row per
+  product) was hard to add and maintain. Adopts the mainstream SMB-ERP model.
+- **Base price on the product** — `Product.SalePrice` + `PurchasePrice` (nullable). These are the
+  default and auto-fill order lines directly, so the common case is **one price per product, no list**.
+- **Price lists become shared discount rules** — a list now carries a `DiscountPercent` off the base
+  price plus optional per-product **fixed overrides**; one list (e.g. "Wholesale −10%") is shared by
+  many customers/suppliers. The **company-default-list** concept is removed (the base price is the
+  default).
+- **Resolution** for `(type, party, product)`: override → % off base → **product base price** →
+  manual. The order form resolves only the party's adjustments and overlays them on the product base.
+- **Backend:** `Product.SalePrice`/`PurchasePrice`; `PriceList.DiscountPercent` (dropped `IsDefault`);
+  rewritten `ResolvePrices`; migration adds the three columns and drops `IsDefault`. Resolution
+  re-tested (base only, %-discount, override-wins, overrides-only).
+- **Frontend:** base-price inputs on the product form; the Price Lists screen now edits a discount %
+  and per-product overrides; SO/PO lines auto-fill from the product base overlaid by the party list;
+  `priceLists.*` + product price strings updated (en + id).
+- **Docs:** **ADR-0036** (supersedes ADR-0035, now marked Superseded); BUSINESS_RULES BR-PRICE-1..5
+  revised; STATUS. **Also resolved committed merge-conflict markers left in DECISIONS.md by the
+  concurrent ADR-0034/ADR-0035 merge** (index + body now list ADR-0034/0035/0036 cleanly).
+- Full backend suite green; frontend builds clean.
 
 - **Products can now carry sell/buy prices** via **price lists** (Master Data). A price list is typed
   Sales or Purchase and holds a per-product unit price; one list per type may be the company

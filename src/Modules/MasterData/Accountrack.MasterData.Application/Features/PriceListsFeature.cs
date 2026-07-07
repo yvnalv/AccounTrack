@@ -6,22 +6,24 @@ using FluentValidation;
 
 namespace Accountrack.MasterData.Application.Features;
 
-// Price lists (ADR-0035): per-product Sales/Purchase prices, with a company default per type and
-// optional per-customer/supplier overrides. Prices only prefill order lines — no posting impact.
+// Price lists (ADR-0035): the product base price is the default (Product.SalePrice/PurchasePrice); a
+// price list is a shared rule — a % discount off base plus optional per-product fixed overrides — that
+// customers/suppliers can point at. Prices only prefill order lines (no posting impact).
 
 public sealed record PriceListDto(
-    Guid Id, string Name, PriceListType Type, bool IsDefault, bool IsActive, int ItemCount, byte[]? RowVersion);
+    Guid Id, string Name, PriceListType Type, decimal DiscountPercent, bool IsActive, int ItemCount, byte[]? RowVersion);
 
 public sealed record PriceListItemDto(Guid Id, Guid ProductId, decimal UnitPrice);
 
 // ---- Create ----
-public sealed record CreatePriceListCommand(string Name, PriceListType Type, bool IsDefault) : ICommand<Guid>;
+public sealed record CreatePriceListCommand(string Name, PriceListType Type, decimal DiscountPercent) : ICommand<Guid>;
 
 public sealed class CreatePriceListValidator : AbstractValidator<CreatePriceListCommand>
 {
     public CreatePriceListValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.DiscountPercent).InclusiveBetween(0m, 100m);
     }
 }
 
@@ -33,29 +35,16 @@ public sealed class CreatePriceListHandler : ICommandHandler<CreatePriceListComm
 
     public async Task<Result<Guid>> Handle(CreatePriceListCommand request, CancellationToken ct)
     {
-        if (request.IsDefault)
-        {
-            await ClearDefaultsAsync(_repo, request.Type, ct);
-        }
-
-        var list = PriceList.Create(request.Name, request.Type, request.IsDefault);
+        var list = PriceList.Create(request.Name, request.Type, request.DiscountPercent);
         _repo.Add(list);
         await _uow.SaveChangesAsync(ct);
         return list.Id;
     }
-
-    internal static async Task ClearDefaultsAsync(IPriceListRepository repo, PriceListType type, CancellationToken ct)
-    {
-        foreach (var existing in await repo.ListByTypeAsync(type, ct))
-        {
-            existing.SetDefault(false);
-        }
-    }
 }
 
-// ---- Update (rename + default + active) ----
+// ---- Update (rename + discount + active) ----
 public sealed record UpdatePriceListCommand(
-    Guid Id, string Name, bool IsDefault, bool IsActive, byte[]? RowVersion = null) : ICommand<Guid>;
+    Guid Id, string Name, decimal DiscountPercent, bool IsActive, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdatePriceListValidator : AbstractValidator<UpdatePriceListCommand>
 {
@@ -63,6 +52,7 @@ public sealed class UpdatePriceListValidator : AbstractValidator<UpdatePriceList
     {
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.DiscountPercent).InclusiveBetween(0m, 100m);
     }
 }
 
@@ -78,21 +68,14 @@ public sealed class UpdatePriceListHandler : ICommandHandler<UpdatePriceListComm
         if (list is null) return MasterDataErrors.NotFound("price list");
         if (request.RowVersion is not null) _repo.SetExpectedVersion(list, request.RowVersion);
 
-        list.Update(request.Name);
+        list.Update(request.Name, request.DiscountPercent);
         if (request.IsActive) list.Activate(); else list.Deactivate();
-
-        if (request.IsDefault && !list.IsDefault)
-        {
-            await CreatePriceListHandler.ClearDefaultsAsync(_repo, list.Type, ct);
-        }
-
-        list.SetDefault(request.IsDefault);
         await _uow.SaveChangesAsync(ct);
         return list.Id;
     }
 }
 
-// ---- Upsert / delete an item ----
+// ---- Upsert / delete an override item ----
 public sealed record UpsertPriceListItemCommand(Guid PriceListId, Guid ProductId, decimal UnitPrice) : ICommand<Guid>;
 
 public sealed class UpsertPriceListItemValidator : AbstractValidator<UpsertPriceListItemCommand>
@@ -164,7 +147,7 @@ public sealed class GetPriceListsHandler : IQueryHandler<GetPriceListsQuery, IRe
         var counts = await _repo.ItemCountsAsync(ct);
         return Result.Success<IReadOnlyList<PriceListDto>>(lists
             .Select(l => new PriceListDto(
-                l.Id, l.Name, l.Type, l.IsDefault, l.IsActive, counts.GetValueOrDefault(l.Id, 0), l.RowVersion))
+                l.Id, l.Name, l.Type, l.DiscountPercent, l.IsActive, counts.GetValueOrDefault(l.Id, 0), l.RowVersion))
             .ToList());
     }
 }
@@ -185,43 +168,61 @@ public sealed class GetPriceListItemsHandler : IQueryHandler<GetPriceListItemsQu
 }
 
 /// <summary>
-/// Resolves the applicable unit price per product for a party (ADR-0035): the company default list
-/// for the type, overlaid by the party's assigned list. Returns a productId → price map the order
-/// forms use to prefill line prices. An unmatched product is simply absent (line stays manual).
+/// Resolves the party-specific unit price per product (ADR-0035). The product base price
+/// (SalePrice/PurchasePrice) is the default and lives on the product; this returns only the
+/// <em>adjustments</em> a party's assigned list makes: a per-product override, or the list's %
+/// discount off base. Products without an adjustment are absent (the order form uses the base price).
+/// An unassigned party (or an inactive list) yields an empty map.
 /// </summary>
 public sealed record ResolvePricesQuery(PriceListType Type, Guid? PartyId) : IQuery<IReadOnlyDictionary<Guid, decimal>>;
 
 public sealed class ResolvePricesHandler : IQueryHandler<ResolvePricesQuery, IReadOnlyDictionary<Guid, decimal>>
 {
+    private const int PriceScale = 4;
+
     private readonly IPriceListRepository _repo;
     private readonly ICodedRepository<Customer> _customers;
     private readonly ICodedRepository<Supplier> _suppliers;
+    private readonly ICodedRepository<Product> _products;
 
     public ResolvePricesHandler(
-        IPriceListRepository repo, ICodedRepository<Customer> customers, ICodedRepository<Supplier> suppliers)
+        IPriceListRepository repo, ICodedRepository<Customer> customers,
+        ICodedRepository<Supplier> suppliers, ICodedRepository<Product> products)
     {
         _repo = repo;
         _customers = customers;
         _suppliers = suppliers;
+        _products = products;
     }
 
     public async Task<Result<IReadOnlyDictionary<Guid, decimal>>> Handle(ResolvePricesQuery request, CancellationToken ct)
     {
+        var empty = (IReadOnlyDictionary<Guid, decimal>)new Dictionary<Guid, decimal>();
+
+        var listId = await ResolvePartyListAsync(request.Type, request.PartyId, ct);
+        if (listId is not { } id) return Result.Success(empty);
+
+        var list = await _repo.GetAsync(id, ct);
+        if (list is not { IsActive: true } || list.Type != request.Type) return Result.Success(empty);
+
+        var overrides = (await _repo.GetItemsAsync(list.Id, ct)).ToDictionary(i => i.ProductId, i => i.UnitPrice);
+        var products = await _products.ListAsync(ct);
+
         var map = new Dictionary<Guid, decimal>();
-
-        var defaultList = await _repo.GetDefaultAsync(request.Type, ct);
-        if (defaultList is not null)
+        foreach (var product in products)
         {
-            await OverlayAsync(map, defaultList.Id, ct);
-        }
-
-        var partyListId = await ResolvePartyListAsync(request.Type, request.PartyId, ct);
-        if (partyListId is { } id)
-        {
-            var partyList = await _repo.GetAsync(id, ct);
-            if (partyList is { IsActive: true } && partyList.Type == request.Type)
+            if (overrides.TryGetValue(product.Id, out var overridePrice))
             {
-                await OverlayAsync(map, partyList.Id, ct); // party list overrides the default
+                map[product.Id] = overridePrice; // a fixed override wins over the discount
+                continue;
+            }
+
+            if (list.DiscountPercent <= 0m) continue; // no adjustment → the base price (used by the form) stands
+
+            var basePrice = request.Type == PriceListType.Sales ? product.SalePrice : product.PurchasePrice;
+            if (basePrice is { } bp)
+            {
+                map[product.Id] = Math.Round(bp * (1m - (list.DiscountPercent / 100m)), PriceScale, MidpointRounding.ToEven);
             }
         }
 
@@ -234,13 +235,5 @@ public sealed class ResolvePricesHandler : IQueryHandler<ResolvePricesQuery, IRe
         return type == PriceListType.Sales
             ? (await _customers.GetByIdAsync(pid, ct))?.SalesPriceListId
             : (await _suppliers.GetByIdAsync(pid, ct))?.PurchasePriceListId;
-    }
-
-    private async Task OverlayAsync(Dictionary<Guid, decimal> map, Guid priceListId, CancellationToken ct)
-    {
-        foreach (var item in await _repo.GetItemsAsync(priceListId, ct))
-        {
-            map[item.ProductId] = item.UnitPrice;
-        }
     }
 }

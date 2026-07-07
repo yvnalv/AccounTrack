@@ -182,7 +182,8 @@ public sealed class CommitProductImportHandler : ICommandHandler<CommitProductIm
         {
             if (existing.TryGetValue(line.Code, out var product))
             {
-                product.Update(line.Name, line.CategoryId, line.StockTracked, line.Sold, line.Purchased);
+                product.Update(line.Name, line.CategoryId, line.StockTracked, line.Sold, line.Purchased,
+                    product.SalePrice, product.PurchasePrice);
                 updated++;
             }
             else

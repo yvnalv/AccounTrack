@@ -40,7 +40,7 @@ public static class MasterDataEndpoints
         products.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetProductsQuery(), ct))).RequireAuthorization(View);
         products.MapPost("/", (CreateProductCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/products")).RequireAuthorization(Create);
         products.MapPut("/{id:guid}", (Guid id, UpdateProductBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateProductCommand(id, b.Name, b.CategoryId, b.IsStockTracked, b.IsSold, b.IsPurchased, b.RowVersion), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateProductCommand(id, b.Name, b.CategoryId, b.IsStockTracked, b.IsSold, b.IsPurchased, b.SalePrice, b.PurchasePrice, b.RowVersion), ct))).RequireAuthorization(Edit);
         products.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetProductActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
         products.MapGet("/import/template", () =>
@@ -134,7 +134,7 @@ public static class MasterDataEndpoints
         priceLists.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetPriceListsQuery(), ct))).RequireAuthorization(View);
         priceLists.MapPost("/", (CreatePriceListCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/price-lists")).RequireAuthorization(Create);
         priceLists.MapPut("/{id:guid}", (Guid id, UpdatePriceListBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdatePriceListCommand(id, b.Name, b.IsDefault, b.IsActive, b.RowVersion), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdatePriceListCommand(id, b.Name, b.DiscountPercent, b.IsActive, b.RowVersion), ct))).RequireAuthorization(Edit);
         priceLists.MapGet("/{id:guid}/items", (Guid id, ISender s, CancellationToken ct) =>
             Send(s.Send(new GetPriceListItemsQuery(id), ct))).RequireAuthorization(View);
         priceLists.MapPut("/{id:guid}/items", (Guid id, UpsertPriceListItemBody b, ISender s, CancellationToken ct) =>
@@ -153,10 +153,10 @@ public static class MasterDataEndpoints
     public sealed record UpdateTaxCodeBody(string Name, decimal Rate, byte[]? RowVersion);
     public sealed record UpdateCustomerBody(string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit, Guid? SalesPriceListId, byte[]? RowVersion);
     public sealed record UpdateSupplierBody(string Name, string? TaxId, int PaymentTermDays, Guid? PurchasePriceListId, byte[]? RowVersion);
-    public sealed record UpdatePriceListBody(string Name, bool IsDefault, bool IsActive, byte[]? RowVersion);
+    public sealed record UpdatePriceListBody(string Name, decimal DiscountPercent, bool IsActive, byte[]? RowVersion);
     public sealed record UpsertPriceListItemBody(Guid ProductId, decimal UnitPrice);
     public sealed record UpdateWarehouseBody(string Name, string? Address, byte[]? RowVersion);
-    public sealed record UpdateProductBody(string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased, byte[]? RowVersion);
+    public sealed record UpdateProductBody(string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased, decimal? SalePrice, decimal? PurchasePrice, byte[]? RowVersion);
 
     /// <summary>Reads an uploaded import file as CSV text, converting an .xlsx upload on the fly so
     /// the CSV import pipeline ingests both formats unchanged (ADR-0031).</summary>

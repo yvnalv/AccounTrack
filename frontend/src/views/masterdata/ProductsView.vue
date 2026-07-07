@@ -56,6 +56,8 @@ const form = reactive({
   isSold: true,
   isPurchased: true,
   costingMethod: 'MovingAverage' as CostingMethod,
+  salePrice: null as number | null,
+  purchasePrice: null as number | null,
 })
 
 const costingMethodOptions = computed(() => [
@@ -107,6 +109,8 @@ function openNew() {
     isSold: true,
     isPurchased: true,
     costingMethod: 'MovingAverage' as CostingMethod,
+    salePrice: null,
+    purchasePrice: null,
   })
   error.value = ''
   modalOpen.value = true
@@ -124,6 +128,8 @@ function openEdit(row: Product) {
     isSold: row.isSold,
     isPurchased: row.isPurchased,
     costingMethod: row.costingMethod ?? 'MovingAverage',
+    salePrice: row.salePrice,
+    purchasePrice: row.purchasePrice,
   })
   error.value = ''
   modalOpen.value = true
@@ -140,6 +146,8 @@ async function save() {
         isStockTracked: form.isStockTracked,
         isSold: form.isSold,
         isPurchased: form.isPurchased,
+        salePrice: form.salePrice,
+        purchasePrice: form.purchasePrice,
       }, editRowVersion.value)
     } else {
       await masterData.createProduct({
@@ -151,6 +159,8 @@ async function save() {
         isSold: form.isSold,
         isPurchased: form.isPurchased,
         costingMethod: form.costingMethod,
+        salePrice: form.salePrice,
+        purchasePrice: form.purchasePrice,
       })
     }
     modalOpen.value = false
@@ -223,6 +233,15 @@ async function toggleActive(row: Product) {
             </p>
           </FormField>
         </div>
+        <div class="grid grid-cols-2 gap-4">
+          <FormField :label="t('masterData.products.salePrice')">
+            <input v-model.number="form.salePrice" type="number" min="0" step="any" class="field-input text-right tnum" :placeholder="t('masterData.products.pricePlaceholder')" />
+          </FormField>
+          <FormField :label="t('masterData.products.purchasePrice')">
+            <input v-model.number="form.purchasePrice" type="number" min="0" step="any" class="field-input text-right tnum" :placeholder="t('masterData.products.pricePlaceholder')" />
+          </FormField>
+        </div>
+        <p class="-mt-2 text-xs text-text-muted">{{ t('masterData.products.priceHint') }}</p>
         <div class="flex flex-wrap gap-4">
           <label class="flex items-center gap-2 text-sm text-text">
             <input v-model="form.isStockTracked" type="checkbox" class="h-4 w-4 accent-accent" /> {{ t('masterData.fields.stockTracked') }}

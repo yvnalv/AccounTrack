@@ -8,11 +8,13 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-07 (last change **CHG-0110**)
+- **As of:** 2026-07-07 (last change **CHG-0111**)
 - **Build:** green — backend `net8.0` (337 tests); **frontend** `frontend/` builds (vue-tsc + vite).
-  Latest: **price lists (CHG-0110, ADR-0035)** — per-product Sales/Purchase prices with a company
-  default + per-customer/supplier overrides; Sales/Purchase order lines auto-fill the unit price
-  (still editable); no accounting impact. (Concurrent sibling branch: inventory FIFO CHG-0109/ADR-0034.)
+  Latest: **pricing reworked (CHG-0111, ADR-0036, supersedes ADR-0035)** — the base price now lives on
+  the product (`SalePrice`/`PurchasePrice`, auto-fills order lines); price lists became **shared
+  discount rules** (a % off base + optional per-product overrides), fixing the per-customer
+  maintenance burden. Resolution: override → % off base → product base → manual. (Also fixed committed
+  merge-conflict markers left in DECISIONS.md by the ADR-0034/0035 concurrent merge.)
   **Deployed:** live on a VPS behind the owner's Nginx + Let's Encrypt (SAN cert), reusing an existing
   dockerized PostgreSQL; **auto-deploy CI/CD** (GitHub Actions → build/test → GHCR images → SSH
   `compose pull` on push to `main`; CHG-0098/0100) and **nightly PostgreSQL backups** (CHG-0100). See
@@ -94,8 +96,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   Sheet** (CHG-0016); **posting-rule / account-determination engine** + health check (CHG-0017);
   **AR/AP subledgers** — open items, allocation, aging (CHG-0018)
 - ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009);
-  **price lists (CHG-0110, ADR-0035)** — Sales/Purchase per-product prices, company default + party
-  overrides, SO/PO line auto-fill
+  **pricing (CHG-0111, ADR-0036)** — product base price (SalePrice/PurchasePrice) + shared discount
+  price lists (% off base + per-product overrides) + SO/PO line auto-fill
 - 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
   opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI); **per-company

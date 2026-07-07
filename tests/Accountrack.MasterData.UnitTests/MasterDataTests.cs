@@ -124,7 +124,8 @@ public class MasterDataEditTests
     {
         var uom = Guid.NewGuid();
         var p = Product.Create("SKU1", "Widget", uom, null);
-        p.Update("Renamed", Guid.NewGuid(), isStockTracked: false, isSold: false, isPurchased: true);
+        p.Update("Renamed", Guid.NewGuid(), isStockTracked: false, isSold: false, isPurchased: true,
+            salePrice: null, purchasePrice: null);
 
         p.Name.Should().Be("Renamed");
         p.IsStockTracked.Should().BeFalse();
