@@ -8,7 +8,7 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-06 (last change **CHG-0107**)
+- **As of:** 2026-07-07 (last change **CHG-0108**)
 - **Build:** green — backend `net8.0` (334 tests); **frontend** `frontend/` builds (vue-tsc + vite).
   **Deployed:** live on a VPS behind the owner's Nginx + Let's Encrypt (SAN cert), reusing an existing
   dockerized PostgreSQL; **auto-deploy CI/CD** (GitHub Actions → build/test → GHCR images → SSH
@@ -164,9 +164,11 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - **Frontend:** Vue 3 SPA — **pause for a UI/UX design discussion before building** (user
   preference: not template/AI-ish).
 - **Surfacing built-but-hidden backend in the UI:** ✅ **in-app notifications bell (CHG-0107)** —
-  the top-bar bell now lists notifications (popover, unread badge, mark-(all-)read, 60s poll).
-  Remaining: an **Audit trail** screen (Settings tab, `Audit.View`, `GET /audit-entries`) and the
-  **Process Tracker timeline** on document detail pages (`GET /documents/{type}/{id}/timeline`).
+  the top-bar bell now lists notifications (popover, unread badge, mark-(all-)read, 60s poll);
+  ✅ **Audit trail screen (CHG-0108)** — `Audit.View`-gated Settings tab over `GET /audit-entries`
+  (filter by record type + date, paged, expandable before/after diff); ✅ **Process Tracker timeline
+  (CHG-0108)** — lifecycle milestones on the Sales Order / Purchase Order / Expense Voucher detail
+  pages via `GET /documents/{type}/{id}/timeline`. Surfacing complete.
 
 ## ▶️ Next up (recommended)
 

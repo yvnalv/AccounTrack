@@ -16,6 +16,7 @@ import FormField from '@/components/ui/FormField.vue'
 import RolesManager from '@/components/settings/RolesManager.vue'
 import UsersManager from '@/components/settings/UsersManager.vue'
 import OutboxDeadLetters from '@/components/settings/OutboxDeadLetters.vue'
+import AuditTrail from '@/components/settings/AuditTrail.vue'
 
 const { t, locale } = useI18n()
 const auth = useAuthStore()
@@ -26,6 +27,7 @@ const canEditCompany = computed(() => auth.has('Admin.Companies'))
 const canManageRoles = computed(() => auth.has('Admin.Roles'))
 const canManageUsers = computed(() => auth.has('Admin.Users'))
 const canManageApprovals = computed(() => auth.has('Approval.Manage'))
+const canViewAudit = computed(() => auth.has('Audit.View'))
 
 // One tab per settings category; admin-only tabs appear only with the matching permission.
 const tabs = computed(() =>
@@ -34,6 +36,7 @@ const tabs = computed(() =>
     { key: 'users', label: t('settings.users.title'), show: canManageUsers.value },
     { key: 'roles', label: t('settings.roles.title'), show: canManageRoles.value },
     { key: 'events', label: t('settings.outbox.title'), show: canManageApprovals.value },
+    { key: 'audit', label: t('settings.audit.title'), show: canViewAudit.value },
     { key: 'profile', label: t('settings.profile.title'), show: true },
     { key: 'preferences', label: t('settings.prefs.title'), show: true },
   ].filter((tab) => tab.show),
@@ -242,6 +245,11 @@ function setLocale(next: string | undefined) {
     <!-- Event delivery (outbox dead-letters) -->
     <AppCard v-if="activeTab === 'events'" :title="t('settings.outbox.title')">
       <OutboxDeadLetters />
+    </AppCard>
+
+    <!-- Audit trail -->
+    <AppCard v-if="activeTab === 'audit'" :title="t('settings.audit.title')">
+      <AuditTrail />
     </AppCard>
 
     <!-- Profile -->

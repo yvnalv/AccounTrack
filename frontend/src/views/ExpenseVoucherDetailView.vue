@@ -16,6 +16,7 @@ import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import DocumentTimeline from '@/components/DocumentTimeline.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -220,6 +221,8 @@ async function confirmReverse() {
         </dl>
         <p v-if="voucher.notes" class="mt-3 border-t border-border pt-3 text-sm text-text">{{ voucher.notes }}</p>
       </AppCard>
+
+      <DocumentTimeline document-type="ExpenseVoucher" :document-id="voucher.id" />
     </template>
 
     <AppModal v-model="reverseModal" :title="t('expenses.detail.reverseTitle')">

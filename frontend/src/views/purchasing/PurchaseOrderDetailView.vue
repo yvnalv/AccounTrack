@@ -22,6 +22,7 @@ import AppModal from '@/components/ui/AppModal.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import DocumentTimeline from '@/components/DocumentTimeline.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -342,6 +343,8 @@ onMounted(load)
       <AppCard v-if="order.notes" :title="t('purchasing.detail.notes')">
         <p class="text-sm text-text">{{ order.notes }}</p>
       </AppCard>
+
+      <DocumentTimeline document-type="PurchaseOrder" :document-id="order.id" />
     </template>
 
     <AppModal v-model="returnModal" :title="`${t('purchasing.detail.returnTitle')} · ${returnInvoiceNo}`">
