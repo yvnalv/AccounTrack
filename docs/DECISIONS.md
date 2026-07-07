@@ -43,6 +43,8 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0030 | Expenses module (operating-expense vouchers) | Accepted | 2026-06-19 |
 | 0031 | Data import (CSV/Excel) and export (CSV/Excel/PDF) | Accepted | 2026-06-19 |
 | 0032 | PostgreSQL (Npgsql) as the database provider, replacing SQL Server | Accepted | 2026-07-02 |
+| 0033 | Back-dated in-period inventory recompute (moving-average replay + delta journals) | Accepted | 2026-07-06 |
+| 0035 | Price lists (Sales/Purchase) with company default + party overrides | Accepted | 2026-07-07 |
 
 ---
 
@@ -672,3 +674,30 @@ immutability + closed-period locks preserved. (−) New recompute engine + adjus
 replay cost grows with in-period bucket activity. **Open edge:** transfers carry cost across
 warehouses (ADR-0015), so initial scope is single-bucket replay — a back-date before a transfer out
 of the bucket is rejected pending a later cross-bucket cascade.
+
+---
+
+## ADR-0035: Price lists (Sales/Purchase) with company default + party overrides
+
+- **Status:** Accepted — **Date:** 2026-07-07 — full text: [adr/0035-price-lists.md](adr/0035-price-lists.md)
+
+**Context.** Order lines needed a unit price but the product master never modeled price, so lines were
+typed from zero. Businesses keep sell/buy prices per product, often per customer/supplier, and expect
+the line to auto-fill (still editable). Pricing must not change accounting (the entered price already
+posts) and must respect module boundaries (ADR-0007) and single functional currency (ADR-0013).
+
+**Decision.** Price lists in Master Data, typed **Sales** or **Purchase**, holding a per-product
+`unitPrice`. One list per type may be the company **default**; a customer's `SalesPriceListId` /
+supplier's `PurchasePriceListId` overrides it. Resolution for `(type, party)` = default overlaid by
+the party list → a `productId → price` map the order forms use to prefill lines. Because price only
+prefills the existing `unitPrice`, there is **no posting impact and no cross-module service**. v1 =
+default + per-party lists; **no** quantity breaks, date-effective versioning, discounts, or
+multi-currency (later slices on the same model).
+
+**Options.** (A) price lists with default + party override ← chosen; (B) a single default price field
+on Product (can't do per-party pricing); (C) a full pricing engine now (large, slow first drop).
+
+**Consequences.** (+) Order lines auto-fill from real data; per-party pricing; zero accounting risk;
+the model extends to breaks/dates/discounts without a rewrite. (−) Assignment is a plain FK per party
+(one list per type); prices are functional-currency only. **Follow-ups:** quantity breaks +
+date-effective versioning; discounts; multi-currency price lists; price columns in product import.

@@ -1,5 +1,34 @@
 # Accountrack Changelog
 
+## [2026-07-07 08:39:50 UTC]
+
+CHG-0110 — Price lists: per-product Sales/Purchase pricing with order auto-fill (ADR-0035)
+
+- **Products can now carry sell/buy prices** via **price lists** (Master Data). A price list is typed
+  Sales or Purchase and holds a per-product unit price; one list per type may be the company
+  **default**, and a customer/supplier may point at its own list that overrides the default.
+- **Order lines auto-fill.** When a customer/supplier is chosen on a Sales/Purchase order, the form
+  resolves the applicable prices (company default overlaid by the party's list) and prefills each
+  line's unit price on product-select — **still editable**. No match → the line stays manual, exactly
+  as before. Pricing has **no accounting impact** (the entered price posts as it always did).
+- **Backend:** `PriceList` + `PriceListItem` entities; `Customer.SalesPriceListId` /
+  `Supplier.PurchasePriceListId` assignment; `IPriceListRepository`; CRUD + item upsert/delete +
+  `ResolvePrices` (productId→price map) under `/api/v1/price-lists` (MasterData.* permissions).
+  Migration adds the two tables + two nullable FK columns. Resolution unit-tested (default only,
+  party override, empty).
+- **Frontend:** a **Price Lists** screen under Master Data (list/create/edit + a product-price items
+  editor); a price-list selector on the customer/supplier edit forms; Sales/Purchase order auto-fill;
+  `lib/pricing.ts` + types; `priceLists.*` strings (en + id).
+- **v1 scope:** default + per-party lists. No quantity breaks, date-effective versioning, discounts,
+  or multi-currency price lists yet (later slices on the same model). Full backend suite green;
+  frontend builds clean. Docs: **ADR-0035**, BUSINESS_RULES BR-PRICE-*, DECISIONS index (also
+  backfilled ADR-0033).
+
+> Note: `CHG-0109` (inventory FIFO, ADR-0034) is on a sibling branch merging concurrently; this entry
+> uses `CHG-0110`. Reconcile ordering/numbering on merge.
+
+---
+
 ## [2026-07-07 04:37:21 UTC]
 
 CHG-0108 — Frontend: surface the Audit trail + document Process-Tracker timeline

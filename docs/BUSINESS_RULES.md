@@ -116,6 +116,21 @@ configurable per company with the stated default.
   the excess is **recovered as a supplier refund** into a chosen cash/bank account (Dr Cash-Bank)
   rather than to AP (CHG-0074).
 
+## Pricing (ADR-0035)
+
+- **BR-PRICE-1** A price list is typed **Sales** or **Purchase** and holds a per-product unit price
+  in the company functional currency. Prices only prefill order lines — they have **no posting
+  impact** (the entered line price is what posts).
+- **BR-PRICE-2 (config)** At most one **default** price list per type per company; assigning a new
+  default clears the previous one.
+- **BR-PRICE-3** A customer may point at a Sales price list and a supplier at a Purchase price list,
+  overriding the company default for that party.
+- **BR-PRICE-4** The price for `(product, party)` resolves as the company default list **overlaid by
+  the party's list** (party wins); a product absent from both resolves to no price (the line stays
+  manual). Only active lists participate.
+- **BR-PRICE-5** Price lists are soft-deactivated, never hard-deleted (ADR-0029); list items are
+  upserted/removed per product.
+
 ## Expenses (ADR-0030)
 
 - **BR-EXP-1 (invariant)** An expense voucher has at least one line; each line has an expense
