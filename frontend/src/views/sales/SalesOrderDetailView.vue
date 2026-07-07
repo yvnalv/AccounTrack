@@ -299,6 +299,14 @@ onMounted(load)
       <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <AppCard :title="t('sales.detail.deliveries')" :padded="false">
           <table v-if="deliveries.length" class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-border text-xs uppercase tracking-wide text-text-muted">
+                <th class="px-4 py-2 text-left font-semibold">{{ t('sales.detail.doNumber') }}</th>
+                <th class="px-4 py-2 text-left font-semibold">{{ t('sales.detail.date') }}</th>
+                <th class="px-4 py-2 text-right font-semibold">{{ t('sales.detail.cogs') }}</th>
+                <th class="px-4 py-2"></th>
+              </tr>
+            </thead>
             <tbody>
               <tr v-for="d in deliveries" :key="d.id" class="border-b border-border last:border-0">
                 <td class="px-4 py-2.5 text-text">{{ d.number }}</td>
@@ -310,6 +318,9 @@ onMounted(load)
               </tr>
             </tbody>
           </table>
+          <p v-if="deliveries.length" class="border-t border-border px-4 py-2 text-xs text-text-muted">
+            {{ t('sales.detail.cogsHint') }}
+          </p>
           <p v-else class="px-4 py-6 text-center text-sm text-text-muted">{{ t('sales.detail.noDeliveries') }}</p>
         </AppCard>
 

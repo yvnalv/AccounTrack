@@ -1,5 +1,23 @@
 # Accountrack Changelog
 
+## [2026-07-07 13:11:43 UTC]
+
+CHG-0113 — Deliveries list + clarify the delivery COGS figure
+
+- **New Delivery Orders list** (Sales → Deliveries) — a company-wide list of delivery orders with DO
+  number, customer, date, **cost of goods (COGS)** and posted status; clicking a row opens its sales
+  order. Backend: `GET /api/v1/delivery-orders` (`GetDeliveriesQuery`, `Sales.View`) +
+  `IDeliveryOrderRepository.ListAsync`; `DeliveryOrderListItemDto` with the customer name resolved.
+- **Clarifies the delivery amount.** On the Sales Order detail, the Deliveries card now has column
+  headers and a note that the figure is the **cost of goods shipped (COGS)** — posted Dr COGS /
+  Cr Inventory from moving-average/FIFO cost — **not** the sale price (revenue is recognized at
+  invoicing). This addresses confusion where the COGS looked like a random auto-generated number.
+- Frontend: `DeliveriesView`, route `salesDeliveries`, a Deliveries button on the Sales list,
+  `deliveries.*` + `sales.detail.cogs*` strings (en + id). Full backend suite green (350); frontend
+  builds clean.
+
+---
+
 ## [2026-07-07 12:55:57 UTC]
 
 CHG-0112 — Frontend: richer product list (category, UoM, prices, costing)

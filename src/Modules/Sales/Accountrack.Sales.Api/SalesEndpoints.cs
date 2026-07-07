@@ -59,6 +59,10 @@ public static class SalesEndpoints
 
         var del = app.MapGroup("/api/v1/delivery-orders").WithTags("Sales").RequireAuthorization();
 
+        del.MapGet("/", (ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetDeliveriesQuery(), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetDeliveries");
+
         del.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetDeliveryOrderQuery(id), ct)))
             .RequireAuthorization("Sales.View").WithName("GetDeliveryOrder");

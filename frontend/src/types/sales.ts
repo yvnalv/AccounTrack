@@ -40,6 +40,17 @@ export interface DeliverySummary {
   journalEntryId: string | null
 }
 
+export interface DeliveryListItem {
+  id: string
+  number: string
+  deliveryDate: string
+  salesOrderId: string
+  customerId: string
+  customerName: string
+  totalCost: number
+  journalEntryId: string | null
+}
+
 export interface SalesInvoiceSummary {
   id: string
   number: string

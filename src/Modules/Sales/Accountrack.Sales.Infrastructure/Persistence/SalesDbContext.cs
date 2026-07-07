@@ -235,6 +235,9 @@ public sealed class DeliveryOrderRepository : IDeliveryOrderRepository
     public Task<DeliveryOrder?> GetByIdAsync(Guid id, CancellationToken ct) =>
         _db.DeliveryOrders.Include(d => d.Lines).FirstOrDefaultAsync(d => d.Id == id, ct);
 
+    public async Task<IReadOnlyList<DeliveryOrder>> ListAsync(CancellationToken ct) =>
+        await _db.DeliveryOrders.OrderByDescending(d => d.Number).ToListAsync(ct);
+
     public async Task<IReadOnlyList<DeliveryOrder>> ListBySalesOrderAsync(Guid salesOrderId, CancellationToken ct) =>
         await _db.DeliveryOrders.Include(d => d.Lines).Where(d => d.SalesOrderId == salesOrderId)
             .OrderByDescending(d => d.Number).ToListAsync(ct);

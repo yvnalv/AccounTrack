@@ -26,6 +26,7 @@ const router = createRouter({
         { path: 'sales/receive-payment', name: 'salesReceivePayment', component: () => import('@/views/sales/ReceivePaymentView.vue'), meta: { titleKey: 'sales.payment.title' } },
         { path: 'sales/returns', name: 'salesReturns', component: () => import('@/views/sales/SalesReturnsView.vue'), meta: { titleKey: 'returns.salesTitle' } },
         { path: 'sales/returns/:id', name: 'salesReturnDetail', component: () => import('@/views/sales/SalesReturnDetailView.vue'), meta: { titleKey: 'returns.salesTitle' } },
+        { path: 'sales/deliveries', name: 'salesDeliveries', component: () => import('@/views/sales/DeliveriesView.vue'), meta: { titleKey: 'deliveries.title' } },
         { path: 'sales/:id', name: 'salesOrderDetail', component: () => import('@/views/sales/SalesOrderDetailView.vue'), meta: { titleKey: 'sales.title' } },
         { path: 'purchasing', name: 'purchasing', component: () => import('@/views/purchasing/PurchaseOrdersView.vue'), meta: { titleKey: 'purchasing.title' } },
         { path: 'purchasing/new', name: 'purchaseOrderCreate', component: () => import('@/views/purchasing/PurchaseOrderCreateView.vue'), meta: { titleKey: 'purchasing.new' } },
