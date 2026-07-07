@@ -3,13 +3,15 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
+import { pricingApi } from '@/lib/pricing'
 import { isConflict } from '@/lib/api'
 import { exportTable } from '@/lib/exportTable'
 import { useCsvImport } from '@/composables/useCsvImport'
-import type { Supplier } from '@/types/masterdata'
+import type { PriceList, Supplier } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import CsvImportModal from '@/components/ui/CsvImportModal.vue'
 import ExportMenu from '@/components/ui/ExportMenu.vue'
 import DataTable from '@/components/ui/DataTable.vue'
@@ -44,7 +46,14 @@ const saving = ref(false)
 const error = ref('')
 const editingId = ref<string | null>(null)
 const editRowVersion = ref<string | null>(null)
-const form = reactive({ code: '', name: '', taxId: '', paymentTermDays: 30 })
+const form = reactive({ code: '', name: '', taxId: '', paymentTermDays: 30, purchasePriceListId: '' })
+
+// Purchase price lists for the per-supplier override (ADR-0035).
+const purchaseLists = ref<PriceList[]>([])
+const priceListOptions = computed(() => [
+  { value: '', label: t('priceLists.assign.none') },
+  ...purchaseLists.value.filter((l) => l.isActive).map((l) => ({ value: l.id, label: l.name })),
+])
 
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('masterData.fields.code') },
@@ -58,7 +67,9 @@ const columns = computed<Column[]>(() => [
 async function load() {
   loading.value = true
   try {
-    rows.value = await masterData.suppliers()
+    const [s, lists] = await Promise.all([masterData.suppliers(), pricingApi.list()])
+    rows.value = s
+    purchaseLists.value = lists.filter((l) => l.type === 'Purchase')
   } finally {
     loading.value = false
   }
@@ -67,7 +78,7 @@ onMounted(load)
 
 function openNew() {
   editingId.value = null
-  Object.assign(form, { code: '', name: '', taxId: '', paymentTermDays: 30 })
+  Object.assign(form, { code: '', name: '', taxId: '', paymentTermDays: 30, purchasePriceListId: '' })
   error.value = ''
   modalOpen.value = true
 }
@@ -75,7 +86,10 @@ function openNew() {
 function openEdit(row: Supplier) {
   editingId.value = row.id
   editRowVersion.value = row.rowVersion
-  Object.assign(form, { code: row.code, name: row.name, taxId: row.taxId ?? '', paymentTermDays: row.paymentTermDays })
+  Object.assign(form, {
+    code: row.code, name: row.name, taxId: row.taxId ?? '', paymentTermDays: row.paymentTermDays,
+    purchasePriceListId: row.purchasePriceListId ?? '',
+  })
   error.value = ''
   modalOpen.value = true
 }
@@ -89,6 +103,7 @@ async function save() {
         name: form.name,
         taxId: form.taxId || null,
         paymentTermDays: form.paymentTermDays,
+        purchasePriceListId: form.purchasePriceListId || null,
       }, editRowVersion.value)
     } else {
       await masterData.createSupplier({
@@ -147,6 +162,10 @@ async function toggleActive(row: Supplier) {
         <FormField :label="t('masterData.fields.taxId')"><AppInput v-model="form.taxId" /></FormField>
         <FormField :label="t('masterData.fields.terms')">
           <input v-model.number="form.paymentTermDays" type="number" min="0" class="field-input text-right tnum" />
+        </FormField>
+        <FormField v-if="editingId" :label="t('priceLists.assign.purchase')">
+          <AppSelect v-model="form.purchasePriceListId" :options="priceListOptions" />
+          <p class="mt-1 text-xs text-text-muted">{{ t('priceLists.assign.hint') }}</p>
         </FormField>
         <p v-if="error" class="text-sm text-negative">{{ error }}</p>
       </div>

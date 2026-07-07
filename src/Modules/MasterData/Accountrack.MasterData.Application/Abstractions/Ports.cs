@@ -21,6 +21,25 @@ public interface ICodedRepository<T> where T : Entity, IHasCode
     void SetExpectedVersion(T entity, byte[] expectedVersion);
 }
 
+/// <summary>Repository for price lists and their items (ADR-0035), company-scoped by the query filter.</summary>
+public interface IPriceListRepository
+{
+    void Add(Domain.PriceList list);
+    void AddItem(Domain.PriceListItem item);
+    void RemoveItem(Domain.PriceListItem item);
+
+    Task<Domain.PriceList?> GetAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<Domain.PriceList>> ListAsync(CancellationToken ct);
+    Task<IReadOnlyList<Domain.PriceList>> ListByTypeAsync(Domain.PriceListType type, CancellationToken ct);
+    Task<Domain.PriceList?> GetDefaultAsync(Domain.PriceListType type, CancellationToken ct);
+
+    Task<IReadOnlyList<Domain.PriceListItem>> GetItemsAsync(Guid priceListId, CancellationToken ct);
+    Task<Domain.PriceListItem?> GetItemAsync(Guid priceListId, Guid productId, CancellationToken ct);
+    Task<IReadOnlyDictionary<Guid, int>> ItemCountsAsync(CancellationToken ct);
+
+    void SetExpectedVersion(Domain.PriceList list, byte[] expectedVersion);
+}
+
 public interface IMasterDataUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken ct);

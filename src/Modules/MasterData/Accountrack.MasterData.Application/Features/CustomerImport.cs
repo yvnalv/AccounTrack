@@ -139,7 +139,7 @@ public sealed class CommitCustomerImportHandler : ICommandHandler<CommitCustomer
         {
             if (existing.TryGetValue(line.Code, out var customer))
             {
-                customer.Update(line.Name, line.TaxId, line.Terms, line.Credit);
+                customer.Update(line.Name, line.TaxId, line.Terms, line.Credit, customer.SalesPriceListId);
                 updated++;
             }
             else

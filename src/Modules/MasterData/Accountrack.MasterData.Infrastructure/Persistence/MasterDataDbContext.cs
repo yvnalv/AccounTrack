@@ -24,6 +24,8 @@ public sealed class MasterDataDbContext : BaseDbContext, IMasterDataUnitOfWork
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<TaxCode> TaxCodes => Set<TaxCode>();
+    public DbSet<PriceList> PriceLists => Set<PriceList>();
+    public DbSet<PriceListItem> PriceListItems => Set<PriceListItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +69,21 @@ public sealed class MasterDataDbContext : BaseDbContext, IMasterDataUnitOfWork
             CodedConfig(b, 16, 100);
             b.ToTable("TaxCodes");
             b.Property(t => t.Rate).HasColumnType("decimal(9,6)");
+        });
+
+        modelBuilder.Entity<PriceList>(b =>
+        {
+            b.ToTable("PriceLists");
+            b.Property(p => p.Name).IsRequired().HasMaxLength(200);
+            b.Property(p => p.Type).HasConversion<int>();
+            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Type, p.IsDefault });
+        });
+
+        modelBuilder.Entity<PriceListItem>(b =>
+        {
+            b.ToTable("PriceListItems");
+            b.Property(p => p.UnitPrice).HasColumnType("decimal(19,4)");
+            b.HasIndex(p => new { p.PriceListId, p.ProductId }).IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         base.OnModelCreating(modelBuilder);

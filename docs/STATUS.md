@@ -8,8 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-07 (last change **CHG-0109**)
-- **Build:** green — backend `net8.0` (346 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-07-07 (last change **CHG-0110**)
+- **Build:** green — backend `net8.0` (337 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **price lists (CHG-0110, ADR-0035)** — per-product Sales/Purchase prices with a company
+  default + per-customer/supplier overrides; Sales/Purchase order lines auto-fill the unit price
+  (still editable); no accounting impact. (Concurrent sibling branch: inventory FIFO CHG-0109/ADR-0034.)
   **Deployed:** live on a VPS behind the owner's Nginx + Let's Encrypt (SAN cert), reusing an existing
   dockerized PostgreSQL; **auto-deploy CI/CD** (GitHub Actions → build/test → GHCR images → SSH
   `compose pull` on push to `main`; CHG-0098/0100) and **nightly PostgreSQL backups** (CHG-0100). See
@@ -90,7 +93,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   periods, double-entry journals + reversal, trial balance (CHG-0008); **Profit & Loss + Balance
   Sheet** (CHG-0016); **posting-rule / account-determination engine** + health check (CHG-0017);
   **AR/AP subledgers** — open items, allocation, aging (CHG-0018)
-- ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009)
+- ✅ **Master Data** — products, categories, units, customers, suppliers, warehouses, tax codes (CHG-0009);
+  **price lists (CHG-0110, ADR-0035)** — Sales/Purchase per-product prices, company default + party
+  overrides, SO/PO line auto-fill
 - 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
   opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI); **per-company

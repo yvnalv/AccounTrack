@@ -1,31 +1,31 @@
 # Accountrack Changelog
 
-## [2026-07-07 07:39:49 UTC]
+## [2026-07-07 08:39:50 UTC]
 
-CHG-0109 — Inventory: FIFO costing as a per-product option (ADR-0034)
+CHG-0110 — Price lists: per-product Sales/Purchase pricing with order auto-fill (ADR-0035)
 
-- **Adds FIFO (first-in, first-out) costing** alongside the existing moving average, chosen **per
-  product** at creation and **immutable thereafter** (like the base UoM — it underpins historical
-  valuation). Moving average stays the default and its code path is unchanged.
-- **Domain:** `CostingMethod` enum (SharedKernel); `Product.CostingMethod`; `StockCostBucket` now
-  carries the method (inherited from the product when the bucket is first created) and gains
-  `IssueFifo`; new `StockCostLayer` entity + pure, unit-tested `FifoCosting` (consume oldest layers
-  first). A FIFO receipt opens a cost layer; a FIFO issue consumes the oldest layers and posts their
-  summed cost as COGS.
-- **Cross-module:** `IMasterDataLookup.GetCostingMethodAsync` lets the Inventory ledger read a
-  product's method without touching Master Data tables (ADR-0007). The inventory-valuation report
-  values FIFO buckets as the sum of their open layers, so it still reconciles to the GL Inventory
-  account (BR-INV-7).
-- **v1 scope:** FIFO is forward-only — **back-dating a movement for a FIFO product is rejected**
-  (`BR-INV-10`, `INVENTORY.BACKDATING_FIFO_NOT_SUPPORTED`); moving-average back-dating (ADR-0033) is
-  unchanged. Opt-in negative stock costs any layer shortfall at the last average.
-- **Frontend:** product create/edit gains a costing-method selector (disabled on edit, with an
-  immutability hint); `masterData.products.costing.*` strings (en + id).
-- **Migrations:** `Products.CostingMethod` and `StockCostBuckets.CostingMethod` (default 0 =
-  MovingAverage for existing rows); new `StockCostLayers` table.
-- Full backend suite green (**346 passed**, +12: pure FIFO math + FIFO ledger receive/issue/
-  back-dating-reject); frontend builds clean. Docs: **ADR-0034**, INVENTORY_DESIGN §1/§3/§10,
-  BUSINESS_RULES BR-INV-2/5/10, DECISIONS index (also backfilled ADR-0033).
+- **Products can now carry sell/buy prices** via **price lists** (Master Data). A price list is typed
+  Sales or Purchase and holds a per-product unit price; one list per type may be the company
+  **default**, and a customer/supplier may point at its own list that overrides the default.
+- **Order lines auto-fill.** When a customer/supplier is chosen on a Sales/Purchase order, the form
+  resolves the applicable prices (company default overlaid by the party's list) and prefills each
+  line's unit price on product-select — **still editable**. No match → the line stays manual, exactly
+  as before. Pricing has **no accounting impact** (the entered price posts as it always did).
+- **Backend:** `PriceList` + `PriceListItem` entities; `Customer.SalesPriceListId` /
+  `Supplier.PurchasePriceListId` assignment; `IPriceListRepository`; CRUD + item upsert/delete +
+  `ResolvePrices` (productId→price map) under `/api/v1/price-lists` (MasterData.* permissions).
+  Migration adds the two tables + two nullable FK columns. Resolution unit-tested (default only,
+  party override, empty).
+- **Frontend:** a **Price Lists** screen under Master Data (list/create/edit + a product-price items
+  editor); a price-list selector on the customer/supplier edit forms; Sales/Purchase order auto-fill;
+  `lib/pricing.ts` + types; `priceLists.*` strings (en + id).
+- **v1 scope:** default + per-party lists. No quantity breaks, date-effective versioning, discounts,
+  or multi-currency price lists yet (later slices on the same model). Full backend suite green;
+  frontend builds clean. Docs: **ADR-0035**, BUSINESS_RULES BR-PRICE-*, DECISIONS index (also
+  backfilled ADR-0033).
+
+> Note: `CHG-0109` (inventory FIFO, ADR-0034) is on a sibling branch merging concurrently; this entry
+> uses `CHG-0110`. Reconcile ordering/numbering on merge.
 
 ---
 

@@ -3,14 +3,16 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Upload, FileDown } from 'lucide-vue-next'
 import { masterData } from '@/lib/masterData'
+import { pricingApi } from '@/lib/pricing'
 import { isConflict } from '@/lib/api'
 import { exportTable } from '@/lib/exportTable'
 import { formatMoney } from '@/lib/format'
 import { useCsvImport } from '@/composables/useCsvImport'
-import type { Customer } from '@/types/masterdata'
+import type { Customer, PriceList } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import CsvImportModal from '@/components/ui/CsvImportModal.vue'
 import ExportMenu from '@/components/ui/ExportMenu.vue'
 import DataTable from '@/components/ui/DataTable.vue'
@@ -41,7 +43,14 @@ const saving = ref(false)
 const error = ref('')
 const editingId = ref<string | null>(null)
 const editRowVersion = ref<string | null>(null)
-const form = reactive({ code: '', name: '', taxId: '', paymentTermDays: 30, creditLimit: 0 })
+const form = reactive({ code: '', name: '', taxId: '', paymentTermDays: 30, creditLimit: 0, salesPriceListId: '' })
+
+// Sales price lists for the per-customer override (ADR-0035).
+const salesLists = ref<PriceList[]>([])
+const priceListOptions = computed(() => [
+  { value: '', label: t('priceLists.assign.none') },
+  ...salesLists.value.filter((l) => l.isActive).map((l) => ({ value: l.id, label: l.name })),
+])
 
 // CSV import/export (ADR-0031) via the shared composable + modal.
 const io = masterData.customerImport
@@ -61,7 +70,9 @@ const columns = computed<Column[]>(() => [
 async function load() {
   loading.value = true
   try {
-    rows.value = await masterData.customers()
+    const [c, lists] = await Promise.all([masterData.customers(), pricingApi.list()])
+    rows.value = c
+    salesLists.value = lists.filter((l) => l.type === 'Sales')
   } finally {
     loading.value = false
   }
@@ -70,7 +81,7 @@ onMounted(load)
 
 function openNew() {
   editingId.value = null
-  Object.assign(form, { code: '', name: '', taxId: '', paymentTermDays: 30, creditLimit: 0 })
+  Object.assign(form, { code: '', name: '', taxId: '', paymentTermDays: 30, creditLimit: 0, salesPriceListId: '' })
   error.value = ''
   modalOpen.value = true
 }
@@ -84,6 +95,7 @@ function openEdit(row: Customer) {
     taxId: row.taxId ?? '',
     paymentTermDays: row.paymentTermDays,
     creditLimit: row.creditLimit,
+    salesPriceListId: row.salesPriceListId ?? '',
   })
   error.value = ''
   modalOpen.value = true
@@ -99,6 +111,7 @@ async function save() {
         taxId: form.taxId || null,
         paymentTermDays: form.paymentTermDays,
         creditLimit: form.creditLimit,
+        salesPriceListId: form.salesPriceListId || null,
       }, editRowVersion.value)
     } else {
       await masterData.createCustomer({
@@ -169,6 +182,10 @@ async function toggleActive(row: Customer) {
             <input v-model.number="form.creditLimit" type="number" min="0" step="any" class="field-input text-right tnum" />
           </FormField>
         </div>
+        <FormField v-if="editingId" :label="t('priceLists.assign.sales')">
+          <AppSelect v-model="form.salesPriceListId" :options="priceListOptions" />
+          <p class="mt-1 text-xs text-text-muted">{{ t('priceLists.assign.hint') }}</p>
+        </FormField>
         <p v-if="error" class="text-sm text-negative">{{ error }}</p>
       </div>
       <template #footer>
