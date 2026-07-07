@@ -1,4 +1,5 @@
 using Accountrack.SharedKernel.Domain;
+using Accountrack.SharedKernel.Inventory;
 
 namespace Accountrack.Inventory.Domain;
 
@@ -15,11 +16,12 @@ public sealed class StockCostBucket : TenantOwnedEntity, IAggregateRoot
 
     private StockCostBucket() { }
 
-    private StockCostBucket(Guid productId, Guid warehouseId, string currency)
+    private StockCostBucket(Guid productId, Guid warehouseId, string currency, CostingMethod costingMethod)
     {
         ProductId = productId;
         WarehouseId = warehouseId;
         Currency = currency;
+        CostingMethod = costingMethod;
         OnHandQty = 0m;
         AvgUnitCost = 0m;
     }
@@ -28,14 +30,23 @@ public sealed class StockCostBucket : TenantOwnedEntity, IAggregateRoot
     public Guid WarehouseId { get; private set; }
     public string Currency { get; private set; } = default!;
 
+    /// <summary>
+    /// The cost-flow method for this bucket (ADR-0034), inherited from the product at creation and
+    /// fixed thereafter. Moving-average buckets track <see cref="AvgUnitCost"/>; FIFO buckets value
+    /// issues from <c>StockCostLayer</c> rows (the average is then a derived display value).
+    /// </summary>
+    public CostingMethod CostingMethod { get; private set; }
+
     /// <summary>Quantity currently on hand (may be negative only if negative stock is permitted).</summary>
     public decimal OnHandQty { get; private set; }
 
     /// <summary>Weighted-average unit cost in the company functional currency.</summary>
     public decimal AvgUnitCost { get; private set; }
 
-    public static StockCostBucket Create(Guid productId, Guid warehouseId, string currency) =>
-        new(productId, warehouseId, currency.Trim().ToUpperInvariant());
+    public static StockCostBucket Create(
+        Guid productId, Guid warehouseId, string currency,
+        CostingMethod costingMethod = CostingMethod.MovingAverage) =>
+        new(productId, warehouseId, currency.Trim().ToUpperInvariant(), costingMethod);
 
     /// <summary>
     /// Adds stock at <paramref name="unitCost"/> and recomputes the weighted average.

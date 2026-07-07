@@ -355,7 +355,16 @@ export default {
       failed: 'Could not process the file. Check the format against the template.',
       actions: { Create: 'Create', Update: 'Update', Error: 'Error' },
     },
-    products: { title: 'Products', new: 'New product', edit: 'Edit product', selectUom: 'Select a unit', noCategory: '(none)' },
+    products: {
+      title: 'Products', new: 'New product', edit: 'Edit product', selectUom: 'Select a unit', noCategory: '(none)',
+      costing: {
+        label: 'Costing method',
+        movingAverage: 'Moving average',
+        fifo: 'FIFO (first-in, first-out)',
+        hint: 'How stock issues are valued. Cannot be changed once the product has movements.',
+        lockedHint: 'Costing method is fixed after creation — it underpins historical valuation.',
+      },
+    },
     customers: { title: 'Customers', new: 'New customer', edit: 'Edit customer' },
     suppliers: { title: 'Suppliers', new: 'New supplier', edit: 'Edit supplier' },
     warehouses: { title: 'Warehouses', new: 'New warehouse', edit: 'Edit warehouse' },

@@ -4,6 +4,8 @@ using Accountrack.Inventory.Application.Services;
 using Accountrack.Inventory.Domain;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Company;
+using Accountrack.Modules.Contracts.MasterData;
+using Accountrack.SharedKernel.Inventory;
 using Accountrack.SharedKernel.Results;
 using FluentAssertions;
 using NSubstitute;
@@ -17,6 +19,7 @@ public class InventoryLedgerServiceTests
     private readonly IStockBucketRepository _buckets = Substitute.For<IStockBucketRepository>();
     private readonly IInventoryTransactionRepository _txns = Substitute.For<IInventoryTransactionRepository>();
     private readonly ICompanyDirectory _companies = Substitute.For<ICompanyDirectory>();
+    private readonly IMasterDataLookup _masterData = Substitute.For<IMasterDataLookup>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
     private readonly IGeneralLedgerPoster _gl = Substitute.For<IGeneralLedgerPoster>();
     private readonly IPostingAccountResolver _accounts = Substitute.For<IPostingAccountResolver>();
@@ -38,7 +41,9 @@ public class InventoryLedgerServiceTests
             .Returns(Result.Success(VarianceAccount));
         _gl.PostAsync(Arg.Any<LedgerPostingRequest>(), Arg.Any<CancellationToken>())
             .Returns(Result.Success(Guid.NewGuid()));
-        return new(_buckets, _txns, _companies, _tenant, _gl, _accounts);
+        _masterData.GetCostingMethodAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(CostingMethod.MovingAverage);
+        return new(_buckets, _txns, _companies, _masterData, _tenant, _gl, _accounts);
     }
 
     [Fact]

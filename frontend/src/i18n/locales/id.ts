@@ -356,7 +356,16 @@ export default {
       failed: 'Tidak dapat memproses berkas. Periksa format sesuai templat.',
       actions: { Create: 'Buat', Update: 'Perbarui', Error: 'Galat' },
     },
-    products: { title: 'Produk', new: 'Produk baru', edit: 'Ubah produk', selectUom: 'Pilih satuan', noCategory: '(tidak ada)' },
+    products: {
+      title: 'Produk', new: 'Produk baru', edit: 'Ubah produk', selectUom: 'Pilih satuan', noCategory: '(tidak ada)',
+      costing: {
+        label: 'Metode biaya',
+        movingAverage: 'Rata-rata bergerak',
+        fifo: 'FIFO (masuk pertama, keluar pertama)',
+        hint: 'Cara penilaian pengeluaran stok. Tidak dapat diubah setelah produk memiliki pergerakan.',
+        lockedHint: 'Metode biaya tetap setelah dibuat — mendasari penilaian historis.',
+      },
+    },
     customers: { title: 'Pelanggan', new: 'Pelanggan baru', edit: 'Ubah pelanggan' },
     suppliers: { title: 'Pemasok', new: 'Pemasok baru', edit: 'Ubah pemasok' },
     warehouses: { title: 'Gudang', new: 'Gudang baru', edit: 'Ubah gudang' },

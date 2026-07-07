@@ -27,6 +27,7 @@ public sealed class InventoryDbContext : BaseDbContext, IInventoryUnitOfWork
         {
             b.ToTable("StockCostBuckets");
             b.Property(x => x.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(x => x.CostingMethod).HasConversion<int>();
             b.Property(x => x.OnHandQty).HasColumnType("decimal(19,6)");
             b.Property(x => x.AvgUnitCost).HasColumnType("decimal(19,4)");
             // One bucket per (company, warehouse, product) â€” the cost-bucket granularity (ADR-0015).

@@ -3,6 +3,7 @@ using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Domain;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Company;
+using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.Inventory.Application.Services;
@@ -13,18 +14,20 @@ public sealed class InventoryLedgerService : IInventoryLedger
     private readonly IStockBucketRepository _buckets;
     private readonly IInventoryTransactionRepository _transactions;
     private readonly ICompanyDirectory _companies;
+    private readonly IMasterDataLookup _masterData;
     private readonly ITenantContext _tenant;
     private readonly IGeneralLedgerPoster _ledger;
     private readonly IPostingAccountResolver _accounts;
 
     public InventoryLedgerService(
         IStockBucketRepository buckets, IInventoryTransactionRepository transactions,
-        ICompanyDirectory companies, ITenantContext tenant,
+        ICompanyDirectory companies, IMasterDataLookup masterData, ITenantContext tenant,
         IGeneralLedgerPoster ledger, IPostingAccountResolver accounts)
     {
         _buckets = buckets;
         _transactions = transactions;
         _companies = companies;
+        _masterData = masterData;
         _tenant = tenant;
         _ledger = ledger;
         _accounts = accounts;
@@ -43,7 +46,8 @@ public sealed class InventoryLedgerService : IInventoryLedger
         var bucket = await _buckets.GetAsync(productId, warehouseId, ct);
         if (bucket is null)
         {
-            bucket = StockCostBucket.Create(productId, warehouseId, currency);
+            var method = await _masterData.GetCostingMethodAsync(productId, ct);
+            bucket = StockCostBucket.Create(productId, warehouseId, currency, method);
             _buckets.Add(bucket);
         }
 
@@ -88,7 +92,12 @@ public sealed class InventoryLedgerService : IInventoryLedger
             return InventoryErrors.InsufficientStock(onHand, quantity);
         }
 
-        bucket ??= CreateAndTrack(productId, warehouseId, "XXX"); // only reachable when negative allowed
+        if (bucket is null)
+        {
+            // Only reachable when negative stock is allowed and this product has no bucket yet.
+            var method = await _masterData.GetCostingMethodAsync(productId, ct);
+            bucket = CreateAndTrack(productId, warehouseId, "XXX", method);
+        }
         var cost = bucket.Issue(quantity, allowNegative);
         var unitCost = bucket.AvgUnitCost;
 
@@ -252,9 +261,10 @@ public sealed class InventoryLedgerService : IInventoryLedger
     private static decimal Debit(decimal delta) => delta > 0m ? delta : 0m;
     private static decimal Credit(decimal delta) => delta < 0m ? -delta : 0m;
 
-    private StockCostBucket CreateAndTrack(Guid productId, Guid warehouseId, string currency)
+    private StockCostBucket CreateAndTrack(
+        Guid productId, Guid warehouseId, string currency, Accountrack.SharedKernel.Inventory.CostingMethod method)
     {
-        var bucket = StockCostBucket.Create(productId, warehouseId, currency);
+        var bucket = StockCostBucket.Create(productId, warehouseId, currency, method);
         _buckets.Add(bucket);
         return bucket;
     }
