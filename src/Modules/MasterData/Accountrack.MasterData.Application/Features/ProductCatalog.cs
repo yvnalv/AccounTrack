@@ -100,7 +100,8 @@ public sealed class GetCategoriesHandler : IQueryHandler<GetCategoriesQuery, IRe
 public sealed record CreateProductCommand(
     string Code, string Name, Guid BaseUomId, Guid? CategoryId,
     bool IsStockTracked, bool IsSold, bool IsPurchased,
-    CostingMethod CostingMethod = CostingMethod.MovingAverage) : ICommand<Guid>;
+    CostingMethod CostingMethod = CostingMethod.MovingAverage,
+    decimal? SalePrice = null, decimal? PurchasePrice = null) : ICommand<Guid>;
 
 public sealed class CreateProductValidator : AbstractValidator<CreateProductCommand>
 {
@@ -134,7 +135,8 @@ public sealed class CreateProductHandler : ICommandHandler<CreateProductCommand,
 
         var product = Product.Create(
             code, request.Name, request.BaseUomId, request.CategoryId,
-            request.IsStockTracked, request.IsSold, request.IsPurchased, request.CostingMethod);
+            request.IsStockTracked, request.IsSold, request.IsPurchased, request.CostingMethod,
+            request.SalePrice, request.PurchasePrice);
         _products.Add(product);
         await _uow.SaveChangesAsync(ct);
         return product.Id;
@@ -153,6 +155,6 @@ public sealed class GetProductsHandler : IQueryHandler<GetProductsQuery, IReadOn
         var items = await _repo.ListAsync(ct);
         return Result.Success<IReadOnlyList<ProductDto>>(items.Select(p => new ProductDto(
             p.Id, p.Code, p.Name, p.BaseUomId, p.CategoryId, p.IsStockTracked, p.IsSold, p.IsPurchased, p.IsActive,
-            p.RowVersion, p.CostingMethod)).ToList());
+            p.RowVersion, p.CostingMethod, p.SalePrice, p.PurchasePrice)).ToList());
     }
 }

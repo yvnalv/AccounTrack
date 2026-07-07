@@ -7,7 +7,8 @@ public sealed record ProductCategoryDto(Guid Id, string Code, string Name, bool 
 public sealed record ProductDto(
     Guid Id, string Code, string Name, Guid BaseUomId, Guid? CategoryId,
     bool IsStockTracked, bool IsSold, bool IsPurchased, bool IsActive, byte[]? RowVersion,
-    CostingMethod CostingMethod = CostingMethod.MovingAverage);
+    CostingMethod CostingMethod = CostingMethod.MovingAverage,
+    decimal? SalePrice = null, decimal? PurchasePrice = null);
 public sealed record CustomerDto(
     Guid Id, string Code, string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit, bool IsActive,
     byte[]? RowVersion, Guid? SalesPriceListId = null);

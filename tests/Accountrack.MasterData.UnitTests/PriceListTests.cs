@@ -12,71 +12,91 @@ public class PriceListTests
     private readonly IPriceListRepository _lists = Substitute.For<IPriceListRepository>();
     private readonly ICodedRepository<Customer> _customers = Substitute.For<ICodedRepository<Customer>>();
     private readonly ICodedRepository<Supplier> _suppliers = Substitute.For<ICodedRepository<Supplier>>();
+    private readonly ICodedRepository<Product> _products = Substitute.For<ICodedRepository<Product>>();
 
-    private static readonly Guid P1 = Guid.NewGuid();
-    private static readonly Guid P2 = Guid.NewGuid();
-    private static readonly Guid P3 = Guid.NewGuid();
+    private static readonly Guid Uom = Guid.NewGuid();
 
-    private ResolvePricesHandler Handler() => new(_lists, _customers, _suppliers);
+    private ResolvePricesHandler Handler() => new(_lists, _customers, _suppliers, _products);
 
-    [Fact]
-    public async Task Resolves_default_prices_when_the_party_has_no_list()
+    private Product Product(string code, decimal? salePrice) =>
+        Domain.Product.Create(code, code, Uom, null, salePrice: salePrice);
+
+    private Customer CustomerWithList(Guid listId)
     {
-        var def = PriceList.Create("Standard", PriceListType.Sales, isDefault: true);
-        _lists.GetDefaultAsync(PriceListType.Sales, Arg.Any<CancellationToken>()).Returns(def);
-        _lists.GetItemsAsync(def.Id, Arg.Any<CancellationToken>()).Returns(new List<PriceListItem>
-        {
-            PriceListItem.Create(def.Id, P1, 100m),
-            PriceListItem.Create(def.Id, P2, 200m),
-        });
-
-        var result = await Handler().Handle(new ResolvePricesQuery(PriceListType.Sales, PartyId: null), CancellationToken.None);
-
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeEquivalentTo(new Dictionary<Guid, decimal> { [P1] = 100m, [P2] = 200m });
+        var c = Customer.Create("C1", "Acme", null, 30, 0m);
+        c.Update("Acme", null, 30, 0m, listId);
+        return c;
     }
 
     [Fact]
-    public async Task Party_list_overrides_the_default_and_adds_its_own_products()
+    public async Task No_party_list_returns_empty_so_the_form_uses_the_product_base_price()
     {
-        var def = PriceList.Create("Standard", PriceListType.Sales, isDefault: true);
-        var vip = PriceList.Create("VIP", PriceListType.Sales, isDefault: false);
-
-        var customer = Customer.Create("C1", "Acme", null, 30, 0m);
-        customer.Update("Acme", null, 30, 0m, vip.Id); // assign the VIP list
-
-        _lists.GetDefaultAsync(PriceListType.Sales, Arg.Any<CancellationToken>()).Returns(def);
-        _lists.GetItemsAsync(def.Id, Arg.Any<CancellationToken>()).Returns(new List<PriceListItem>
-        {
-            PriceListItem.Create(def.Id, P1, 100m),
-            PriceListItem.Create(def.Id, P2, 200m),
-        });
+        var customer = Customer.Create("C1", "Acme", null, 30, 0m); // no list assigned
         _customers.GetByIdAsync(customer.Id, Arg.Any<CancellationToken>()).Returns(customer);
-        _lists.GetAsync(vip.Id, Arg.Any<CancellationToken>()).Returns(vip);
-        _lists.GetItemsAsync(vip.Id, Arg.Any<CancellationToken>()).Returns(new List<PriceListItem>
-        {
-            PriceListItem.Create(vip.Id, P2, 250m), // overrides the default P2
-            PriceListItem.Create(vip.Id, P3, 300m), // adds P3
-        });
 
-        var result = await Handler().Handle(
-            new ResolvePricesQuery(PriceListType.Sales, customer.Id), CancellationToken.None);
+        var result = await Handler().Handle(new ResolvePricesQuery(PriceListType.Sales, customer.Id), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Discount_list_applies_a_percentage_off_the_product_base_price()
+    {
+        var list = PriceList.Create("Wholesale", PriceListType.Sales, discountPercent: 10m);
+        var customer = CustomerWithList(list.Id);
+        var widget = Product("W", 100m);
+        var gadget = Product("G", 250m);
+
+        _customers.GetByIdAsync(customer.Id, Arg.Any<CancellationToken>()).Returns(customer);
+        _lists.GetAsync(list.Id, Arg.Any<CancellationToken>()).Returns(list);
+        _lists.GetItemsAsync(list.Id, Arg.Any<CancellationToken>()).Returns(new List<PriceListItem>());
+        _products.ListAsync(Arg.Any<CancellationToken>()).Returns(new List<Product> { widget, gadget });
+
+        var result = await Handler().Handle(new ResolvePricesQuery(PriceListType.Sales, customer.Id), CancellationToken.None);
 
         result.Value.Should().BeEquivalentTo(new Dictionary<Guid, decimal>
         {
-            [P1] = 100m, // from default
-            [P2] = 250m, // party overrides default
-            [P3] = 300m, // party-only
+            [widget.Id] = 90m,  // 100 − 10%
+            [gadget.Id] = 225m, // 250 − 10%
         });
     }
 
     [Fact]
-    public async Task Returns_empty_when_no_default_and_no_party_list()
+    public async Task A_product_override_wins_over_the_discount()
     {
-        _lists.GetDefaultAsync(PriceListType.Sales, Arg.Any<CancellationToken>()).Returns((PriceList?)null);
+        var list = PriceList.Create("Wholesale", PriceListType.Sales, discountPercent: 10m);
+        var customer = CustomerWithList(list.Id);
+        var widget = Product("W", 100m);
 
-        var result = await Handler().Handle(new ResolvePricesQuery(PriceListType.Sales, PartyId: null), CancellationToken.None);
+        _customers.GetByIdAsync(customer.Id, Arg.Any<CancellationToken>()).Returns(customer);
+        _lists.GetAsync(list.Id, Arg.Any<CancellationToken>()).Returns(list);
+        _lists.GetItemsAsync(list.Id, Arg.Any<CancellationToken>())
+            .Returns(new List<PriceListItem> { PriceListItem.Create(list.Id, widget.Id, 80m) });
+        _products.ListAsync(Arg.Any<CancellationToken>()).Returns(new List<Product> { widget });
 
-        result.Value.Should().BeEmpty();
+        var result = await Handler().Handle(new ResolvePricesQuery(PriceListType.Sales, customer.Id), CancellationToken.None);
+
+        result.Value.Should().BeEquivalentTo(new Dictionary<Guid, decimal> { [widget.Id] = 80m }); // override, not 90
+    }
+
+    [Fact]
+    public async Task Overrides_only_list_returns_just_the_overrides()
+    {
+        var list = PriceList.Create("Specials", PriceListType.Sales, discountPercent: 0m);
+        var customer = CustomerWithList(list.Id);
+        var widget = Product("W", 100m);
+        var gadget = Product("G", 250m);
+
+        _customers.GetByIdAsync(customer.Id, Arg.Any<CancellationToken>()).Returns(customer);
+        _lists.GetAsync(list.Id, Arg.Any<CancellationToken>()).Returns(list);
+        _lists.GetItemsAsync(list.Id, Arg.Any<CancellationToken>())
+            .Returns(new List<PriceListItem> { PriceListItem.Create(list.Id, gadget.Id, 200m) });
+        _products.ListAsync(Arg.Any<CancellationToken>()).Returns(new List<Product> { widget, gadget });
+
+        var result = await Handler().Handle(new ResolvePricesQuery(PriceListType.Sales, customer.Id), CancellationToken.None);
+
+        // widget has no override and the list has no discount → absent (form uses its base price)
+        result.Value.Should().BeEquivalentTo(new Dictionary<Guid, decimal> { [gadget.Id] = 200m });
     }
 }

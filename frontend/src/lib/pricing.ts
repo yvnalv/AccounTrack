@@ -4,7 +4,7 @@ import type { CreatePriceList, PriceList, PriceListItem, PriceListType } from '@
 export const pricingApi = {
   list: () => unwrap<PriceList[]>(http.get('/price-lists')),
   create: (body: CreatePriceList) => unwrap<string>(http.post('/price-lists', body)),
-  update: (id: string, body: { name: string; isDefault: boolean; isActive: boolean }, rowVersion?: string | null) =>
+  update: (id: string, body: { name: string; discountPercent: number; isActive: boolean }, rowVersion?: string | null) =>
     unwrap<string>(http.put(`/price-lists/${id}`, { ...body, rowVersion: rowVersion ?? null })),
 
   items: (id: string) => unwrap<PriceListItem[]>(http.get(`/price-lists/${id}/items`)),

@@ -40,6 +40,8 @@ public sealed class MasterDataDbContext : BaseDbContext, IMasterDataUnitOfWork
             b.ToTable("Products");
             b.HasIndex(p => p.BaseUomId);
             b.Property(p => p.CostingMethod).HasConversion<int>();
+            b.Property(p => p.SalePrice).HasColumnType("decimal(19,4)");
+            b.Property(p => p.PurchasePrice).HasColumnType("decimal(19,4)");
         });
 
         modelBuilder.Entity<Customer>(b =>
@@ -76,7 +78,8 @@ public sealed class MasterDataDbContext : BaseDbContext, IMasterDataUnitOfWork
             b.ToTable("PriceLists");
             b.Property(p => p.Name).IsRequired().HasMaxLength(200);
             b.Property(p => p.Type).HasConversion<int>();
-            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Type, p.IsDefault });
+            b.Property(p => p.DiscountPercent).HasColumnType("decimal(9,4)");
+            b.HasIndex(p => new { p.TenantId, p.CompanyId, p.Type });
         });
 
         modelBuilder.Entity<PriceListItem>(b =>

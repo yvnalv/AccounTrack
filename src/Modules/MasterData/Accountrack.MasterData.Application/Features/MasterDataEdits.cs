@@ -161,7 +161,7 @@ public sealed class SetWarehouseActiveHandler : ICommandHandler<SetWarehouseActi
 // ---- Products ----
 public sealed record UpdateProductCommand(
     Guid Id, string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased,
-    byte[]? RowVersion = null) : ICommand<Guid>;
+    decimal? SalePrice = null, decimal? PurchasePrice = null, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateProductValidator : AbstractValidator<UpdateProductCommand>
 {
@@ -183,7 +183,8 @@ public sealed class UpdateProductHandler : ICommandHandler<UpdateProductCommand,
         var product = await _repo.GetByIdAsync(request.Id, ct);
         if (product is null) return MasterDataErrors.NotFound("product");
         if (request.RowVersion is not null) _repo.SetExpectedVersion(product, request.RowVersion);
-        product.Update(request.Name, request.CategoryId, request.IsStockTracked, request.IsSold, request.IsPurchased);
+        product.Update(request.Name, request.CategoryId, request.IsStockTracked, request.IsSold, request.IsPurchased,
+            request.SalePrice, request.PurchasePrice);
         await _uow.SaveChangesAsync(ct);
         return product.Id;
     }

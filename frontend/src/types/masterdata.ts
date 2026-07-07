@@ -16,6 +16,8 @@ export interface Product extends NamedRef {
   isActive: boolean
   rowVersion: string | null
   costingMethod: CostingMethod
+  salePrice: number | null
+  purchasePrice: number | null
 }
 
 export interface Customer extends NamedRef {
@@ -42,7 +44,7 @@ export interface PriceList {
   id: string
   name: string
   type: PriceListType
-  isDefault: boolean
+  discountPercent: number
   isActive: boolean
   itemCount: number
   rowVersion: string | null
@@ -57,7 +59,7 @@ export interface PriceListItem {
 export interface CreatePriceList {
   name: string
   type: PriceListType
-  isDefault: boolean
+  discountPercent: number
 }
 
 export interface Warehouse extends NamedRef {
@@ -91,6 +93,8 @@ export interface CreateProduct {
   isSold: boolean
   isPurchased: boolean
   costingMethod: CostingMethod
+  salePrice: number | null
+  purchasePrice: number | null
 }
 
 export interface CreateCustomer {
