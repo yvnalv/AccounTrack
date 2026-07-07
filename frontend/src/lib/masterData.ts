@@ -42,8 +42,11 @@ export const masterData = {
     unwrap<string>(http.put(`/suppliers/${id}`, { ...body, rowVersion: rowVersion ?? null })),
   updateWarehouse: (id: string, body: Omit<CreateWarehouse, 'code'>, rowVersion?: string | null) =>
     unwrap<string>(http.put(`/warehouses/${id}`, { ...body, rowVersion: rowVersion ?? null })),
-  updateProduct: (id: string, body: Omit<CreateProduct, 'code' | 'baseUomId'>, rowVersion?: string | null) =>
-    unwrap<string>(http.put(`/products/${id}`, { ...body, rowVersion: rowVersion ?? null })),
+  updateProduct: (
+    id: string,
+    body: Omit<CreateProduct, 'code' | 'baseUomId' | 'costingMethod'>,
+    rowVersion?: string | null,
+  ) => unwrap<string>(http.put(`/products/${id}`, { ...body, rowVersion: rowVersion ?? null })),
   updateUom: (id: string, body: { name: string }, rowVersion?: string | null) =>
     unwrap<string>(http.put(`/units-of-measure/${id}`, { ...body, rowVersion: rowVersion ?? null })),
   updateCategory: (id: string, body: { name: string }, rowVersion?: string | null) =>

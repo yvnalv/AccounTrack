@@ -1,4 +1,5 @@
 using Accountrack.SharedKernel.Domain;
+using Accountrack.SharedKernel.Inventory;
 
 namespace Accountrack.Inventory.Domain;
 
@@ -15,11 +16,12 @@ public sealed class StockCostBucket : TenantOwnedEntity, IAggregateRoot
 
     private StockCostBucket() { }
 
-    private StockCostBucket(Guid productId, Guid warehouseId, string currency)
+    private StockCostBucket(Guid productId, Guid warehouseId, string currency, CostingMethod costingMethod)
     {
         ProductId = productId;
         WarehouseId = warehouseId;
         Currency = currency;
+        CostingMethod = costingMethod;
         OnHandQty = 0m;
         AvgUnitCost = 0m;
     }
@@ -28,14 +30,23 @@ public sealed class StockCostBucket : TenantOwnedEntity, IAggregateRoot
     public Guid WarehouseId { get; private set; }
     public string Currency { get; private set; } = default!;
 
+    /// <summary>
+    /// The cost-flow method for this bucket (ADR-0034), inherited from the product at creation and
+    /// fixed thereafter. Moving-average buckets track <see cref="AvgUnitCost"/>; FIFO buckets value
+    /// issues from <c>StockCostLayer</c> rows (the average is then a derived display value).
+    /// </summary>
+    public CostingMethod CostingMethod { get; private set; }
+
     /// <summary>Quantity currently on hand (may be negative only if negative stock is permitted).</summary>
     public decimal OnHandQty { get; private set; }
 
     /// <summary>Weighted-average unit cost in the company functional currency.</summary>
     public decimal AvgUnitCost { get; private set; }
 
-    public static StockCostBucket Create(Guid productId, Guid warehouseId, string currency) =>
-        new(productId, warehouseId, currency.Trim().ToUpperInvariant());
+    public static StockCostBucket Create(
+        Guid productId, Guid warehouseId, string currency,
+        CostingMethod costingMethod = CostingMethod.MovingAverage) =>
+        new(productId, warehouseId, currency.Trim().ToUpperInvariant(), costingMethod);
 
     /// <summary>
     /// Adds stock at <paramref name="unitCost"/> and recomputes the weighted average.
@@ -84,6 +95,40 @@ public sealed class StockCostBucket : TenantOwnedEntity, IAggregateRoot
         var cost = Math.Round(quantity * AvgUnitCost, CostScale, MidpointRounding.ToEven);
         OnHandQty = Math.Round(OnHandQty - quantity, QtyScale, MidpointRounding.ToEven);
         return cost;
+    }
+
+    /// <summary>
+    /// Applies a FIFO issue (ADR-0034): reduces on-hand by <paramref name="quantity"/> and recomputes
+    /// the derived display average from the remaining value (current value − <paramref name="costOfIssue"/>).
+    /// The cost of the issue is computed from the bucket's cost layers by the caller, not from the
+    /// average; this only keeps <see cref="OnHandQty"/> and the derived <see cref="AvgUnitCost"/> in step.
+    /// Rejects going negative unless <paramref name="allowNegative"/>.
+    /// </summary>
+    public void IssueFifo(decimal quantity, decimal costOfIssue, bool allowNegative)
+    {
+        if (quantity <= 0)
+        {
+            throw new InvalidOperationException("Issue quantity must be positive.");
+        }
+
+        if (!allowNegative && quantity > OnHandQty)
+        {
+            throw new InvalidOperationException(
+                $"Insufficient stock: on hand {OnHandQty}, requested {quantity}.");
+        }
+
+        var remainingValue = (OnHandQty * AvgUnitCost) - costOfIssue;
+        OnHandQty = Math.Round(OnHandQty - quantity, QtyScale, MidpointRounding.ToEven);
+
+        if (OnHandQty > 0)
+        {
+            AvgUnitCost = Math.Round(remainingValue / OnHandQty, CostScale, MidpointRounding.ToEven);
+        }
+        else if (OnHandQty == 0)
+        {
+            AvgUnitCost = 0m;
+        }
+        // Negative on-hand (allowNegative): keep the last average for the next receipt to reconcile.
     }
 
     /// <summary>

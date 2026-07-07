@@ -1,8 +1,8 @@
 # INVENTORY_DESIGN.md
 
 The inventory engine. Inventory traceability is non-negotiable (Core Principle 7). The
-`InventoryTransaction` ledger is the source of truth (ADR-0014). Costing: moving average
-(ADR-0015).
+`InventoryTransaction` ledger is the source of truth (ADR-0014). Costing is **per product**
+(ADR-0034): moving average (ADR-0015, default) or FIFO (§3, §10).
 
 ## 1. Principles
 
@@ -11,7 +11,9 @@ The inventory engine. Inventory traceability is non-negotiable (Core Principle 7
    is a rebuildable projection.
 2. **Every physical movement is a ledger entry** — receipts, issues, adjustments, transfer legs,
    (future) production consume/receive.
-3. **Moving-average costing** per **(Company × Warehouse × Product)** cost bucket (ADR-0015).
+3. **Costing is per product** (ADR-0034): moving average (default) or FIFO, each maintained per
+   **(Company × Warehouse × Product)** cost bucket. A bucket inherits the product's method at
+   creation (`StockCostBucket.CostingMethod`) and it is then fixed.
 4. **Inventory and accounting agree**: each costed movement also drives a GL posting
    (POSTING_RULES.md) so the Inventory GL account reconciles to ledger valuation.
 
@@ -67,6 +69,14 @@ destination bucket at that same unit cost (cost travels with the goods).
 
 Rounding: `TotalCost` and `avgCost` use decimal money scale; residual rounding on valuation is
 reconciled so ledger value = Σ TotalCost.
+
+**FIFO (ADR-0034).** For FIFO-costed products each **inbound** movement opens a `StockCostLayer`
+(source txn, unit cost, remaining qty, movement date). An **issue** consumes the oldest open layers
+first; its cost is the sum of the consumed layer costs (pure `FifoCosting`). The bucket still tracks
+on-hand and a *derived* average for display, but FIFO on-hand **value = Σ (open layer remaining ×
+unit cost)** — what §9 valuation uses. v1 is forward-only: back-dating a FIFO product is rejected
+(BR-INV-10). Under opt-in negative stock, a layer shortfall is costed at the last average and
+reconciled on the next receipt.
 
 ## 4. Negative Stock — ADR-0016
 
@@ -138,11 +148,13 @@ All costed movements that hit Accounting are **atomic** with the GL posting
 - **Movement / stock-card report**: full per-product transaction history with running balances
   (drill-down to source document).
 
-## 10. Future: FIFO / Lot / Batch (ADR-0015 rationale)
-The ledger reserves an optional `CostLayers` structure (ReceiptTxnId, RemainingQty, UnitCost).
-Switching a product (or company) to FIFO becomes: maintain layers on receipt, consume
-oldest-first on issue — **a costing-strategy plug-in, not a schema migration**. Manufacturing
-(WIP) reuses ProductionConsume/ProductionReceive movement types already defined.
+## 10. FIFO / Lot / Batch (ADR-0034)
+**FIFO is implemented** as a per-product costing method (ADR-0034), realizing the plug-in the ledger
+always reserved: `StockCostLayer` (SourceTransactionId, UnitCost, OriginalQty, RemainingQty,
+MovementDate) holds open layers per bucket; receipts open a layer, issues consume oldest-first via
+`FifoCosting`. Moving average is untouched. **Remaining:** FIFO back-dated layer reconstruction (v1
+rejects it, BR-INV-10); cross-bucket (transfer) back-dating (future ADR-0035); Lot/Batch tracking.
+Manufacturing (WIP) reuses ProductionConsume/ProductionReceive movement types already defined.
 
 ## 11. Correctness Risks & Controls
 

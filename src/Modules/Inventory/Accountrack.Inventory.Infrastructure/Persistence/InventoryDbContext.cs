@@ -17,6 +17,7 @@ public sealed class InventoryDbContext : BaseDbContext, IInventoryUnitOfWork
     }
 
     public DbSet<StockCostBucket> StockCostBuckets => Set<StockCostBucket>();
+    public DbSet<StockCostLayer> StockCostLayers => Set<StockCostLayer>();
     public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -27,11 +28,23 @@ public sealed class InventoryDbContext : BaseDbContext, IInventoryUnitOfWork
         {
             b.ToTable("StockCostBuckets");
             b.Property(x => x.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(x => x.CostingMethod).HasConversion<int>();
             b.Property(x => x.OnHandQty).HasColumnType("decimal(19,6)");
             b.Property(x => x.AvgUnitCost).HasColumnType("decimal(19,4)");
             // One bucket per (company, warehouse, product) â€” the cost-bucket granularity (ADR-0015).
             b.HasIndex(x => new { x.TenantId, x.CompanyId, x.WarehouseId, x.ProductId })
                 .IsUnique().HasFilter("\"IsDeleted\" = false");
+        });
+
+        modelBuilder.Entity<StockCostLayer>(b =>
+        {
+            b.ToTable("StockCostLayers");
+            b.Property(x => x.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
+            b.Property(x => x.UnitCost).HasColumnType("decimal(19,4)");
+            b.Property(x => x.OriginalQty).HasColumnType("decimal(19,6)");
+            b.Property(x => x.RemainingQty).HasColumnType("decimal(19,6)");
+            // FIFO consumption order per bucket, and open-layer scans for valuation.
+            b.HasIndex(x => new { x.TenantId, x.CompanyId, x.ProductId, x.WarehouseId, x.MovementDate });
         });
 
         modelBuilder.Entity<InventoryTransaction>(b =>

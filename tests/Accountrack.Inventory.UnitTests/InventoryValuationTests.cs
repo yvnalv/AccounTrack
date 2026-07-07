@@ -18,6 +18,7 @@ public class InventoryValuationTests
     private static readonly Guid ProductB = Guid.NewGuid();
 
     private readonly IStockBucketRepository _buckets = Substitute.For<IStockBucketRepository>();
+    private readonly IStockCostLayerRepository _layers = Substitute.For<IStockCostLayerRepository>();
     private readonly IMasterDataLookup _lookup = Substitute.For<IMasterDataLookup>();
     private readonly IGeneralLedgerBalances _gl = Substitute.For<IGeneralLedgerBalances>();
     private readonly ICompanyDirectory _companies = Substitute.For<ICompanyDirectory>();
@@ -35,9 +36,10 @@ public class InventoryValuationTests
         var aWh2 = StockCostBucket.Create(ProductA, Guid.NewGuid(), "IDR"); aWh2.Receive(5m, 100m);    //   500
         var bWh1 = StockCostBucket.Create(ProductB, Guid.NewGuid(), "IDR"); bWh1.Receive(2m, 250m);    //   500
         _buckets.ListAsync(Arg.Any<CancellationToken>()).Returns(new List<StockCostBucket> { aWh1, aWh2, bWh1 });
+        _layers.ListOpenAsync(Arg.Any<CancellationToken>()).Returns(new List<StockCostLayer>());
     }
 
-    private GetInventoryValuationHandler Handler() => new(_buckets, _lookup, _gl, _companies, _tenant);
+    private GetInventoryValuationHandler Handler() => new(_buckets, _layers, _lookup, _gl, _companies, _tenant);
 
     [Fact]
     public async Task Aggregates_value_by_product_and_reconciles_to_the_GL()

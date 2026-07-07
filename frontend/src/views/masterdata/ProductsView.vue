@@ -6,7 +6,7 @@ import { masterData } from '@/lib/masterData'
 import { isConflict } from '@/lib/api'
 import { exportTable } from '@/lib/exportTable'
 import { useCsvImport } from '@/composables/useCsvImport'
-import type { NamedRef, Product } from '@/types/masterdata'
+import type { CostingMethod, NamedRef, Product } from '@/types/masterdata'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -55,7 +55,13 @@ const form = reactive({
   isStockTracked: true,
   isSold: true,
   isPurchased: true,
+  costingMethod: 'MovingAverage' as CostingMethod,
 })
+
+const costingMethodOptions = computed(() => [
+  { value: 'MovingAverage', label: t('masterData.products.costing.movingAverage') },
+  { value: 'Fifo', label: t('masterData.products.costing.fifo') },
+])
 
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('masterData.fields.code') },
@@ -100,6 +106,7 @@ function openNew() {
     isStockTracked: true,
     isSold: true,
     isPurchased: true,
+    costingMethod: 'MovingAverage' as CostingMethod,
   })
   error.value = ''
   modalOpen.value = true
@@ -116,6 +123,7 @@ function openEdit(row: Product) {
     isStockTracked: row.isStockTracked,
     isSold: row.isSold,
     isPurchased: row.isPurchased,
+    costingMethod: row.costingMethod ?? 'MovingAverage',
   })
   error.value = ''
   modalOpen.value = true
@@ -142,6 +150,7 @@ async function save() {
         isStockTracked: form.isStockTracked,
         isSold: form.isSold,
         isPurchased: form.isPurchased,
+        costingMethod: form.costingMethod,
       })
     }
     modalOpen.value = false
@@ -204,6 +213,14 @@ async function toggleActive(row: Product) {
           </FormField>
           <FormField :label="t('masterData.fields.category')">
             <AppSelect v-model="form.categoryId" :options="categoryOptions" />
+          </FormField>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <FormField :label="t('masterData.products.costing.label')">
+            <AppSelect v-model="form.costingMethod" :options="costingMethodOptions" :disabled="!!editingId" />
+            <p class="mt-1 text-xs text-text-muted">
+              {{ editingId ? t('masterData.products.costing.lockedHint') : t('masterData.products.costing.hint') }}
+            </p>
           </FormField>
         </div>
         <div class="flex flex-wrap gap-4">

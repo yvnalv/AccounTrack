@@ -3,6 +3,8 @@ using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Domain;
 using Accountrack.Modules.Contracts.Accounting;
 using Accountrack.Modules.Contracts.Company;
+using Accountrack.Modules.Contracts.MasterData;
+using Accountrack.SharedKernel.Inventory;
 using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.Inventory.Application.Services;
@@ -11,20 +13,25 @@ namespace Accountrack.Inventory.Application.Services;
 public sealed class InventoryLedgerService : IInventoryLedger
 {
     private readonly IStockBucketRepository _buckets;
+    private readonly IStockCostLayerRepository _layers;
     private readonly IInventoryTransactionRepository _transactions;
     private readonly ICompanyDirectory _companies;
+    private readonly IMasterDataLookup _masterData;
     private readonly ITenantContext _tenant;
     private readonly IGeneralLedgerPoster _ledger;
     private readonly IPostingAccountResolver _accounts;
 
     public InventoryLedgerService(
-        IStockBucketRepository buckets, IInventoryTransactionRepository transactions,
-        ICompanyDirectory companies, ITenantContext tenant,
+        IStockBucketRepository buckets, IStockCostLayerRepository layers,
+        IInventoryTransactionRepository transactions,
+        ICompanyDirectory companies, IMasterDataLookup masterData, ITenantContext tenant,
         IGeneralLedgerPoster ledger, IPostingAccountResolver accounts)
     {
         _buckets = buckets;
+        _layers = layers;
         _transactions = transactions;
         _companies = companies;
+        _masterData = masterData;
         _tenant = tenant;
         _ledger = ledger;
         _accounts = accounts;
@@ -43,20 +50,37 @@ public sealed class InventoryLedgerService : IInventoryLedger
         var bucket = await _buckets.GetAsync(productId, warehouseId, ct);
         if (bucket is null)
         {
-            bucket = StockCostBucket.Create(productId, warehouseId, currency);
+            var method = await _masterData.GetCostingMethodAsync(productId, ct);
+            bucket = StockCostBucket.Create(productId, warehouseId, currency, method);
             _buckets.Add(bucket);
         }
 
         if (await IsBackDatedAsync(productId, warehouseId, date, ct))
         {
+            // FIFO layer reconstruction across an inserted movement is out of scope for v1 (ADR-0034).
+            if (bucket.CostingMethod == CostingMethod.Fifo)
+            {
+                return InventoryErrors.BackDatingFifoNotSupported;
+            }
+
             return await RecomputeWithBackDatedMovementAsync(
                 bucket, productId, warehouseId, type, quantity, unitCost, date, source, sourceDocumentId, description,
                 allowNegative: false, ct);
         }
 
+        // Receipt quantity/value and the derived average are maintained the same way for both methods;
+        // FIFO additionally opens a cost layer at this receipt's unit cost (ADR-0034).
         var totalCost = bucket.Receive(quantity, unitCost);
-        return Record(productId, warehouseId, type, quantity, unitCost, totalCost,
+        var recorded = Record(productId, warehouseId, type, quantity, unitCost, totalCost,
             bucket.Currency, date, source, sourceDocumentId, description, bucket);
+
+        if (bucket.CostingMethod == CostingMethod.Fifo && recorded.IsSuccess)
+        {
+            _layers.Add(StockCostLayer.Create(
+                productId, warehouseId, bucket.Currency, recorded.Value.TransactionId, date, unitCost, quantity));
+        }
+
+        return recorded;
     }
 
     public async Task<Result<StockMovementResult>> IssueAsync(
@@ -77,6 +101,12 @@ public sealed class InventoryLedgerService : IInventoryLedger
 
         if (bucket is not null && await IsBackDatedAsync(productId, warehouseId, date, ct))
         {
+            // FIFO layer reconstruction across an inserted movement is out of scope for v1 (ADR-0034).
+            if (bucket.CostingMethod == CostingMethod.Fifo)
+            {
+                return InventoryErrors.BackDatingFifoNotSupported;
+            }
+
             return await RecomputeWithBackDatedMovementAsync(
                 bucket, productId, warehouseId, type, quantity, unitCost: 0m, date, source, sourceDocumentId, description,
                 allowNegative, ct);
@@ -88,12 +118,58 @@ public sealed class InventoryLedgerService : IInventoryLedger
             return InventoryErrors.InsufficientStock(onHand, quantity);
         }
 
-        bucket ??= CreateAndTrack(productId, warehouseId, "XXX"); // only reachable when negative allowed
-        var cost = bucket.Issue(quantity, allowNegative);
-        var unitCost = bucket.AvgUnitCost;
+        if (bucket is null)
+        {
+            // Only reachable when negative stock is allowed and this product has no bucket yet.
+            var method = await _masterData.GetCostingMethodAsync(productId, ct);
+            bucket = CreateAndTrack(productId, warehouseId, "XXX", method);
+        }
+
+        var (cost, unitCost) = bucket.CostingMethod == CostingMethod.Fifo
+            ? await ConsumeFifoAsync(bucket, productId, warehouseId, quantity, allowNegative, ct)
+            : IssueMovingAverage(bucket, quantity, allowNegative);
 
         return Record(productId, warehouseId, type, quantity, unitCost, cost,
             bucket.Currency, date, source, sourceDocumentId, description, bucket);
+    }
+
+    private static (decimal Cost, decimal UnitCost) IssueMovingAverage(
+        StockCostBucket bucket, decimal quantity, bool allowNegative)
+    {
+        var cost = bucket.Issue(quantity, allowNegative);
+        return (cost, bucket.AvgUnitCost);
+    }
+
+    /// <summary>
+    /// Values a FIFO issue by consuming the oldest open layers first (ADR-0034), applies the takes to
+    /// the layer entities, and steps the bucket. When negative stock is allowed and the layers are
+    /// exhausted, the shortfall is costed at the bucket's last average (reconciled on the next receipt).
+    /// </summary>
+    private async Task<(decimal Cost, decimal UnitCost)> ConsumeFifoAsync(
+        StockCostBucket bucket, Guid productId, Guid warehouseId, decimal quantity, bool allowNegative,
+        CancellationToken ct)
+    {
+        var openLayers = await _layers.ListOpenForBucketAsync(productId, warehouseId, ct);
+        var byId = openLayers.ToDictionary(l => l.Id);
+
+        var consumption = FifoCosting.Consume(
+            openLayers.Select(l => new FifoCosting.OpenLayer(l.Id, l.RemainingQty, l.UnitCost)).ToList(),
+            quantity);
+
+        foreach (var take in consumption.Takes)
+        {
+            byId[take.LayerId].Consume(take.Quantity);
+        }
+
+        var cost = consumption.TotalCost;
+        if (consumption.Shortfall > 0m)
+        {
+            cost = Math.Round(cost + (consumption.Shortfall * bucket.AvgUnitCost), 4, MidpointRounding.ToEven);
+        }
+
+        bucket.IssueFifo(quantity, cost, allowNegative);
+        var unitCost = quantity == 0m ? 0m : Math.Round(cost / quantity, 4, MidpointRounding.ToEven);
+        return (cost, unitCost);
     }
 
     public async Task<decimal> GetOnHandAsync(Guid productId, Guid warehouseId, CancellationToken ct)
@@ -252,9 +328,10 @@ public sealed class InventoryLedgerService : IInventoryLedger
     private static decimal Debit(decimal delta) => delta > 0m ? delta : 0m;
     private static decimal Credit(decimal delta) => delta < 0m ? -delta : 0m;
 
-    private StockCostBucket CreateAndTrack(Guid productId, Guid warehouseId, string currency)
+    private StockCostBucket CreateAndTrack(
+        Guid productId, Guid warehouseId, string currency, CostingMethod method)
     {
-        var bucket = StockCostBucket.Create(productId, warehouseId, currency);
+        var bucket = StockCostBucket.Create(productId, warehouseId, currency, method);
         _buckets.Add(bucket);
         return bucket;
     }
