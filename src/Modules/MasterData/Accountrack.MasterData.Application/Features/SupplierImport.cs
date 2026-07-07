@@ -122,7 +122,7 @@ public sealed class CommitSupplierImportHandler : ICommandHandler<CommitSupplier
         {
             if (existing.TryGetValue(line.Code, out var supplier))
             {
-                supplier.Update(line.Name, line.TaxId, line.Terms);
+                supplier.Update(line.Name, line.TaxId, line.Terms, supplier.PurchasePriceListId);
                 updated++;
             }
             else

@@ -21,6 +21,9 @@ public sealed class Customer : TenantOwnedEntity, IAggregateRoot, IHasCode
     public decimal CreditLimit { get; private set; }
     public bool IsActive { get; private set; }
 
+    /// <summary>Optional Sales price list that overrides the company default for this customer (ADR-0035).</summary>
+    public Guid? SalesPriceListId { get; private set; }
+
     public static Customer Create(string code, string name, string? taxId, int paymentTermDays, decimal creditLimit)
     {
         if (paymentTermDays < 0)
@@ -37,7 +40,7 @@ public sealed class Customer : TenantOwnedEntity, IAggregateRoot, IHasCode
     }
 
     /// <summary>Edits the mutable fields. Code (the natural key) is immutable after creation.</summary>
-    public void Update(string name, string? taxId, int paymentTermDays, decimal creditLimit)
+    public void Update(string name, string? taxId, int paymentTermDays, decimal creditLimit, Guid? salesPriceListId)
     {
         if (paymentTermDays < 0)
         {
@@ -48,6 +51,7 @@ public sealed class Customer : TenantOwnedEntity, IAggregateRoot, IHasCode
         TaxId = taxId?.Trim();
         PaymentTermDays = paymentTermDays;
         CreditLimit = creditLimit;
+        SalesPriceListId = salesPriceListId;
     }
 
     public void Activate() => IsActive = true;
@@ -73,6 +77,9 @@ public sealed class Supplier : TenantOwnedEntity, IAggregateRoot, IHasCode
     public int PaymentTermDays { get; private set; }
     public bool IsActive { get; private set; }
 
+    /// <summary>Optional Purchase price list that overrides the company default for this supplier (ADR-0035).</summary>
+    public Guid? PurchasePriceListId { get; private set; }
+
     public static Supplier Create(string code, string name, string? taxId, int paymentTermDays)
     {
         if (paymentTermDays < 0)
@@ -88,7 +95,7 @@ public sealed class Supplier : TenantOwnedEntity, IAggregateRoot, IHasCode
     }
 
     /// <summary>Edits the mutable fields. Code (the natural key) is immutable after creation.</summary>
-    public void Update(string name, string? taxId, int paymentTermDays)
+    public void Update(string name, string? taxId, int paymentTermDays, Guid? purchasePriceListId)
     {
         if (paymentTermDays < 0)
         {
@@ -98,6 +105,7 @@ public sealed class Supplier : TenantOwnedEntity, IAggregateRoot, IHasCode
         Name = name.Trim();
         TaxId = taxId?.Trim();
         PaymentTermDays = paymentTermDays;
+        PurchasePriceListId = purchasePriceListId;
     }
 
     public void Activate() => IsActive = true;

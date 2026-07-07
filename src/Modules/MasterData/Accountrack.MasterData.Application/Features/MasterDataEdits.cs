@@ -12,7 +12,7 @@ namespace Accountrack.MasterData.Application.Features;
 // ---- Customers ----
 public sealed record UpdateCustomerCommand(
     Guid Id, string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit,
-    byte[]? RowVersion = null) : ICommand<Guid>;
+    Guid? SalesPriceListId = null, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateCustomerValidator : AbstractValidator<UpdateCustomerCommand>
 {
@@ -36,7 +36,7 @@ public sealed class UpdateCustomerHandler : ICommandHandler<UpdateCustomerComman
         var customer = await _repo.GetByIdAsync(request.Id, ct);
         if (customer is null) return MasterDataErrors.NotFound("customer");
         if (request.RowVersion is not null) _repo.SetExpectedVersion(customer, request.RowVersion);
-        customer.Update(request.Name, request.TaxId, request.PaymentTermDays, request.CreditLimit);
+        customer.Update(request.Name, request.TaxId, request.PaymentTermDays, request.CreditLimit, request.SalesPriceListId);
         await _uow.SaveChangesAsync(ct);
         return customer.Id;
     }
@@ -62,7 +62,8 @@ public sealed class SetCustomerActiveHandler : ICommandHandler<SetCustomerActive
 
 // ---- Suppliers ----
 public sealed record UpdateSupplierCommand(
-    Guid Id, string Name, string? TaxId, int PaymentTermDays, byte[]? RowVersion = null) : ICommand<Guid>;
+    Guid Id, string Name, string? TaxId, int PaymentTermDays,
+    Guid? PurchasePriceListId = null, byte[]? RowVersion = null) : ICommand<Guid>;
 
 public sealed class UpdateSupplierValidator : AbstractValidator<UpdateSupplierCommand>
 {
@@ -85,7 +86,7 @@ public sealed class UpdateSupplierHandler : ICommandHandler<UpdateSupplierComman
         var supplier = await _repo.GetByIdAsync(request.Id, ct);
         if (supplier is null) return MasterDataErrors.NotFound("supplier");
         if (request.RowVersion is not null) _repo.SetExpectedVersion(supplier, request.RowVersion);
-        supplier.Update(request.Name, request.TaxId, request.PaymentTermDays);
+        supplier.Update(request.Name, request.TaxId, request.PaymentTermDays, request.PurchasePriceListId);
         await _uow.SaveChangesAsync(ct);
         return supplier.Id;
     }

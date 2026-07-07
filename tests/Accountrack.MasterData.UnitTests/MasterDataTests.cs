@@ -99,7 +99,7 @@ public class MasterDataEditTests
     public void Customer_update_changes_mutable_fields()
     {
         var c = Customer.Create("C1", "Old", null, 30, 0);
-        c.Update("New Name", "01.234", 14, 5_000_000m);
+        c.Update("New Name", "01.234", 14, 5_000_000m, null);
 
         c.Name.Should().Be("New Name");
         c.TaxId.Should().Be("01.234");
@@ -174,7 +174,7 @@ public class UpdateCustomerHandlerTests
         var version = new byte[] { 7, 7 };
 
         var result = await new UpdateCustomerHandler(_repo, _uow)
-            .Handle(new UpdateCustomerCommand(customer.Id, "New", null, 7, 0, version), CancellationToken.None);
+            .Handle(new UpdateCustomerCommand(customer.Id, "New", null, 7, 0, null, version), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         _repo.Received(1).SetExpectedVersion(customer, version);

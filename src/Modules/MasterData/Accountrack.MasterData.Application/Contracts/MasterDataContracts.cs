@@ -7,8 +7,9 @@ public sealed record ProductDto(
     bool IsStockTracked, bool IsSold, bool IsPurchased, bool IsActive, byte[]? RowVersion);
 public sealed record CustomerDto(
     Guid Id, string Code, string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit, bool IsActive,
-    byte[]? RowVersion);
+    byte[]? RowVersion, Guid? SalesPriceListId = null);
 public sealed record SupplierDto(
-    Guid Id, string Code, string Name, string? TaxId, int PaymentTermDays, bool IsActive, byte[]? RowVersion);
+    Guid Id, string Code, string Name, string? TaxId, int PaymentTermDays, bool IsActive, byte[]? RowVersion,
+    Guid? PurchasePriceListId = null);
 public sealed record WarehouseDto(Guid Id, string Code, string Name, string? Address, bool IsActive, byte[]? RowVersion);
 public sealed record TaxCodeDto(Guid Id, string Code, string Name, decimal Rate, bool IsActive, byte[]? RowVersion);

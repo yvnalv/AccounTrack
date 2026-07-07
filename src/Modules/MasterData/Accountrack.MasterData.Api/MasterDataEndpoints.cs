@@ -1,4 +1,5 @@
 using Accountrack.MasterData.Application.Features;
+using Accountrack.MasterData.Domain;
 using Accountrack.Web.Common.Export;
 using Accountrack.Web.Common.Results;
 using MediatR;
@@ -59,7 +60,7 @@ public static class MasterDataEndpoints
         customers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetCustomersQuery(), ct))).RequireAuthorization(View);
         customers.MapPost("/", (CreateCustomerCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/customers")).RequireAuthorization(Create);
         customers.MapPut("/{id:guid}", (Guid id, UpdateCustomerBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateCustomerCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.CreditLimit, b.RowVersion), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateCustomerCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.CreditLimit, b.SalesPriceListId, b.RowVersion), ct))).RequireAuthorization(Edit);
         customers.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetCustomerActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
 
@@ -84,7 +85,7 @@ public static class MasterDataEndpoints
         suppliers.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetSuppliersQuery(), ct))).RequireAuthorization(View);
         suppliers.MapPost("/", (CreateSupplierCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/suppliers")).RequireAuthorization(Create);
         suppliers.MapPut("/{id:guid}", (Guid id, UpdateSupplierBody b, ISender s, CancellationToken ct) =>
-            Send(s.Send(new UpdateSupplierCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.RowVersion), ct))).RequireAuthorization(Edit);
+            Send(s.Send(new UpdateSupplierCommand(id, b.Name, b.TaxId, b.PaymentTermDays, b.PurchasePriceListId, b.RowVersion), ct))).RequireAuthorization(Edit);
         suppliers.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetSupplierActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
         suppliers.MapGet("/import/template", () =>
@@ -128,6 +129,21 @@ public static class MasterDataEndpoints
         taxCodes.MapPut("/{id:guid}/active", (Guid id, SetActiveBody b, ISender s, CancellationToken ct) =>
             Send(s.Send(new SetTaxCodeActiveCommand(id, b.IsActive), ct))).RequireAuthorization(Delete);
 
+        // --- Price lists (ADR-0035) ---
+        var priceLists = app.MapGroup("/api/v1/price-lists").WithTags("Price Lists").RequireAuthorization();
+        priceLists.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetPriceListsQuery(), ct))).RequireAuthorization(View);
+        priceLists.MapPost("/", (CreatePriceListCommand c, ISender s, CancellationToken ct) => Created(s.Send(c, ct), "/api/v1/price-lists")).RequireAuthorization(Create);
+        priceLists.MapPut("/{id:guid}", (Guid id, UpdatePriceListBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpdatePriceListCommand(id, b.Name, b.IsDefault, b.IsActive, b.RowVersion), ct))).RequireAuthorization(Edit);
+        priceLists.MapGet("/{id:guid}/items", (Guid id, ISender s, CancellationToken ct) =>
+            Send(s.Send(new GetPriceListItemsQuery(id), ct))).RequireAuthorization(View);
+        priceLists.MapPut("/{id:guid}/items", (Guid id, UpsertPriceListItemBody b, ISender s, CancellationToken ct) =>
+            Send(s.Send(new UpsertPriceListItemCommand(id, b.ProductId, b.UnitPrice), ct))).RequireAuthorization(Edit);
+        priceLists.MapDelete("/{id:guid}/items/{productId:guid}", (Guid id, Guid productId, ISender s, CancellationToken ct) =>
+            Send(s.Send(new DeletePriceListItemCommand(id, productId), ct))).RequireAuthorization(Edit);
+        priceLists.MapGet("/resolve", (PriceListType type, Guid? partyId, ISender s, CancellationToken ct) =>
+            Send(s.Send(new ResolvePricesQuery(type, partyId), ct))).RequireAuthorization(View);
+
         return app;
     }
 
@@ -135,8 +151,10 @@ public static class MasterDataEndpoints
     public sealed record SetActiveBody(bool IsActive);
     public sealed record NameBody(string Name, byte[]? RowVersion);
     public sealed record UpdateTaxCodeBody(string Name, decimal Rate, byte[]? RowVersion);
-    public sealed record UpdateCustomerBody(string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit, byte[]? RowVersion);
-    public sealed record UpdateSupplierBody(string Name, string? TaxId, int PaymentTermDays, byte[]? RowVersion);
+    public sealed record UpdateCustomerBody(string Name, string? TaxId, int PaymentTermDays, decimal CreditLimit, Guid? SalesPriceListId, byte[]? RowVersion);
+    public sealed record UpdateSupplierBody(string Name, string? TaxId, int PaymentTermDays, Guid? PurchasePriceListId, byte[]? RowVersion);
+    public sealed record UpdatePriceListBody(string Name, bool IsDefault, bool IsActive, byte[]? RowVersion);
+    public sealed record UpsertPriceListItemBody(Guid ProductId, decimal UnitPrice);
     public sealed record UpdateWarehouseBody(string Name, string? Address, byte[]? RowVersion);
     public sealed record UpdateProductBody(string Name, Guid? CategoryId, bool IsStockTracked, bool IsSold, bool IsPurchased, byte[]? RowVersion);
 
