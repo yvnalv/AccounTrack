@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-07-07 04:37:21 UTC]
+
+CHG-0108 — Frontend: surface the Audit trail + document Process-Tracker timeline
+
+- **Audit trail screen** — a new `Audit.View`-gated tab in Settings that lists the existing,
+  previously UI-less audit log (CHG-0006). Filter by record type and date range; paged newest-first
+  (50/page). Each row shows when, the action (Created/Updated/Deleted badge), the record
+  type + short id, and the acting user; expanding a row parses `changesJson` into a
+  field-by-field **before → after** table (snapshot for insert/delete, old/new for updates).
+  New `lib/audit.ts`, `types/audit.ts` (incl. the `PagedResult` envelope), `AuditTrail.vue`,
+  wired into `SettingsView.vue`; `settings.audit.*` strings (en + id). Consumes
+  `GET /api/v1/audit-entries` (no backend change).
+- **Document lifecycle timeline** — the previously UI-less Process Tracker (CHG-0013) now renders on
+  the Sales Order, Purchase Order and Expense Voucher detail pages. A vertical timeline shows each
+  milestone (Submitted / Auto-approved / Approved / Approval advanced / Rejected) with a relative
+  time (absolute on hover), acting user, and any note. New `lib/processTracker.ts`,
+  `types/processTracker.ts`, `DocumentTimeline.vue`; `timeline.*` strings (en + id, with known
+  milestones localized and an English fallback). Consumes
+  `GET /api/v1/documents/{documentType}/{documentId}/timeline` (no backend change).
+- Frontend-only; no backend, schema, or migration change. `Audit.View` is already seeded to the
+  Administrator, Accountant and Viewer roles; the timeline endpoint needs only authentication.
+- Users are shown as short ids (no lightweight name-lookup endpoint is available to `Audit.View`
+  holders, who need not hold `Admin.Users`). Builds clean (`vue-tsc --noEmit` + `vite build`).
+- Closes the last "surface built-but-hidden backend in the UI" follow-up in STATUS.md.
+
+---
+
 ## [2026-07-06 16:45:00 UTC]
 
 CHG-0107 — Frontend: live in-app notifications (the bell)
