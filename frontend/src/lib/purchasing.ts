@@ -2,7 +2,9 @@ import { http, unwrap } from './api'
 import type {
   CreatePurchaseOrder,
   CreateSupplierPayment,
+  GoodsReceipt,
   GoodsReceiptSummary,
+  SupplierPayment,
   SupplierPaymentSummary,
   PoLineQuantityInput,
   PurchaseInvoice,
@@ -28,6 +30,7 @@ export const purchasingApi = {
 
   receipts: (id: string) =>
     unwrap<GoodsReceiptSummary[]>(http.get(`/purchase-orders/${id}/goods-receipts`)),
+  getReceipt: (receiptId: string) => unwrap<GoodsReceipt>(http.get(`/goods-receipts/${receiptId}`)),
   createReceipt: (id: string, body: { receiptDate: string; notes: string | null; lines: PoLineQuantityInput[] }) =>
     unwrap<string>(http.post(`/purchase-orders/${id}/goods-receipts`, body)),
 
@@ -40,6 +43,8 @@ export const purchasingApi = {
 
   createSupplierPayment: (body: CreateSupplierPayment) =>
     unwrap<string>(http.post('/supplier-payments', body)),
+  getSupplierPayment: (paymentId: string) =>
+    unwrap<SupplierPayment>(http.get(`/supplier-payments/${paymentId}`)),
 
   getInvoice: (invoiceId: string) => unwrap<PurchaseInvoice>(http.get(`/purchase-invoices/${invoiceId}`)),
   returns: (id: string) => unwrap<PurchaseReturnSummary[]>(http.get(`/purchase-orders/${id}/returns`)),

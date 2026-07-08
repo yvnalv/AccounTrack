@@ -1,5 +1,30 @@
 # Accountrack Changelog
 
+## [2026-07-08 13:43:09 UTC]
+
+CHG-0117 — Transactional document detail pages (delivery, invoice, payment, receipt, bill)
+
+- **Six read-only document detail pages**, turning previously dead-end rows into a fully navigable
+  web of documents:
+  - **Sales:** Delivery Order (`sales/deliveries/:id`), Sales Invoice (`sales/invoices/:id`),
+    Customer Payment (`sales/payments/:id`).
+  - **Purchasing:** Goods Receipt (`purchasing/receipts/:id`), Purchase Invoice / Bill
+    (`purchasing/invoices/:id`), Supplier Payment (`purchasing/payments/:id`).
+- Each page shows a header (number + posted badge + party/date), line items with totals, notes, and
+  cross-links. Delivery/receipt pages label amounts as **cost of goods** (COGS / Dr Inventory-Cr
+  GR-IR) and link to the source order; invoice pages offer the **PDF** and a link to the order;
+  payment pages resolve the **cash/bank account** name and (best-effort) the **allocated invoice**
+  numbers via the party's open items.
+- **Wiring:** the Deliveries list now opens the delivery (not its SO); the Sales/Purchase Order
+  detail delivery/receipt/invoice numbers are now clickable; the customer/supplier detail
+  *Payments* rows open the payment detail.
+- Frontend only — all six backend detail endpoints already existed. New shared `docDetail.*`
+  strings + `common.back` (en + id); new `DeliveryOrder` / `CustomerPayment` / `GoodsReceipt` /
+  `SupplierPayment` TS types and `getDelivery` / `getCustomerPayment` / `getReceipt` /
+  `getSupplierPayment` API methods. Builds clean (vue-tsc + vite).
+
+---
+
 ## [2026-07-07 14:54:16 UTC]
 
 CHG-0116 — Actionable balances + product history/detail page

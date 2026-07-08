@@ -16,9 +16,8 @@ const router = useRouter()
 const rows = ref<DeliveryListItem[]>([])
 const loading = ref(true)
 
-// A delivery belongs to its sales order — open the SO detail (its Deliveries card shows the DO).
 function open(row: Record<string, unknown>) {
-  router.push({ name: 'salesOrderDetail', params: { id: String(row.salesOrderId) } })
+  router.push({ name: 'salesDeliveryDetail', params: { id: String(row.id) } })
 }
 
 const columns = computed<Column[]>(() => [

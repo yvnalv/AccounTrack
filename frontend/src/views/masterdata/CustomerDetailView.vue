@@ -78,6 +78,10 @@ onMounted(load)
 function openOrder(orderId: string) {
   router.push({ name: 'salesOrderDetail', params: { id: orderId } })
 }
+
+function openPayment(paymentId: string) {
+  router.push({ name: 'customerPaymentDetail', params: { id: paymentId } })
+}
 </script>
 
 <template>
@@ -157,7 +161,7 @@ function openOrder(orderId: string) {
         <AppCard :title="t('party.paymentsReceived')" :padded="false">
           <table v-if="payments.length" class="w-full text-sm">
             <tbody>
-              <tr v-for="p in payments" :key="p.id" class="border-b border-border last:border-0">
+              <tr v-for="p in payments" :key="p.id" class="cursor-pointer border-b border-border last:border-0 hover:bg-surface-2" @click="openPayment(p.id)">
                 <td class="px-4 py-2.5 text-text">{{ p.number }}</td>
                 <td class="px-3 py-2.5 text-text-muted">{{ p.paymentDate }}</td>
                 <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(p.totalAmount) }}</td>

@@ -8,8 +8,13 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-07 (last change **CHG-0116**)
+- **As of:** 2026-07-08 (last change **CHG-0117**)
 - **Build:** green — backend `net8.0` (350 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **transactional document detail pages (CHG-0117)** — six read-only detail pages (Delivery
+  Order, Sales Invoice, Customer Payment; Goods Receipt, Purchase Invoice/Bill, Supplier Payment),
+  turning previously dead-end rows into a navigable web: the Deliveries list opens the delivery,
+  SO/PO detail delivery/receipt/invoice numbers are clickable, and customer/supplier *Payments* rows
+  open the payment. Frontend-only (all six backend detail endpoints already existed).
   Latest: **master data as dedicated sidebar pages** with 4 insight cards + informative columns —
   in-stock (products), receivable (customers), payable (suppliers), stock value/SKUs (warehouses)
   (CHG-0114); **customer / supplier / warehouse detail pages** — clickable rows open a detail with
