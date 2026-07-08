@@ -2,6 +2,7 @@ using Accountrack.SharedKernel.Pdf;
 using Accountrack.SharedKernel.Results;
 using Accountrack.Web.Common.Results;
 using Microsoft.AspNetCore.Http;
+using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -20,6 +21,29 @@ public static class PdfRenderer
     private const string Faint = "#9CA3AF";
     private const string Hair = "#E5E7EB";
     private const string Zebra = "#F9FAFB";
+
+    /// <summary>The brand typeface (SIL OFL 1.1), embedded and registered below so PDFs match the SPA.</summary>
+    private const string Brand = "Plus Jakarta Sans";
+
+    // Register the embedded Plus Jakarta Sans weights with QuestPDF once, so documents and reports
+    // render in the brand typeface regardless of the fonts installed on the host (e.g. the container).
+    static PdfRenderer()
+    {
+        var assembly = typeof(PdfRenderer).Assembly;
+        foreach (var resource in assembly.GetManifestResourceNames())
+        {
+            if (!resource.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            using var stream = assembly.GetManifestResourceStream(resource);
+            if (stream is not null)
+            {
+                FontManager.RegisterFont(stream);
+            }
+        }
+    }
 
     /// <summary>Brand logo mark (teal rounded square + ascending bars) — kept in sync with docs/frontend/brand.</summary>
     private const string LogoSvg = """
@@ -43,7 +67,7 @@ public static class PdfRenderer
             {
                 page.Size(PageSizes.A4);
                 page.Margin(38);
-                page.DefaultTextStyle(t => t.FontSize(10).FontColor(Ink).LineHeight(1.25f));
+                page.DefaultTextStyle(t => t.FontFamily(Brand).FontSize(10).FontColor(Ink).LineHeight(1.25f));
 
                 page.Header().Element(e => Header(e, model, accent));
                 page.Content().PaddingTop(18).Element(e => Body(e, model, accent));
@@ -223,7 +247,7 @@ public static class PdfRenderer
             {
                 page.Size(PageSizes.A4);
                 page.Margin(38);
-                page.DefaultTextStyle(t => t.FontSize(10).FontColor(Ink).LineHeight(1.2f));
+                page.DefaultTextStyle(t => t.FontFamily(Brand).FontSize(10).FontColor(Ink).LineHeight(1.2f));
 
                 page.Header().Column(col =>
                 {

@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-07-08 23:46:30 UTC]
+
+CHG-0121 — Brand typeface embedded in PDFs + self-hosted in the SPA (ADR-0031)
+
+- **PDFs now render in Plus Jakarta Sans** (SIL OFL 1.1), matching the app's typography instead of
+  QuestPDF's default font. The four weights (400/500/600/700) are embedded as assembly resources in
+  `Accountrack.Web.Common` and registered with QuestPDF's `FontManager` in the `PdfRenderer` static
+  constructor, so documents and financial-report PDFs render correctly on any host — including the
+  container, which ships no system fonts. Both `DefaultTextStyle`s set the family.
+- **The SPA now self-hosts the same font.** Added `frontend/src/assets/styles/fonts.css` with
+  `@font-face` rules over local woff2 (Vite-fingerprinted) and removed the Google Fonts CDN `<link>`
+  from `index.html`. The app no longer makes an external font request at runtime — offline-clean on the
+  VPS and one fewer third-party dependency.
+- Font binaries committed under `src/BuildingBlocks/Accountrack.Web.Common/Pdf/Fonts` (ttf) and
+  `frontend/src/assets/fonts` (woff2), each with the `OFL.txt` licence.
+- **Tests:** `PdfRendererTests` gains an assertion that the rendered PDF actually embeds the font
+  (`PlusJakartaSans` present in the bytes); suite green (357 passing, 5 skipped). Frontend builds; the
+  woff2 are bundled and no `fonts.googleapis`/`fonts.gstatic` references remain.
+- **Verified live in Docker:** the Trial Balance report PDF from the running API embeds the font; the
+  SPA serves the woff2 (`font/woff2`) with zero CDN references.
+- **Not included:** async large-file import (the other remaining ADR-0031 item) needs background-job
+  infrastructure (Hangfire) that is still future.
+- **Docs:** ADR-0031 updated (brand-typeface paragraph); STATUS updated.
+
+---
+
 ## [2026-07-08 16:22:14 UTC]
 
 CHG-0120 — Draft creates exactly-once (ADR-0021)

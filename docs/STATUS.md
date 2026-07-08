@@ -8,8 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-08 (last change **CHG-0120**)
-- **Build:** green — backend `net8.0` (356 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-07-09 (last change **CHG-0121**)
+- **Build:** green — backend `net8.0` (357 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **brand typeface, self-hosted (CHG-0121)** — Plus Jakarta Sans (SIL OFL 1.1) embedded in the
+  QuestPDF renderer (documents + report PDFs now match the SPA) and self-hosted in the frontend, dropping
+  the Google Fonts CDN so the app is offline-clean on the VPS. Verified live: report PDF embeds the font;
+  SPA serves the woff2 with no CDN reference.
   Latest: **draft creates exactly-once (CHG-0120)** — Create Sales Order / Purchase Order / Expense
   Draft now commit through the cross-module coordinator, so the idempotency key is written atomically
   with the draft; a retried create with the same `Idempotency-Key` returns the original id instead of
@@ -168,8 +172,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   **PDF** documents — Invoice + Quotation (CHG-0052), **purchase-document PDFs** PO + bill (CHG-0054) —
   and **report PDFs** TB/P&L/BS/VAT (CHG-0053), all QuestPDF, with the **brand logo** embedded as
   vector SVG (CHG-0054); ✅ **list export honors active filters (CHG-0089)** — Export downloads only
-  the searched/filtered rows via a generic `POST /api/v1/export`. Remaining: optional Plus Jakarta Sans
-  font embedding, async large files. (BR-IMP-*.)
+  the searched/filtered rows via a generic `POST /api/v1/export`; ✅ **brand typeface (CHG-0121)** —
+  Plus Jakarta Sans (SIL OFL 1.1) embedded in the QuestPDF renderer so documents/reports match the SPA,
+  and self-hosted in the frontend (Google Fonts CDN dropped → offline-clean on the VPS). Remaining:
+  async large-file import (needs background-job infra — Hangfire, currently future). (BR-IMP-*.)
 - **Accounting slice 2:** ✅ complete — **period-close balance snapshots (rebuildable, ADR-0022 —
   CHG-0079)**. (P&L + Balance Sheet — CHG-0016; posting-rule engine — CHG-0017; AR/AP subledgers —
   CHG-0018; **Cash Flow — CHG-0056**; **year-end close to retained earnings — CHG-0059**.)
@@ -221,7 +227,7 @@ CHG-0022–0025; both post atomically across modules and reconcile to the AR/AP 
 CHG-0027 (`frontend/`) — app shell, light/dark toggle, login, finance dashboard. Next frontend slices:
 ⌘K command palette; a shared **DataTable** + **DocumentForm** in the dense register; the first real
 CRUD screen (**Sales** list + Sales-Order create/detail); then the other modules' screens; i18n `id`
-locale; **✅ refresh-token rotation (silent refresh + retry — CHG-0090)**; self-hosted font.
+locale; **✅ refresh-token rotation (silent refresh + retry — CHG-0090)**; **✅ self-hosted font (CHG-0121)**.
 
 Backend threads that can be picked up independently if desired (none block the frontend):
 - **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021); ✅ **same-transaction

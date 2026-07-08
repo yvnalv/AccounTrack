@@ -38,4 +38,14 @@ public class PdfRendererTests
         // PDF files start with the "%PDF" magic header.
         System.Text.Encoding.ASCII.GetString(bytes, 0, 4).Should().Be("%PDF");
     }
+
+    [Fact]
+    public void Embeds_the_brand_font()
+    {
+        // QuestPDF subsets and embeds registered fonts; the font descriptor keeps the face name
+        // (e.g. "ABCDEF+PlusJakartaSans-Regular"), so a valid embed leaves "PlusJakartaSans" in the bytes.
+        var latin1 = System.Text.Encoding.Latin1.GetString(PdfRenderer.Render(Sample()));
+
+        latin1.Should().Contain("PlusJakartaSans", "the brand typeface must be embedded in the PDF");
+    }
 }

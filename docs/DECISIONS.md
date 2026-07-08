@@ -606,6 +606,15 @@ and other document PDFs reuse the same renderer next. Permission-gated by `Maste
 `MasterData.Export` (master data) and module `View` (list exports + document PDFs); async large-file
 handling is still future.
 
+**Brand typeface (CHG-0121).** The renderer now uses **Plus Jakarta Sans** (SIL OFL 1.1) instead of
+QuestPDF's default: the four weights (400/500/600/700) are embedded as assembly resources in
+Web.Common and registered with `FontManager` in the `PdfRenderer` static ctor, so PDFs render in the
+brand typeface on any host (including the container, which has no system fonts). The same OFL binaries
+are **self-hosted in the SPA** (`frontend/src/assets/fonts` + `@font-face`), dropping the Google Fonts
+CDN `<link>` — the app no longer depends on an external font host at runtime (offline-clean on the VPS).
+Licence text ships alongside the fonts (`OFL.txt`). Remaining ADR-0031 item: async large-file import
+(needs background-job infrastructure — Hangfire, currently future).
+
 ---
 
 ## ADR-0032: PostgreSQL (Npgsql) as the database provider, replacing SQL Server
