@@ -8,8 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-08 (last change **CHG-0117**)
+- **As of:** 2026-07-08 (last change **CHG-0118**)
 - **Build:** green — backend `net8.0` (350 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **document browse lists (CHG-0118)** — four company-wide list pages (Sales Invoices +
+  Payments; Purchasing Bills + Payments) completing the list→detail web; new global list endpoints
+  (`GET /sales-invoices`, `GET /purchase-invoices`) and optional party filter on the payment lists;
+  reachable from the order-list toolbars and ⌘K palette.
   Latest: **transactional document detail pages (CHG-0117)** — six read-only detail pages (Delivery
   Order, Sales Invoice, Customer Payment; Goods Receipt, Purchase Invoice/Bill, Supplier Payment),
   turning previously dead-end rows into a navigable web: the Deliveries list opens the delivery,

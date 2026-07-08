@@ -37,6 +37,11 @@ public sealed record PurchaseInvoiceSummaryDto(
     Guid Id, string Number, Guid PurchaseOrderId, DateOnly InvoiceDate, DateOnly DueDate, decimal GrandTotal,
     Guid? JournalEntryId);
 
+/// <summary>A row in the company-wide Purchase Invoices (Bills) list, with the supplier name resolved.</summary>
+public sealed record PurchaseInvoiceListItemDto(
+    Guid Id, string Number, Guid PurchaseOrderId, Guid SupplierId, string SupplierName,
+    DateOnly InvoiceDate, DateOnly DueDate, decimal GrandTotal, Guid? JournalEntryId);
+
 public sealed record SupplierPaymentAllocationDto(Guid ApOpenItemId, decimal Amount);
 
 public sealed record SupplierPaymentDto(
@@ -44,8 +49,10 @@ public sealed record SupplierPaymentDto(
     decimal TotalAmount, Guid? JournalEntryId, string? Reference, string? Notes,
     IReadOnlyList<SupplierPaymentAllocationDto> Allocations);
 
-public sealed record SupplierPaymentSummaryDto(
-    Guid Id, string Number, Guid SupplierId, DateOnly PaymentDate, decimal TotalAmount, Guid? JournalEntryId);
+/// <summary>A row in the company-wide Supplier Payments list, with the supplier name resolved.</summary>
+public sealed record SupplierPaymentListItemDto(
+    Guid Id, string Number, Guid SupplierId, string SupplierName, DateOnly PaymentDate,
+    decimal TotalAmount, Guid? JournalEntryId);
 
 public sealed record PurchaseReturnLineDto(
     Guid PurchaseInvoiceLineId, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,

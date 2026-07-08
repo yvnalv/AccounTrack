@@ -263,6 +263,9 @@ public sealed class PurchaseInvoiceRepository : IPurchaseInvoiceRepository
         await _db.PurchaseInvoices.Where(i => i.PurchaseOrderId == purchaseOrderId)
             .OrderByDescending(i => i.Number).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<PurchaseInvoice>> ListAsync(CancellationToken ct) =>
+        await _db.PurchaseInvoices.OrderByDescending(i => i.Number).ToListAsync(ct);
+
     public Task<PurchaseInvoiceNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
         _db.PurchaseInvoiceNumberSequences.FirstOrDefaultAsync(ct);
 
@@ -282,6 +285,9 @@ public sealed class SupplierPaymentRepository : ISupplierPaymentRepository
     public async Task<IReadOnlyList<SupplierPayment>> ListBySupplierAsync(Guid supplierId, CancellationToken ct) =>
         await _db.SupplierPayments.Where(p => p.SupplierId == supplierId)
             .OrderByDescending(p => p.Number).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<SupplierPayment>> ListAsync(CancellationToken ct) =>
+        await _db.SupplierPayments.OrderByDescending(p => p.Number).ToListAsync(ct);
 
     public Task<SupplierPaymentNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
         _db.SupplierPaymentNumberSequences.FirstOrDefaultAsync(ct);

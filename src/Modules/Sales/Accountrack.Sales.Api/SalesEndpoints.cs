@@ -79,6 +79,10 @@ public static class SalesEndpoints
 
         var si = app.MapGroup("/api/v1/sales-invoices").WithTags("Sales").RequireAuthorization();
 
+        si.MapGet("/", (ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetSalesInvoicesQuery(), ct)))
+            .RequireAuthorization("Sales.View").WithName("GetSalesInvoices");
+
         si.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetSalesInvoiceQuery(id), ct)))
             .RequireAuthorization("Sales.View").WithName("GetSalesInvoice");
@@ -114,7 +118,7 @@ public static class SalesEndpoints
                 Send(s.Send(new GetCustomerPaymentQuery(id), ct)))
             .RequireAuthorization("Sales.View").WithName("GetCustomerPayment");
 
-        pay.MapGet("/", (Guid customerId, ISender s, CancellationToken ct) =>
+        pay.MapGet("/", (Guid? customerId, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetCustomerPaymentsQuery(customerId), ct)))
             .RequireAuthorization("Sales.View").WithName("GetCustomerPayments");
 

@@ -32,6 +32,7 @@ public interface ISalesInvoiceRepository
     void Add(SalesInvoice invoice);
     Task<SalesInvoice?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<SalesInvoice>> ListBySalesOrderAsync(Guid salesOrderId, CancellationToken ct);
+    Task<IReadOnlyList<SalesInvoice>> ListAsync(CancellationToken ct);
     Task<SalesInvoiceNumberSequence?> GetSequenceAsync(CancellationToken ct);
     void AddSequence(SalesInvoiceNumberSequence sequence);
 }
@@ -41,6 +42,7 @@ public interface ICustomerPaymentRepository
     void Add(CustomerPayment payment);
     Task<CustomerPayment?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<CustomerPayment>> ListByCustomerAsync(Guid customerId, CancellationToken ct);
+    Task<IReadOnlyList<CustomerPayment>> ListAsync(CancellationToken ct);
     Task<CustomerPaymentNumberSequence?> GetSequenceAsync(CancellationToken ct);
     void AddSequence(CustomerPaymentNumberSequence sequence);
 }

@@ -42,6 +42,11 @@ public sealed record SalesInvoiceSummaryDto(
     Guid Id, string Number, Guid SalesOrderId, DateOnly InvoiceDate, DateOnly DueDate, decimal GrandTotal,
     Guid? JournalEntryId);
 
+/// <summary>A row in the company-wide Sales Invoices list, with the customer name resolved.</summary>
+public sealed record SalesInvoiceListItemDto(
+    Guid Id, string Number, Guid SalesOrderId, Guid CustomerId, string CustomerName,
+    DateOnly InvoiceDate, DateOnly DueDate, decimal GrandTotal, Guid? JournalEntryId);
+
 public sealed record CustomerPaymentAllocationDto(Guid ArOpenItemId, decimal Amount);
 
 public sealed record CustomerPaymentDto(
@@ -49,8 +54,10 @@ public sealed record CustomerPaymentDto(
     decimal TotalAmount, Guid? JournalEntryId, string? Reference, string? Notes,
     IReadOnlyList<CustomerPaymentAllocationDto> Allocations);
 
-public sealed record CustomerPaymentSummaryDto(
-    Guid Id, string Number, Guid CustomerId, DateOnly PaymentDate, decimal TotalAmount, Guid? JournalEntryId);
+/// <summary>A row in the company-wide Customer Payments list, with the customer name resolved.</summary>
+public sealed record CustomerPaymentListItemDto(
+    Guid Id, string Number, Guid CustomerId, string CustomerName, DateOnly PaymentDate,
+    decimal TotalAmount, Guid? JournalEntryId);
 
 public sealed record SalesReturnLineDto(
     Guid SalesInvoiceLineId, Guid ProductId, decimal Quantity, decimal UnitPrice, decimal TaxRate,
