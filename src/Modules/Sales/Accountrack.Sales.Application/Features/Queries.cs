@@ -125,6 +125,30 @@ public sealed class GetSalesInvoiceHandler : IQueryHandler<GetSalesInvoiceQuery,
     }
 }
 
+public sealed record GetSalesInvoicesQuery : IQuery<IReadOnlyList<SalesInvoiceListItemDto>>;
+
+public sealed class GetSalesInvoicesHandler : IQueryHandler<GetSalesInvoicesQuery, IReadOnlyList<SalesInvoiceListItemDto>>
+{
+    private readonly ISalesInvoiceRepository _invoices;
+    private readonly IMasterDataLookup _masterData;
+    public GetSalesInvoicesHandler(ISalesInvoiceRepository invoices, IMasterDataLookup masterData)
+    {
+        _invoices = invoices;
+        _masterData = masterData;
+    }
+
+    public async Task<Result<IReadOnlyList<SalesInvoiceListItemDto>>> Handle(GetSalesInvoicesQuery request, CancellationToken ct)
+    {
+        var items = await _invoices.ListAsync(ct);
+        var names = await _masterData.ResolveNamesAsync(items.Select(i => i.CustomerId).Distinct().ToList(), ct);
+        return Result.Success<IReadOnlyList<SalesInvoiceListItemDto>>(items
+            .Select(i => new SalesInvoiceListItemDto(
+                i.Id, i.Number, i.SalesOrderId, i.CustomerId, names.GetValueOrDefault(i.CustomerId, "—"),
+                i.InvoiceDate, i.DueDate, i.GrandTotal, i.JournalEntryId))
+            .ToList());
+    }
+}
+
 public sealed record GetSalesInvoicesForSalesOrderQuery(Guid SalesOrderId)
     : IQuery<IReadOnlyList<SalesInvoiceSummaryDto>>;
 
@@ -167,18 +191,29 @@ public sealed class GetCustomerPaymentHandler : IQueryHandler<GetCustomerPayment
     }
 }
 
-public sealed record GetCustomerPaymentsQuery(Guid CustomerId) : IQuery<IReadOnlyList<CustomerPaymentSummaryDto>>;
+// A null CustomerId lists every payment (company-wide browse); a value filters to that customer.
+public sealed record GetCustomerPaymentsQuery(Guid? CustomerId) : IQuery<IReadOnlyList<CustomerPaymentListItemDto>>;
 
-public sealed class GetCustomerPaymentsHandler : IQueryHandler<GetCustomerPaymentsQuery, IReadOnlyList<CustomerPaymentSummaryDto>>
+public sealed class GetCustomerPaymentsHandler : IQueryHandler<GetCustomerPaymentsQuery, IReadOnlyList<CustomerPaymentListItemDto>>
 {
     private readonly ICustomerPaymentRepository _payments;
-    public GetCustomerPaymentsHandler(ICustomerPaymentRepository payments) => _payments = payments;
-
-    public async Task<Result<IReadOnlyList<CustomerPaymentSummaryDto>>> Handle(GetCustomerPaymentsQuery request, CancellationToken ct)
+    private readonly IMasterDataLookup _masterData;
+    public GetCustomerPaymentsHandler(ICustomerPaymentRepository payments, IMasterDataLookup masterData)
     {
-        var payments = await _payments.ListByCustomerAsync(request.CustomerId, ct);
-        return Result.Success<IReadOnlyList<CustomerPaymentSummaryDto>>(payments
-            .Select(p => new CustomerPaymentSummaryDto(p.Id, p.Number, p.CustomerId, p.PaymentDate, p.TotalAmount, p.JournalEntryId))
+        _payments = payments;
+        _masterData = masterData;
+    }
+
+    public async Task<Result<IReadOnlyList<CustomerPaymentListItemDto>>> Handle(GetCustomerPaymentsQuery request, CancellationToken ct)
+    {
+        var payments = request.CustomerId is { } customerId
+            ? await _payments.ListByCustomerAsync(customerId, ct)
+            : await _payments.ListAsync(ct);
+        var names = await _masterData.ResolveNamesAsync(payments.Select(p => p.CustomerId).Distinct().ToList(), ct);
+        return Result.Success<IReadOnlyList<CustomerPaymentListItemDto>>(payments
+            .Select(p => new CustomerPaymentListItemDto(
+                p.Id, p.Number, p.CustomerId, names.GetValueOrDefault(p.CustomerId, "—"),
+                p.PaymentDate, p.TotalAmount, p.JournalEntryId))
             .ToList());
     }
 }

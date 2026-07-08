@@ -111,6 +111,30 @@ export interface SalesInvoiceSummary {
   journalEntryId: string | null
 }
 
+/** A row in the company-wide Sales Invoices list (customer name resolved). */
+export interface SalesInvoiceListItem {
+  id: string
+  number: string
+  salesOrderId: string
+  customerId: string
+  customerName: string
+  invoiceDate: string
+  dueDate: string
+  grandTotal: number
+  journalEntryId: string | null
+}
+
+/** A row in the company-wide Customer Payments list (customer name resolved). */
+export interface CustomerPaymentListItem {
+  id: string
+  number: string
+  customerId: string
+  customerName: string
+  paymentDate: string
+  totalAmount: number
+  journalEntryId: string | null
+}
+
 export interface LineQuantityInput {
   salesOrderLineId: string
   quantity: number

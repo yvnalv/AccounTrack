@@ -3,13 +3,14 @@ import type {
   CreateCustomerPayment,
   CreateSalesOrder,
   CustomerPayment,
-  CustomerPaymentSummary,
+  CustomerPaymentListItem,
   DeliveryListItem,
   DeliveryOrder,
   DeliverySummary,
   LineQuantityInput,
   ReturnLineInput,
   SalesInvoice,
+  SalesInvoiceListItem,
   SalesInvoiceSummary,
   SalesOrder,
   SalesOrderSummary,
@@ -31,8 +32,10 @@ export const salesApi = {
     unwrap<DeliverySummary[]>(http.get(`/sales-orders/${id}/deliveries`)),
   allDeliveries: () => unwrap<DeliveryListItem[]>(http.get('/delivery-orders')),
   getDelivery: (deliveryId: string) => unwrap<DeliveryOrder>(http.get(`/delivery-orders/${deliveryId}`)),
+  allInvoices: () => unwrap<SalesInvoiceListItem[]>(http.get('/sales-invoices')),
   customerPayments: (customerId: string) =>
-    unwrap<CustomerPaymentSummary[]>(http.get('/customer-payments', { params: { customerId } })),
+    unwrap<CustomerPaymentListItem[]>(http.get('/customer-payments', { params: { customerId } })),
+  allCustomerPayments: () => unwrap<CustomerPaymentListItem[]>(http.get('/customer-payments')),
   getCustomerPayment: (paymentId: string) =>
     unwrap<CustomerPayment>(http.get(`/customer-payments/${paymentId}`)),
   createDelivery: (id: string, body: { deliveryDate: string; notes: string | null; lines: LineQuantityInput[] }) =>

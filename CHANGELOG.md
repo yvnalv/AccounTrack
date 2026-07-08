@@ -1,5 +1,26 @@
 # Accountrack Changelog
 
+## [2026-07-08 14:30:01 UTC]
+
+CHG-0118 — Document browse lists (invoices, bills, payments)
+
+- **Four company-wide list pages**, completing the list→detail web started in CHG-0117:
+  - **Sales:** Invoices (`sales/invoices`), Payments (`sales/payments`).
+  - **Purchasing:** Bills (`purchasing/invoices`), Payments (`purchasing/payments`).
+- Each is a searchable table (number, party, dates, total, posted/draft badge) with count + total
+  insight cards; clicking a row opens the matching detail page. Reachable from toolbar buttons on
+  the Sales/Purchase Order lists and from the ⌘K command palette.
+- **Backend:** new global query endpoints `GET /sales-invoices`, `GET /purchase-invoices`, and the
+  existing `GET /customer-payments` / `GET /supplier-payments` now accept an **optional** party
+  filter (omit it to browse everything). New `…ListItemDto`s resolve the customer/supplier name via
+  `IMasterDataLookup` (same pattern as the Deliveries/Returns lists); repositories gained a
+  `ListAsync`. The per-party payment queries were unified onto the list-item DTO (the now-unused
+  `CustomerPaymentSummaryDto` / `SupplierPaymentSummaryDto` were removed).
+- Backend builds clean; 191 tests pass (5 PostgreSQL-gated cross-tenant tests skipped). Frontend
+  builds clean (vue-tsc + vite). New `invoiceList.*` / `paymentList.*` strings (en + id).
+
+---
+
 ## [2026-07-08 13:43:09 UTC]
 
 CHG-0117 — Transactional document detail pages (delivery, invoice, payment, receipt, bill)

@@ -74,6 +74,10 @@ public static class PurchasingEndpoints
 
         var pi = app.MapGroup("/api/v1/purchase-invoices").WithTags("Purchasing").RequireAuthorization();
 
+        pi.MapGet("/", (ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetPurchaseInvoicesQuery(), ct)))
+            .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoices");
+
         pi.MapGet("/{id:guid}", (Guid id, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetPurchaseInvoiceQuery(id), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseInvoice");
@@ -109,7 +113,7 @@ public static class PurchasingEndpoints
                 Send(s.Send(new GetSupplierPaymentQuery(id), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetSupplierPayment");
 
-        pay.MapGet("/", (Guid supplierId, ISender s, CancellationToken ct) =>
+        pay.MapGet("/", (Guid? supplierId, ISender s, CancellationToken ct) =>
                 Send(s.Send(new GetSupplierPaymentsQuery(supplierId), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetSupplierPayments");
 

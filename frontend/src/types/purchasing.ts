@@ -126,6 +126,30 @@ export interface PurchaseInvoiceSummary {
   journalEntryId: string | null
 }
 
+/** A row in the company-wide Purchase Invoices (Bills) list (supplier name resolved). */
+export interface PurchaseInvoiceListItem {
+  id: string
+  number: string
+  purchaseOrderId: string
+  supplierId: string
+  supplierName: string
+  invoiceDate: string
+  dueDate: string
+  grandTotal: number
+  journalEntryId: string | null
+}
+
+/** A row in the company-wide Supplier Payments list (supplier name resolved). */
+export interface SupplierPaymentListItem {
+  id: string
+  number: string
+  supplierId: string
+  supplierName: string
+  paymentDate: string
+  totalAmount: number
+  journalEntryId: string | null
+}
+
 export interface PoLineQuantityInput {
   purchaseOrderLineId: string
   quantity: number

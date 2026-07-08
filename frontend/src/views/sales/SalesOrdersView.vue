@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Plus, Truck, Undo2, Wallet } from 'lucide-vue-next'
+import { Banknote, FileText, Plus, Truck, Undo2, Wallet } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { masterData, nameMap } from '@/lib/masterData'
 import { exportTable } from '@/lib/exportTable'
@@ -68,8 +68,14 @@ function openOrder(row: Record<string, unknown>) {
     <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
       <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'sales-orders', f)" />
+      <AppButton variant="ghost" @click="router.push({ name: 'salesInvoices' })">
+        <FileText :size="16" /> {{ t('invoiceList.salesTitle') }}
+      </AppButton>
       <AppButton variant="ghost" @click="router.push({ name: 'salesDeliveries' })">
         <Truck :size="16" /> {{ t('deliveries.title') }}
+      </AppButton>
+      <AppButton variant="ghost" @click="router.push({ name: 'customerPayments' })">
+        <Banknote :size="16" /> {{ t('paymentList.salesTitle') }}
       </AppButton>
       <AppButton variant="ghost" @click="router.push({ name: 'salesReturns' })">
         <Undo2 :size="16" /> {{ t('returns.salesTitle') }}
