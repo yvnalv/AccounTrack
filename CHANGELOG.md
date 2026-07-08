@@ -1,5 +1,35 @@
 # Accountrack Changelog
 
+## [2026-07-08 15:09:02 UTC]
+
+CHG-0119 — FIFO back-dated in-period recompute (ADR-0037)
+
+- **FIFO products now support back-dating within the open period**, lifting the v1 forward-only
+  limit (was BR-INV-10, ADR-0034). Previously a back-dated FIFO movement was rejected with
+  `INVENTORY.BACKDATING_FIFO_NOT_SUPPORTED`; that error is removed.
+- **New pure `FifoReplay` domain engine** (mirrors `MovingAverageReplay`): replays a bucket's
+  movements chronologically, consuming the oldest cost layers first, and returns each row's restated
+  cost plus **each inbound layer's final remaining quantity**. It tracks the derived display average
+  so an unchanged replay reproduces the forward numbers exactly and a negative-stock shortfall is
+  costed identically to the forward path.
+- **`InventoryLedgerService`** now branches on costing method: for FIFO it inserts the back-dated
+  movement, runs `FifoReplay`, restates every ledger row in place, and **rebuilds every cost layer's
+  remaining quantity** — opening a new `StockCostLayer` for a back-dated receipt and restating the
+  rest (all layers, including previously fully-consumed ones). The existing net delta adjusting
+  journal (Dr/Cr Inventory ↔ COGS/Variance via the posting-rule engine) corrects already-posted
+  later issues; posted journals stay immutable (ADR-0009).
+- Added `StockCostLayer.Restate(remainingQty)` and `IStockCostLayerRepository.ListAllForBucketAsync`
+  (all layers for a bucket, oldest-first — a back-dated insert can re-open a fully-consumed layer).
+- **Still rejected** (unchanged): back-dating before a later transfer/production movement
+  (cross-bucket, `BR-INV-5` — the remaining follow-up), a back-date that would drive stock negative
+  when negative stock is disallowed (`BR-INV-3`), and manual receipts (module-UoW path, `BR-INV-4`).
+- **Tests:** new `FifoReplayTests` (5) + rewrote the FIFO service tests (recompute + cross-transfer
+  reject). Full suite green — 356 passing, 5 skipped (PostgreSQL integration).
+- **Docs:** ADR-0037 added; ADR-0034 forward-only note lifted; BR-INV-5/BR-INV-10, INVENTORY_DESIGN
+  §3/§5/§10, DECISIONS updated.
+
+---
+
 ## [2026-07-08 14:30:01 UTC]
 
 CHG-0118 — Document browse lists (invoices, bills, payments)

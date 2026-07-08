@@ -47,6 +47,7 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0034 | FIFO costing as a per-product option alongside moving average | Accepted | 2026-07-07 |
 | 0035 | Price lists (Sales/Purchase) with company default + party overrides | Superseded by ADR-0036 | 2026-07-07 |
 | 0036 | Product base price + shared discount lists (supersedes ADR-0035) | Accepted | 2026-07-07 |
+| 0037 | FIFO back-dated in-period recompute (layer reconstruction + delta journals) | Accepted | 2026-07-08 |
 
 ---
 
@@ -693,8 +694,9 @@ and immutable thereafter (like base UoM). A product's stock buckets inherit its 
 (`StockCostBucket.CostingMethod`, read cross-module via `IMasterDataLookup.GetCostingMethodAsync`).
 FIFO opens a `StockCostLayer` per inbound movement and consumes the **oldest layers first** on issue
 (pure `FifoCosting`); FIFO on-hand value = Σ open layers, used by the valuation report so it
-reconciles to the GL. Moving average is unchanged. **v1 is forward-only: back-dating a FIFO product
-is rejected (BR-INV-10)**; negative-stock shortfall is costed at the last average.
+reconciles to the GL. Moving average is unchanged. **v1 was forward-only: back-dating a FIFO product
+was rejected (BR-INV-10) — now supported, see ADR-0037**; negative-stock shortfall is costed at the
+last average.
 
 **Options.** (A) per-product method + cost layers ← chosen; (B) per-company method (too coarse —
 businesses mix methods); (C) global FIFO with average derived (rewrites the working average path for
@@ -702,9 +704,39 @@ no gain).
 
 **Consequences.** (+) FIFO without a schema rewrite; average path + tests untouched; valuation stays
 GL-reconciled; method locked to protect historical valuation. (−) FIFO back-dating unsupported in v1
-(explicit reject); a FIFO bucket keeps a layer table scanned for valuation; its average is display-only.
-**Follow-ups:** FIFO back-dated layer reconstruction; cross-bucket (transfer) back-dating (future
-ADR-0035); optional import column + company-level default costing method.
+(explicit reject — **lifted in ADR-0037**); a FIFO bucket keeps a layer table scanned for valuation;
+its average is display-only. **Follow-ups:** ✅ FIFO back-dated layer reconstruction (ADR-0037);
+cross-bucket (transfer) back-dating (future ADR); optional import column + company-level default
+costing method.
+
+---
+
+## ADR-0037: FIFO back-dated in-period recompute (layer reconstruction + delta adjusting journals)
+
+- **Status:** Accepted — **Date:** 2026-07-08 · full text: [adr/0037-inventory-fifo-backdated-recompute.md](adr/0037-inventory-fifo-backdated-recompute.md)
+
+**Context.** ADR-0033 gave moving-average products back-dated in-period recompute (replay + net delta
+journal); ADR-0034 added FIFO but scoped it forward-only because FIFO values issues from **cost layers**,
+not a running average, and the moving-average replay does not reconstruct layers (BR-INV-10). This closes
+that follow-up — the last inventory back-dating debt other than the cross-bucket cascade.
+
+**Decision.** Mirror ADR-0033 Option A for FIFO with a new pure **`FifoReplay`** engine: insert the
+back-dated movement chronologically, replay the bucket consuming the **oldest layers first**, restate
+every ledger row in place, and **rebuild every cost layer's remaining quantity** (open a new oldest
+layer for a back-dated receipt; `StockCostLayer.Restate(...)` the rest). One net delta adjusting journal
+corrects the already-posted later issues (COGS for `Sales`, variance for `Adjustment`), balanced against
+Inventory via the posting-rule engine (ADR-0024), dated at the movement so the closed-period guard
+applies — posted journals stay immutable (ADR-0009). All in one cross-module transaction, serialized on
+the bucket RowVersion (ADR-0021).
+
+**Options.** (A) FIFO replay + layer reconstruction + delta journals ← chosen; (B) reverse-and-repost
+each later issue (ledger/GL noise); (C) keep FIFO forward-only (contradicts ADR-0017).
+
+**Consequences.** (+) FIFO gains the same late-entry correction as moving average; layers + valuation +
+GL stay reconciled; average path untouched; BR-INV-10 flips from limit to supported. (−) a second replay
+engine to maintain; a FIFO back-date replays the in-period bucket and rewrites its layer remainders.
+**Still rejected:** cross-bucket (transfer/production) back-dating for both methods; a back-date that
+would drive stock negative (negative disallowed); manual receipts (module-UoW path).
 
 ---
 

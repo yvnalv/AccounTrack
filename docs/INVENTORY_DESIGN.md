@@ -74,9 +74,10 @@ reconciled so ledger value = Σ TotalCost.
 (source txn, unit cost, remaining qty, movement date). An **issue** consumes the oldest open layers
 first; its cost is the sum of the consumed layer costs (pure `FifoCosting`). The bucket still tracks
 on-hand and a *derived* average for display, but FIFO on-hand **value = Σ (open layer remaining ×
-unit cost)** — what §9 valuation uses. v1 is forward-only: back-dating a FIFO product is rejected
-(BR-INV-10). Under opt-in negative stock, a layer shortfall is costed at the last average and
-reconciled on the next receipt.
+unit cost)** — what §9 valuation uses. **Back-dating within the open period is supported (ADR-0037):**
+the bucket is replayed via `FifoReplay` (consume oldest layers first), every layer's remaining quantity
+is rebuilt, later issues' COGS is restated, and a net adjusting journal corrects them — see §5. Under
+opt-in negative stock, a layer shortfall is costed at the last average and reconciled on the next receipt.
 
 ## 4. Negative Stock — ADR-0016
 
@@ -89,17 +90,19 @@ reconciled on the next receipt.
   `InventoryLedgerService.IssueAsync`, so it applies uniformly to deliveries, purchase returns,
   adjustments, transfers, and opname — callers no longer pass an `allowNegative` flag.
 
-## 5. Chronology & Back-Dating — ADR-0017 / ADR-0033
+## 5. Chronology & Back-Dating — ADR-0017 / ADR-0033 / ADR-0037
 
 - Movements post in **chronological order** within an Open period.
 - Back-dating into a **Closed/Locked** period is **forbidden** (mirrors accounting periods) — the
   back-dated movement (and its recompute delta) carry the back-date, so the GL poster's period guard
   rejects them.
-- Back-dating within the **current open period** is allowed and triggers a **full moving-average
-  replay** of the affected `(Company × Warehouse × Product)` bucket (ADR-0033, implemented CHG-0104):
-  the whole bucket is replayed in chronological order, `RunningQty/RunningAvgCost` and each later
-  issue's cost are recomputed and **restated in place** (the running snapshot is a rebuildable
-  projection, ADR-0014), and the bucket is set to the recomputed final state.
+- Back-dating within the **current open period** is allowed and triggers a **full bucket replay** of
+  the affected `(Company × Warehouse × Product)`: for **moving-average** products via `MovingAverageReplay`
+  (ADR-0033, CHG-0104), for **FIFO** products via `FifoReplay` (ADR-0037) which additionally **rebuilds
+  every cost layer's remaining quantity** (a back-dated receipt opens a new oldest layer). The whole
+  bucket is replayed in chronological order, `RunningQty/RunningAvgCost` and each later issue's cost are
+  recomputed and **restated in place** (the running snapshot is a rebuildable projection, ADR-0014), and
+  the bucket is set to the recomputed final state.
 - The COGS/variance change of already-posted later issues is corrected by **one net adjusting journal**
   (`Dr/Cr Inventory ↔ COGS/Variance`, accounts via the posting-rule engine) — posted journals stay
   immutable (ADR-0009). Because closed periods are immutable, recompute is bounded to the open period.
@@ -148,12 +151,14 @@ All costed movements that hit Accounting are **atomic** with the GL posting
 - **Movement / stock-card report**: full per-product transaction history with running balances
   (drill-down to source document).
 
-## 10. FIFO / Lot / Batch (ADR-0034)
+## 10. FIFO / Lot / Batch (ADR-0034 / ADR-0037)
 **FIFO is implemented** as a per-product costing method (ADR-0034), realizing the plug-in the ledger
 always reserved: `StockCostLayer` (SourceTransactionId, UnitCost, OriginalQty, RemainingQty,
 MovementDate) holds open layers per bucket; receipts open a layer, issues consume oldest-first via
-`FifoCosting`. Moving average is untouched. **Remaining:** FIFO back-dated layer reconstruction (v1
-rejects it, BR-INV-10); cross-bucket (transfer) back-dating (future ADR-0035); Lot/Batch tracking.
+`FifoCosting`. Moving average is untouched. **FIFO back-dated in-period recompute is implemented
+(ADR-0037):** `FifoReplay` replays the bucket and rebuilds every layer's remaining quantity, restating
+later issues' COGS and posting one net adjusting journal (see §5). **Remaining:** cross-bucket
+(transfer/production) back-dating for both costing methods (future ADR); Lot/Batch tracking.
 Manufacturing (WIP) reuses ProductionConsume/ProductionReceive movement types already defined.
 
 ## 11. Correctness Risks & Controls

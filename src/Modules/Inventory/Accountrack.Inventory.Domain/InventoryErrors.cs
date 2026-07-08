@@ -36,11 +36,4 @@ public static class InventoryErrors
         Error.BusinessRule("BR-INV-3",
             "Back-dating this movement would drive stock negative for a later movement.",
             "INVENTORY.BACKDATING_NEGATIVE");
-
-    /// <summary>Back-dating a movement for a FIFO product is not supported in this version (ADR-0034);
-    /// FIFO layer reconstruction across an inserted movement is a later enhancement.</summary>
-    public static readonly Error BackDatingFifoNotSupported =
-        Error.BusinessRule("BR-INV-10",
-            "Back-dating a movement is not supported for FIFO-costed products; enter it dated on or after the latest movement.",
-            "INVENTORY.BACKDATING_FIFO_NOT_SUPPORTED");
 }

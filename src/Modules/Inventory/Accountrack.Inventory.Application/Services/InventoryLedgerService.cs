@@ -57,15 +57,13 @@ public sealed class InventoryLedgerService : IInventoryLedger
 
         if (await IsBackDatedAsync(productId, warehouseId, date, ct))
         {
-            // FIFO layer reconstruction across an inserted movement is out of scope for v1 (ADR-0034).
-            if (bucket.CostingMethod == CostingMethod.Fifo)
-            {
-                return InventoryErrors.BackDatingFifoNotSupported;
-            }
-
-            return await RecomputeWithBackDatedMovementAsync(
-                bucket, productId, warehouseId, type, quantity, unitCost, date, source, sourceDocumentId, description,
-                allowNegative: false, ct);
+            return bucket.CostingMethod == CostingMethod.Fifo
+                ? await RecomputeFifoWithBackDatedMovementAsync(
+                    bucket, productId, warehouseId, type, quantity, unitCost, date, source, sourceDocumentId, description,
+                    allowNegative: false, ct)
+                : await RecomputeWithBackDatedMovementAsync(
+                    bucket, productId, warehouseId, type, quantity, unitCost, date, source, sourceDocumentId, description,
+                    allowNegative: false, ct);
         }
 
         // Receipt quantity/value and the derived average are maintained the same way for both methods;
@@ -101,15 +99,13 @@ public sealed class InventoryLedgerService : IInventoryLedger
 
         if (bucket is not null && await IsBackDatedAsync(productId, warehouseId, date, ct))
         {
-            // FIFO layer reconstruction across an inserted movement is out of scope for v1 (ADR-0034).
-            if (bucket.CostingMethod == CostingMethod.Fifo)
-            {
-                return InventoryErrors.BackDatingFifoNotSupported;
-            }
-
-            return await RecomputeWithBackDatedMovementAsync(
-                bucket, productId, warehouseId, type, quantity, unitCost: 0m, date, source, sourceDocumentId, description,
-                allowNegative, ct);
+            return bucket.CostingMethod == CostingMethod.Fifo
+                ? await RecomputeFifoWithBackDatedMovementAsync(
+                    bucket, productId, warehouseId, type, quantity, unitCost: 0m, date, source, sourceDocumentId, description,
+                    allowNegative, ct)
+                : await RecomputeWithBackDatedMovementAsync(
+                    bucket, productId, warehouseId, type, quantity, unitCost: 0m, date, source, sourceDocumentId, description,
+                    allowNegative, ct);
         }
 
         var onHand = bucket?.OnHandQty ?? 0m;
@@ -269,6 +265,134 @@ public sealed class InventoryLedgerService : IInventoryLedger
         var newLine = lineById[newTxn.Id];
         newTxn.Restate(newLine.UnitCost, newLine.TotalCost, newLine.RunningQtyAfter, newLine.RunningAvgCostAfter);
         _transactions.Add(newTxn);
+
+        var last = lines[^1];
+        bucket.SetState(last.RunningQtyAfter, last.RunningAvgCostAfter);
+
+        if (cogsDelta != 0m || varianceDelta != 0m)
+        {
+            var posted = await PostRecomputeDeltaAsync(warehouseId, date, newTxn.Id, cogsDelta, varianceDelta, ct);
+            if (posted.IsFailure)
+            {
+                return posted.Error;
+            }
+        }
+
+        return new StockMovementResult(newTxn.Id, newLine.TotalCost, newLine.RunningQtyAfter, newLine.RunningAvgCostAfter);
+    }
+
+    /// <summary>
+    /// FIFO analogue of <see cref="RecomputeWithBackDatedMovementAsync"/> (ADR-0037): inserts a
+    /// back-dated movement, replays the whole cost bucket consuming the oldest layers first
+    /// (<see cref="FifoReplay"/>), restates every ledger row in place, and — because inserting a
+    /// movement changes which layers each later issue consumed — <em>rebuilds every cost layer's
+    /// remaining quantity</em> (opening a new layer for a back-dated receipt). One net adjusting journal
+    /// corrects the COGS/variance of the already-posted later issues; posted journals stay immutable
+    /// (ADR-0009). Cross-bucket effects (a later transfer/production movement) are rejected as for
+    /// moving average.
+    /// </summary>
+    private async Task<Result<StockMovementResult>> RecomputeFifoWithBackDatedMovementAsync(
+        StockCostBucket bucket, Guid productId, Guid warehouseId, MovementType type, decimal quantity,
+        decimal unitCost, DateOnly date, MovementSource source, Guid? sourceDocumentId, string? description,
+        bool allowNegative, CancellationToken ct)
+    {
+        var existing = await _transactions.ListForBucketChronologicalAsync(productId, warehouseId, ct);
+
+        var isOutbound = FifoReplay.IsOutbound(type);
+        var newTxn = InventoryTransaction.Record(
+            productId, warehouseId, type, quantity, isOutbound ? 0m : unitCost, 0m, bucket.Currency,
+            date, source, sourceDocumentId, description, 0m, 0m);
+
+        // Chronological order; the new movement sorts last within its own date (it was entered last).
+        var ordered = existing
+            .Select(t => (Txn: t, t.MovementDate, Seq: t.CreatedAt))
+            .Append((Txn: newTxn, MovementDate: date, Seq: DateTime.MaxValue))
+            .OrderBy(x => x.MovementDate)
+            .ThenBy(x => x.Seq)
+            .Select(x => x.Txn)
+            .ToList();
+
+        var input = ordered
+            .Select(t => new FifoReplay.Movement(
+                t.Id, t.Type, t.Quantity, FifoReplay.IsOutbound(t.Type) ? 0m : t.UnitCost))
+            .ToList();
+
+        IReadOnlyList<FifoReplay.Line> lines;
+        try
+        {
+            lines = FifoReplay.Replay(input, allowNegative);
+        }
+        catch (InvalidOperationException)
+        {
+            return InventoryErrors.BackDatingWouldGoNegative;
+        }
+
+        var lineById = lines.ToDictionary(l => l.TransactionId);
+        var insertIndex = ordered.FindIndex(t => ReferenceEquals(t, newTxn));
+
+        // Accumulate the GL correction for already-posted later issues, grouped by their target account.
+        decimal cogsDelta = 0m, varianceDelta = 0m;
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            var t = ordered[i];
+            if (ReferenceEquals(t, newTxn))
+            {
+                continue;
+            }
+
+            var line = lineById[t.Id];
+
+            if (i > insertIndex && line.IsOutbound)
+            {
+                var delta = line.TotalCost - t.TotalCost;
+                if (delta != 0m)
+                {
+                    switch (t.Source)
+                    {
+                        case MovementSource.Sales:
+                            cogsDelta += delta;
+                            break;
+                        case MovementSource.Adjustment:
+                            varianceDelta += delta;
+                            break;
+                        default:
+                            // Transfer-out / production-consume move cost into another bucket — out of scope.
+                            return InventoryErrors.BackDatingCrossesTransfer;
+                    }
+                }
+            }
+
+            t.Restate(line.UnitCost, line.TotalCost, line.RunningQtyAfter, line.RunningAvgCostAfter);
+        }
+
+        var newLine = lineById[newTxn.Id];
+        newTxn.Restate(newLine.UnitCost, newLine.TotalCost, newLine.RunningQtyAfter, newLine.RunningAvgCostAfter);
+        _transactions.Add(newTxn);
+
+        // Rebuild every layer's remaining quantity from the replay. Existing inbound movements each own a
+        // layer (created at receipt); a back-dated inbound opens a new one. A later issue may re-consume a
+        // layer that was previously fully spent, so all layers are restated — including 0-remaining ones.
+        var existingLayers = await _layers.ListAllForBucketAsync(productId, warehouseId, ct);
+        var layerByTxn = existingLayers.ToDictionary(l => l.SourceTransactionId);
+        foreach (var line in lines)
+        {
+            if (line.IsOutbound)
+            {
+                continue;
+            }
+
+            if (line.TransactionId == newTxn.Id)
+            {
+                var newLayer = StockCostLayer.Create(
+                    productId, warehouseId, bucket.Currency, newTxn.Id, date, unitCost, quantity);
+                newLayer.Restate(line.LayerRemainingQty);
+                _layers.Add(newLayer);
+            }
+            else if (layerByTxn.TryGetValue(line.TransactionId, out var layer))
+            {
+                layer.Restate(line.LayerRemainingQty);
+            }
+        }
 
         var last = lines[^1];
         bucket.SetState(last.RunningQtyAfter, last.RunningAvgCostAfter);

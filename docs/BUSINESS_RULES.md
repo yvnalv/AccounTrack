@@ -79,7 +79,9 @@ configurable per company with the stated default.
   adjustments, transfers, and opname). (CHG-0073, ADR-0016.)
 - **BR-INV-4 (invariant)** Movements post chronologically; no back-dating into a closed period.
 - **BR-INV-5** Back-dating within the open period triggers a forward recompute of the affected
-  cost bucket (moving-average products only — see BR-INV-10).
+  cost bucket — for **both** moving-average (replay + delta journal, ADR-0033) and **FIFO**
+  (layer reconstruction + delta journal, ADR-0037; see BR-INV-10). Cross-bucket effects (a later
+  transfer or production movement) remain rejected pending the cross-bucket cascade.
 - **BR-INV-6 (invariant)** A transfer carries source moving-average cost to the destination
   warehouse.
 - **BR-INV-7** Inventory valuation reconciles to the Inventory GL account.
@@ -87,9 +89,13 @@ configurable per company with the stated default.
   approval.
 - **BR-INV-9 (invariant)** Every costed movement that affects the GL is posted atomically with
   its journal.
-- **BR-INV-10 (v1 limit, ADR-0034)** Back-dating a movement for a **FIFO** product is rejected;
-  FIFO is forward-only in v1 (layer reconstruction across an inserted movement is a later
-  enhancement). Enter FIFO movements dated on or after the latest existing movement.
+- **BR-INV-10 (ADR-0037, supersedes the ADR-0034 v1 limit)** Back-dating a movement for a **FIFO**
+  product within the open period is supported: the bucket is replayed consuming the oldest layers
+  first, every layer's remaining quantity is rebuilt (a back-dated receipt opens a new oldest layer),
+  each later issue's COGS is restated, and one net adjusting journal corrects the already-posted
+  later issues (posted journals stay immutable, BR-INV-9). As with moving average, back-dating before
+  a later **transfer or production** movement (cross-bucket) is still rejected, and a back-date that
+  would drive stock negative (negative disallowed) is rejected.
 
 ## Sales
 
