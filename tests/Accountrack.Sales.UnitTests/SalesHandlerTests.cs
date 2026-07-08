@@ -3,10 +3,12 @@ using Accountrack.Modules.Contracts.Approval;
 using Accountrack.Modules.Contracts.Company;
 using Accountrack.Modules.Contracts.Events;
 using Accountrack.Modules.Contracts.MasterData;
+using Accountrack.Modules.Contracts.Transactions;
 using Accountrack.Sales.Application;
 using Accountrack.Sales.Application.Abstractions;
 using Accountrack.Sales.Application.Features;
 using Accountrack.Sales.Domain;
+using Accountrack.SharedKernel.Results;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
@@ -24,6 +26,21 @@ public class SalesHandlerTests
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
     private readonly IApprovalService _approval = Substitute.For<IApprovalService>();
     private readonly ISalesUnitOfWork _uow = Substitute.For<ISalesUnitOfWork>();
+
+    // The create handler now commits through the cross-module coordinator (exactly-once idempotency,
+    // ADR-0021); this double runs the work inline and records that it was invoked.
+    private readonly DirectUnitOfWork _crossUow = new();
+
+    private sealed class DirectUnitOfWork : ICrossModuleUnitOfWork
+    {
+        public int Calls { get; private set; }
+
+        public Task<Result<T>> ExecuteAsync<T>(Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct)
+        {
+            Calls++;
+            return work(ct);
+        }
+    }
 
     public SalesHandlerTests()
     {
@@ -47,7 +64,7 @@ public class SalesHandlerTests
         SalesOrder? added = null;
         _orders.When(r => r.Add(Arg.Any<SalesOrder>())).Do(ci => added = ci.Arg<SalesOrder>());
 
-        var handler = new CreateSalesOrderHandler(_orders, _masterData, _companies, _tenant, _uow);
+        var handler = new CreateSalesOrderHandler(_orders, _masterData, _companies, _tenant, _crossUow);
         var result = await handler.Handle(
             new CreateSalesOrderCommand(Guid.NewGuid(), Guid.NewGuid(), Date, null,
                 new[] { new CreateSoLine(Guid.NewGuid(), 2m, 100m, 0.11m, null) }), CancellationToken.None);
@@ -55,7 +72,8 @@ public class SalesHandlerTests
         result.IsSuccess.Should().BeTrue();
         added.Should().NotBeNull();
         added!.GrandTotal.Should().Be(222m); // 200 + 22 VAT
-        await _uow.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        _orders.Received(1).Add(Arg.Any<SalesOrder>());
+        _crossUow.Calls.Should().Be(1, "the draft is created inside the cross-module transaction for exactly-once idempotency");
     }
 
     [Fact]
@@ -95,7 +113,7 @@ public class SalesHandlerTests
     {
         _masterData.CustomerExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(false);
 
-        var handler = new CreateSalesOrderHandler(_orders, _masterData, _companies, _tenant, _uow);
+        var handler = new CreateSalesOrderHandler(_orders, _masterData, _companies, _tenant, _crossUow);
         var result = await handler.Handle(
             new CreateSalesOrderCommand(Guid.NewGuid(), Guid.NewGuid(), Date, null,
                 new[] { new CreateSoLine(Guid.NewGuid(), 1m, 10m, 0m, null) }), CancellationToken.None);

@@ -198,24 +198,30 @@ public sealed class CreateExpenseDraftHandler : ICommandHandler<CreateExpenseDra
 {
     private readonly IExpenseCategoryRepository _categories;
     private readonly IExpenseVoucherRepository _vouchers;
-    private readonly IExpensesUnitOfWork _expensesUow;
+    private readonly ICrossModuleUnitOfWork _uow;
     private readonly IMasterDataLookup _masterData;
     private readonly ICompanyDirectory _companies;
     private readonly ITenantContext _tenant;
 
     public CreateExpenseDraftHandler(
-        IExpenseCategoryRepository categories, IExpenseVoucherRepository vouchers, IExpensesUnitOfWork expensesUow,
+        IExpenseCategoryRepository categories, IExpenseVoucherRepository vouchers, ICrossModuleUnitOfWork uow,
         IMasterDataLookup masterData, ICompanyDirectory companies, ITenantContext tenant)
     {
         _categories = categories;
         _vouchers = vouchers;
-        _expensesUow = expensesUow;
+        _uow = uow;
         _masterData = masterData;
         _companies = companies;
         _tenant = tenant;
     }
 
-    public async Task<Result<Guid>> Handle(CreateExpenseDraftCommand request, CancellationToken ct)
+    // Runs inside the cross-module transaction so the idempotency key (ADR-0021) is written atomically
+    // with the draft — a retried create with the same Idempotency-Key is exactly-once, never a duplicate
+    // voucher (which would otherwise burn a sequence number).
+    public Task<Result<Guid>> Handle(CreateExpenseDraftCommand request, CancellationToken ct) =>
+        _uow.ExecuteAsync(token => CreateAsync(request, token), ct);
+
+    private async Task<Result<Guid>> CreateAsync(CreateExpenseDraftCommand request, CancellationToken ct)
     {
         var company = await _companies.GetAsync(_tenant.CompanyId, ct);
         if (company is null)
@@ -251,7 +257,6 @@ public sealed class CreateExpenseDraftHandler : ICommandHandler<CreateExpenseDra
         }
 
         _vouchers.Add(voucher);
-        await _expensesUow.SaveChangesAsync(ct);
         return voucher.Id;
     }
 }

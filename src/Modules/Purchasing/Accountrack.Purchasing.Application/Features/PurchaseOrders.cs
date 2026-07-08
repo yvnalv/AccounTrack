@@ -4,6 +4,7 @@ using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.Approval;
 using Accountrack.Modules.Contracts.Company;
 using Accountrack.Modules.Contracts.MasterData;
+using Accountrack.Modules.Contracts.Transactions;
 using Accountrack.Purchasing.Application.Abstractions;
 using Accountrack.Purchasing.Application.Contracts;
 using Accountrack.Purchasing.Domain;
@@ -46,11 +47,11 @@ public sealed class CreatePurchaseOrderHandler : ICommandHandler<CreatePurchaseO
     private readonly IMasterDataLookup _masterData;
     private readonly ICompanyDirectory _companies;
     private readonly ITenantContext _tenant;
-    private readonly IPurchasingUnitOfWork _uow;
+    private readonly ICrossModuleUnitOfWork _uow;
 
     public CreatePurchaseOrderHandler(
         IPurchaseOrderRepository orders, IMasterDataLookup masterData, ICompanyDirectory companies,
-        ITenantContext tenant, IPurchasingUnitOfWork uow)
+        ITenantContext tenant, ICrossModuleUnitOfWork uow)
     {
         _orders = orders;
         _masterData = masterData;
@@ -59,7 +60,13 @@ public sealed class CreatePurchaseOrderHandler : ICommandHandler<CreatePurchaseO
         _uow = uow;
     }
 
-    public async Task<Result<Guid>> Handle(CreatePurchaseOrderCommand request, CancellationToken ct)
+    // Runs inside the cross-module transaction so the idempotency key (ADR-0021) is written atomically
+    // with the draft — a retried create with the same Idempotency-Key is exactly-once, never a duplicate
+    // order (which would otherwise burn a sequence number).
+    public Task<Result<Guid>> Handle(CreatePurchaseOrderCommand request, CancellationToken ct) =>
+        _uow.ExecuteAsync(token => CreateAsync(request, token), ct);
+
+    private async Task<Result<Guid>> CreateAsync(CreatePurchaseOrderCommand request, CancellationToken ct)
     {
         if (!await _masterData.SupplierExistsAsync(request.SupplierId, ct))
         {
@@ -102,7 +109,6 @@ public sealed class CreatePurchaseOrderHandler : ICommandHandler<CreatePurchaseO
         }
 
         _orders.Add(order);
-        await _uow.SaveChangesAsync(ct);
         return order.Id;
     }
 }

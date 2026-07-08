@@ -8,8 +8,13 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-08 (last change **CHG-0119**)
+- **As of:** 2026-07-08 (last change **CHG-0120**)
 - **Build:** green — backend `net8.0` (356 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **draft creates exactly-once (CHG-0120)** — Create Sales Order / Purchase Order / Expense
+  Draft now commit through the cross-module coordinator, so the idempotency key is written atomically
+  with the draft; a retried create with the same `Idempotency-Key` returns the original id instead of
+  creating a duplicate (which would burn a sequence number). Remaining idempotency gap: `ReceiveStock`
+  (non-`Guid` result).
   Latest: **FIFO back-dated in-period recompute (CHG-0119, ADR-0037)** — FIFO products now support
   back-dating within the open period (lifting the ADR-0034 forward-only limit): a new pure `FifoReplay`
   engine replays the bucket consuming oldest layers first, rebuilds every cost layer's remaining
@@ -191,8 +196,12 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   master-data & CoA edits (CHG-0087)** — stale cross-request edits return 409. ✅ **exactly-once for
   atomic flows (CHG-0102)** — the key is written inside the same cross-module transaction as the
   effects (via `IIdempotencyScope` + `WriteInTransactionAsync`), closing the commit/`SaveAsync`
-  crash-window. Remaining: route per-module create/draft commands (SO/PO/expense draft, stock
-  Receive) through the coordinator too (currently at-least-once → duplicate *draft* only).
+  crash-window. ✅ **draft creates exactly-once (CHG-0120)** — Create Sales Order, Create Purchase
+  Order, and Create Expense Draft now commit through the cross-module coordinator, so the
+  idempotency key is written atomically with the draft (a retried create with the same
+  `Idempotency-Key` never burns a second sequence number). Remaining: `ReceiveStock` (returns a
+  composite `StockMovementResult`, not `Result<Guid>`) needs the behavior generalized beyond
+  `Result<Guid>` before it can be exactly-once.
 - **Frontend:** Vue 3 SPA — **pause for a UI/UX design discussion before building** (user
   preference: not template/AI-ish).
 - **Surfacing built-but-hidden backend in the UI:** ✅ **in-app notifications bell (CHG-0107)** —
@@ -216,7 +225,9 @@ locale; **✅ refresh-token rotation (silent refresh + retry — CHG-0090)**; se
 
 Backend threads that can be picked up independently if desired (none block the frontend):
 - **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021); ✅ **same-transaction
-  key write / exactly-once (CHG-0102)**. Remaining: extend the same to per-module create/draft commands.
+  key write / exactly-once (CHG-0102)**; ✅ **draft creates exactly-once (CHG-0120)** — SO/PO/expense
+  draft creates routed through the coordinator. Remaining: `ReceiveStock` (non-`Guid` result) needs the
+  behavior generalized first.
 - **Reporting:** Cash Flow, AR/AP aging, **VAT (CHG-0043)**, **General Ledger / account detail
   (CHG-0058)**, **inventory valuation (CHG-0062)** done. Reporting suite complete.
 - **Accounting:** ✅ period-close balance snapshots (CHG-0079); year-end close to retained earnings (CHG-0059).
