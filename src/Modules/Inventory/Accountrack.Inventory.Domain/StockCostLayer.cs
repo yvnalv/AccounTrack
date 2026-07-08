@@ -59,4 +59,13 @@ public sealed class StockCostLayer : TenantOwnedEntity, IAggregateRoot
         RemainingQty = Math.Round(RemainingQty - taken, QtyScale, MidpointRounding.ToEven);
         return taken;
     }
+
+    /// <summary>
+    /// Overwrites the layer's remaining quantity with the result of a full FIFO replay (ADR-0037).
+    /// Used only by back-dated recompute, which reconstructs every layer's remainder after an inserted
+    /// movement changes which layers each later issue consumed. The immutable facts (source movement,
+    /// unit cost, original quantity) are never touched — this only rewrites the rebuildable remainder.
+    /// </summary>
+    public void Restate(decimal remainingQty) =>
+        RemainingQty = Math.Round(remainingQty, QtyScale, MidpointRounding.ToEven);
 }

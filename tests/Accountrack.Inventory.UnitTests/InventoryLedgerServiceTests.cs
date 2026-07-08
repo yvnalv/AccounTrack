@@ -46,6 +46,8 @@ public class InventoryLedgerServiceTests
             .Returns(CostingMethod.MovingAverage);
         _layers.ListOpenForBucketAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(new List<StockCostLayer>());
+        _layers.ListAllForBucketAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(new List<StockCostLayer>());
         return new(_buckets, _layers, _txns, _companies, _masterData, _tenant, _gl, _accounts);
     }
 
@@ -154,19 +156,86 @@ public class InventoryLedgerServiceTests
     }
 
     [Fact]
-    public async Task Fifo_back_dated_movement_is_rejected()
+    public async Task Fifo_back_dated_cheaper_receipt_reconsumes_layers_and_posts_the_delta_journal()
     {
-        var bucket = FifoBucket((10m, 100m));
-        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucket);
-        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>())
-            .Returns(Date.AddDays(5)); // an existing later movement → this one is back-dated
+        // Existing FIFO bucket: Jun-1 receipt 10 @ 100 (layer A), Jun-5 sales issue of 10 consumed it
+        // (COGS 1 000); on hand 0.
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun5 = new DateOnly(2026, 6, 5);
+        var receipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 10m, 100m, 1_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 10m, 100m);
+        var issue = InventoryTransaction.Record(_product, _warehouse, MovementType.Issue, 10m, 100m, 1_000m,
+            "IDR", jun5, MovementSource.Sales, null, null, 0m, 0m);
+        var layerA = StockCostLayer.Create(_product, _warehouse, "IDR", receipt.Id, jun1, 100m, 10m);
+        layerA.Consume(10m); // fully spent by the Jun-5 issue
 
-        var result = await Service().ReceiveAsync(
-            _product, _warehouse, "IDR", 5m, 120m, Date, MovementType.Receipt, MovementSource.Manual, null, null,
-            CancellationToken.None);
+        var bucket = FifoBucket((10m, 100m));
+        bucket.IssueFifo(10m, 1_000m, allowNegative: false); // on hand 0
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucket);
+        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(jun5);
+        _txns.ListForBucketChronologicalAsync(_product, _warehouse, Arg.Any<CancellationToken>())
+            .Returns(new[] { receipt, issue });
+
+        var service = Service();
+        _layers.ListAllForBucketAsync(_product, _warehouse, Arg.Any<CancellationToken>())
+            .Returns(new[] { layerA }); // after Service() so it isn't clobbered by the Arg.Any default
+
+        // Back-date a cheaper receipt of 10 @ 80 to May-28 — the new oldest layer the issue now consumes.
+        var result = await service.ReceiveAsync(
+            _product, _warehouse, "IDR", 10m, 80m, new DateOnly(2026, 5, 28),
+            MovementType.Receipt, MovementSource.Purchasing, null, "Late purchase", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CostApplied.Should().Be(800m); // the new receipt itself: 10 @ 80
+
+        // The Jun-5 issue now consumes the cheaper May-28 layer: COGS restated 1 000 → 800.
+        issue.TotalCost.Should().Be(800m);
+
+        // The new layer is fully spent by the issue; the original Jun-1 layer is now untouched (10 left).
+        layerA.RemainingQty.Should().Be(10m);
+        _layers.Received(1).Add(Arg.Is<StockCostLayer>(l => l.OriginalQty == 10m && l.UnitCost == 80m && l.RemainingQty == 0m));
+
+        // Bucket ends at 10 on hand valued from the surviving layer (100).
+        bucket.OnHandQty.Should().Be(10m);
+        bucket.AvgUnitCost.Should().Be(100m);
+
+        // One correcting journal: Dr Inventory 200 / Cr COGS 200 (COGS was overstated by 200).
+        var call = _gl.ReceivedCalls().Should().ContainSingle().Which;
+        var request = (LedgerPostingRequest)call.GetArguments()[0]!;
+        request.Lines.Should().ContainSingle(l => l.AccountId == CogsAccount && l.Credit == 200m && l.Debit == 0m);
+        request.Lines.Should().ContainSingle(l => l.AccountId == InventoryAccount && l.Debit == 200m && l.Credit == 0m);
+    }
+
+    [Fact]
+    public async Task Fifo_back_dating_before_a_later_transfer_is_rejected()
+    {
+        // Jun-1 receipt 10 @ 100, Jun-5 transfer-out 10 (moves cost to another bucket — out of scope).
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun5 = new DateOnly(2026, 6, 5);
+        var receipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 10m, 100m, 1_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 10m, 100m);
+        var transfer = InventoryTransaction.Record(_product, _warehouse, MovementType.TransferOut, 10m, 100m, 1_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 0m, 0m);
+        var layerA = StockCostLayer.Create(_product, _warehouse, "IDR", receipt.Id, jun1, 100m, 10m);
+        layerA.Consume(10m);
+
+        var bucket = FifoBucket((10m, 100m));
+        bucket.IssueFifo(10m, 1_000m, allowNegative: false);
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucket);
+        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(jun5);
+        _txns.ListForBucketChronologicalAsync(_product, _warehouse, Arg.Any<CancellationToken>())
+            .Returns(new[] { receipt, transfer });
+
+        var service = Service();
+        _layers.ListAllForBucketAsync(_product, _warehouse, Arg.Any<CancellationToken>())
+            .Returns(new[] { layerA });
+
+        var result = await service.ReceiveAsync(
+            _product, _warehouse, "IDR", 10m, 80m, new DateOnly(2026, 5, 28),
+            MovementType.Receipt, MovementSource.Purchasing, null, "Late purchase", CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("INVENTORY.BACKDATING_FIFO_NOT_SUPPORTED");
+        result.Error.Code.Should().Be("INVENTORY.BACKDATING_CROSSES_TRANSFER");
     }
 
     [Fact]

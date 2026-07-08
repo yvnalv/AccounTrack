@@ -37,6 +37,11 @@ public interface IStockCostLayerRepository
     /// consumed layer's remaining quantity persists.</summary>
     Task<IReadOnlyList<StockCostLayer>> ListOpenForBucketAsync(Guid productId, Guid warehouseId, CancellationToken ct);
 
+    /// <summary>All FIFO layers for a bucket (including fully-consumed ones), oldest-first, for
+    /// back-dated recompute (ADR-0037): an inserted earlier movement can re-open a layer that was fully
+    /// consumed, so the whole layer set is replayed. Returns tracked entities so remainders persist.</summary>
+    Task<IReadOnlyList<StockCostLayer>> ListAllForBucketAsync(Guid productId, Guid warehouseId, CancellationToken ct);
+
     /// <summary>All open layers for the tenant (RemainingQty &gt; 0), for FIFO inventory valuation.</summary>
     Task<IReadOnlyList<StockCostLayer>> ListOpenAsync(CancellationToken ct);
 }

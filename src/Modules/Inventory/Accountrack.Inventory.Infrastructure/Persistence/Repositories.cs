@@ -33,6 +33,14 @@ public sealed class StockCostLayerRepository : IStockCostLayerRepository
             .ThenBy(l => l.CreatedAt)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<StockCostLayer>> ListAllForBucketAsync(
+        Guid productId, Guid warehouseId, CancellationToken ct) =>
+        await _db.StockCostLayers
+            .Where(l => l.ProductId == productId && l.WarehouseId == warehouseId)
+            .OrderBy(l => l.MovementDate)
+            .ThenBy(l => l.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<StockCostLayer>> ListOpenAsync(CancellationToken ct) =>
         await _db.StockCostLayers.Where(l => l.RemainingQty > 0m).ToListAsync(ct);
 }
