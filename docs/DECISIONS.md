@@ -365,10 +365,18 @@ on the tentative unique-index entry, loses (0 rows), rolls back its own effects,
 winner's id. This closes the old crash-window between commit and `SaveAsync` — effects and key now
 commit or roll back together.
 
-**Remaining.** The **per-module create/draft** commands (Create Sales/Purchase Order, Create Expense
-Draft, stock Receive) still commit via their module `SaveChangesAsync` and fall back to the
-at-least-once separate-connection `SaveAsync`; a crash could yield a duplicate *draft* (no GL/ledger
-effect, cancellable). Routing those through the coordinator too is a low-priority follow-up.
+**Draft creates exactly-once (CHG-0120).** The **create/draft** commands **Create Sales Order**,
+**Create Purchase Order**, and **Create Expense Draft** now also run inside the cross-module
+coordinator (`ICrossModuleUnitOfWork.ExecuteAsync`) instead of their module `SaveChangesAsync`, so the
+idempotency key is written atomically with the draft (exactly-once). A retried create with the same
+`Idempotency-Key` returns the original id rather than creating a duplicate draft — which would
+otherwise burn a document sequence number. (The single-module create simply enlists no other context;
+the coordinator only saves contexts that changed.)
+
+**Remaining.** `ReceiveStock` returns a composite `StockMovementResult`, not `Result<Guid>`, so the
+`IdempotencyBehavior` (hardcoded to `Result<Guid>`) does not apply to it; making it exactly-once needs
+the behavior generalized to non-`Guid` results first — a low-priority follow-up (a duplicate manual
+receipt has no GL effect and is reversible).
 
 **Amended (ADR-0032).** With the move to PostgreSQL, `RowVersion` is no longer a store-generated
 SQL Server `rowversion`. It is now a provider-agnostic `bytea` **concurrency token** whose value the

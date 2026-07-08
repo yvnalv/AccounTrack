@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-07-08 16:22:14 UTC]
+
+CHG-0120 — Draft creates exactly-once (ADR-0021)
+
+- **Create Sales Order**, **Create Purchase Order**, and **Create Expense Draft** now commit through
+  the cross-module transaction coordinator (`ICrossModuleUnitOfWork.ExecuteAsync`) instead of their
+  own module `SaveChangesAsync`. This makes the idempotency key write **atomic with the draft**
+  (exactly-once), closing the previous crash-window where a retried create on the same
+  `Idempotency-Key` could create a duplicate draft and burn a document sequence number.
+- These commands were already `IIdempotentCommand`/`Result<Guid>` but used the at-least-once
+  separate-connection fallback (`IIdempotencyStore.SaveAsync`); routing them through the coordinator
+  engages the same exactly-once path the posting flows use (CHG-0102).
+- No behavior change when no `Idempotency-Key` header is present (the coordinator skips the key write,
+  same as before). Single-module creates simply enlist no other context; the coordinator only saves
+  contexts that actually changed.
+- **Not changed:** `ReceiveStock` returns a composite `StockMovementResult` (not `Result<Guid>`), so
+  the `IdempotencyBehavior` does not apply to it; making it exactly-once needs the behavior generalized
+  beyond `Result<Guid>` first — a documented follow-up.
+- **Tests:** `SalesHandlerTests` updated — the create runs inside the coordinator (asserted) and still
+  persists the draft; full suite green (356 passing, 5 skipped). Architecture-fitness tests pass.
+- **Docs:** ADR-0021 updated (draft-creates-exactly-once + remaining ReceiveStock note); STATUS updated.
+
+---
+
 ## [2026-07-08 15:09:02 UTC]
 
 CHG-0119 — FIFO back-dated in-period recompute (ADR-0037)
