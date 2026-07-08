@@ -24,4 +24,13 @@
     <ProjectReference Include="..\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
   </ItemGroup>
 
+  <!-- Plus Jakarta Sans (SIL OFL 1.1) embedded so QuestPDF renders documents in the brand typeface,
+       matching the SPA. Licence: Pdf/Fonts/OFL.txt. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Pdf\Fonts\PlusJakartaSans-Regular.ttf" />
+    <EmbeddedResource Include="Pdf\Fonts\PlusJakartaSans-Medium.ttf" />
+    <EmbeddedResource Include="Pdf\Fonts\PlusJakartaSans-SemiBold.ttf" />
+    <EmbeddedResource Include="Pdf\Fonts\PlusJakartaSans-Bold.ttf" />
+  </ItemGroup>
+
 </Project>

@@ -1,0 +1,33 @@
+/*
+ * Plus Jakarta Sans (SIL OFL 1.1) — self-hosted so the app renders the brand typeface offline and
+ * without a Google Fonts CDN round-trip (matches the embedded PDF font). Licence: assets/fonts/OFL.txt.
+ * Weights: 400 Regular, 500 Medium, 600 SemiBold, 700 Bold. Vite fingerprints the woff2 URLs at build.
+ */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/PlusJakartaSans-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/PlusJakartaSans-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/PlusJakartaSans-SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/PlusJakartaSans-Bold.woff2') format('woff2');
+}
