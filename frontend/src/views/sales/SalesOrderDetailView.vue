@@ -309,7 +309,14 @@ onMounted(load)
             </thead>
             <tbody>
               <tr v-for="d in deliveries" :key="d.id" class="border-b border-border last:border-0">
-                <td class="px-4 py-2.5 text-text">{{ d.number }}</td>
+                <td class="px-4 py-2.5">
+                  <button
+                    class="text-accent hover:underline"
+                    @click="router.push({ name: 'salesDeliveryDetail', params: { id: d.id } })"
+                  >
+                    {{ d.number }}
+                  </button>
+                </td>
                 <td class="px-4 py-2.5 text-text-muted">{{ d.deliveryDate }}</td>
                 <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(d.totalCost, currency) }}</td>
                 <td class="px-4 py-2.5 text-right">
@@ -328,7 +335,14 @@ onMounted(load)
           <table v-if="invoices.length" class="w-full text-sm">
             <tbody>
               <tr v-for="inv in invoices" :key="inv.id" class="border-b border-border last:border-0">
-                <td class="px-4 py-2.5 text-text">{{ inv.number }}</td>
+                <td class="px-4 py-2.5">
+                  <button
+                    class="text-accent hover:underline"
+                    @click="router.push({ name: 'salesInvoiceDetail', params: { id: inv.id } })"
+                  >
+                    {{ inv.number }}
+                  </button>
+                </td>
                 <td class="px-4 py-2.5 text-text-muted">{{ t('sales.detail.due') }} {{ inv.dueDate }}</td>
                 <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(inv.grandTotal, currency) }}</td>
                 <td class="px-3 py-2.5 text-right">

@@ -2,8 +2,10 @@ import { http, unwrap } from './api'
 import type {
   CreateCustomerPayment,
   CreateSalesOrder,
+  CustomerPayment,
   CustomerPaymentSummary,
   DeliveryListItem,
+  DeliveryOrder,
   DeliverySummary,
   LineQuantityInput,
   ReturnLineInput,
@@ -28,8 +30,11 @@ export const salesApi = {
   deliveries: (id: string) =>
     unwrap<DeliverySummary[]>(http.get(`/sales-orders/${id}/deliveries`)),
   allDeliveries: () => unwrap<DeliveryListItem[]>(http.get('/delivery-orders')),
+  getDelivery: (deliveryId: string) => unwrap<DeliveryOrder>(http.get(`/delivery-orders/${deliveryId}`)),
   customerPayments: (customerId: string) =>
     unwrap<CustomerPaymentSummary[]>(http.get('/customer-payments', { params: { customerId } })),
+  getCustomerPayment: (paymentId: string) =>
+    unwrap<CustomerPayment>(http.get(`/customer-payments/${paymentId}`)),
   createDelivery: (id: string, body: { deliveryDate: string; notes: string | null; lines: LineQuantityInput[] }) =>
     unwrap<string>(http.post(`/sales-orders/${id}/deliveries`, body)),
 

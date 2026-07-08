@@ -60,6 +60,47 @@ export interface CustomerPaymentSummary {
   journalEntryId: string | null
 }
 
+export interface DeliveryOrderLine {
+  salesOrderLineId: string
+  productId: string
+  quantity: number
+  unitCost: number
+  lineCost: number
+}
+
+export interface DeliveryOrder {
+  id: string
+  number: string
+  salesOrderId: string
+  customerId: string
+  warehouseId: string
+  currency: string
+  deliveryDate: string
+  totalCost: number
+  journalEntryId: string | null
+  notes: string | null
+  lines: DeliveryOrderLine[]
+}
+
+export interface CustomerPaymentAllocation {
+  arOpenItemId: string
+  amount: number
+}
+
+export interface CustomerPayment {
+  id: string
+  number: string
+  customerId: string
+  cashAccountId: string
+  currency: string
+  paymentDate: string
+  totalAmount: number
+  journalEntryId: string | null
+  reference: string | null
+  notes: string | null
+  allocations: CustomerPaymentAllocation[]
+}
+
 export interface SalesInvoiceSummary {
   id: string
   number: string

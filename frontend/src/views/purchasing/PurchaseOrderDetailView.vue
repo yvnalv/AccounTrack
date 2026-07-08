@@ -284,7 +284,14 @@ onMounted(load)
           <table v-if="receipts.length" class="w-full text-sm">
             <tbody>
               <tr v-for="r in receipts" :key="r.id" class="border-b border-border last:border-0">
-                <td class="px-4 py-2.5 text-text">{{ r.number }}</td>
+                <td class="px-4 py-2.5">
+                  <button
+                    class="text-accent hover:underline"
+                    @click="router.push({ name: 'goodsReceiptDetail', params: { id: r.id } })"
+                  >
+                    {{ r.number }}
+                  </button>
+                </td>
                 <td class="px-4 py-2.5 text-text-muted">{{ r.receiptDate }}</td>
                 <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(r.totalCost, currency) }}</td>
                 <td class="px-4 py-2.5 text-right"><StatusBadge v-if="r.journalEntryId" tone="positive" :label="t('purchasing.detail.posted')" /></td>
@@ -298,7 +305,14 @@ onMounted(load)
           <table v-if="invoices.length" class="w-full text-sm">
             <tbody>
               <tr v-for="inv in invoices" :key="inv.id" class="border-b border-border last:border-0">
-                <td class="px-4 py-2.5 text-text">{{ inv.number }}</td>
+                <td class="px-4 py-2.5">
+                  <button
+                    class="text-accent hover:underline"
+                    @click="router.push({ name: 'purchaseInvoiceDetail', params: { id: inv.id } })"
+                  >
+                    {{ inv.number }}
+                  </button>
+                </td>
                 <td class="px-4 py-2.5 text-text-muted">{{ t('purchasing.detail.due') }} {{ inv.dueDate }}</td>
                 <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(inv.grandTotal, currency) }}</td>
                 <td class="px-3 py-2.5 text-right"><StatusBadge v-if="inv.journalEntryId" tone="positive" :label="t('purchasing.detail.posted')" /></td>

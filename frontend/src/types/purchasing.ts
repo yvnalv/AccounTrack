@@ -75,6 +75,47 @@ export interface GoodsReceiptSummary {
   journalEntryId: string | null
 }
 
+export interface GoodsReceiptLine {
+  purchaseOrderLineId: string
+  productId: string
+  quantity: number
+  unitCost: number
+  lineCost: number
+}
+
+export interface GoodsReceipt {
+  id: string
+  number: string
+  purchaseOrderId: string
+  supplierId: string
+  warehouseId: string
+  currency: string
+  receiptDate: string
+  totalCost: number
+  journalEntryId: string | null
+  notes: string | null
+  lines: GoodsReceiptLine[]
+}
+
+export interface SupplierPaymentAllocation {
+  apOpenItemId: string
+  amount: number
+}
+
+export interface SupplierPayment {
+  id: string
+  number: string
+  supplierId: string
+  cashAccountId: string
+  currency: string
+  paymentDate: string
+  totalAmount: number
+  journalEntryId: string | null
+  reference: string | null
+  notes: string | null
+  allocations: SupplierPaymentAllocation[]
+}
+
 export interface PurchaseInvoiceSummary {
   id: string
   number: string
