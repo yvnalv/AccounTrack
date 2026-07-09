@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-07-09 14:24:57 UTC]
+
+CHG-0128 — Hardening: auth rate limiting + SPA security headers (SECURITY.md §5)
+
+- **Brute-force / credential-stuffing protection.** The anonymous auth endpoints
+  `/api/v1/auth/login`, `/register`, and `/refresh` — previously unthrottled — now enforce a per-client
+  fixed-window rate limit (.NET 8 `AddRateLimiter`; new `AuthRateLimiting`). Over-limit requests return
+  `429` in the standard failure envelope (`RATE_LIMITED`) with a `Retry-After` header. Limits are
+  configurable under `RateLimiting:Auth` (default **20 requests / 60 s**). The client key is the
+  leftmost `X-Forwarded-For` hop → `X-Real-IP` → socket address; documented as spoofable unless the
+  edge proxy overwrites the client-facing hop.
+- **Security headers on the SPA** (`frontend/nginx.conf`, the internet-facing surface):
+  `Content-Security-Policy` (`default-src 'self'`, `script-src 'self'`, `style-src 'self'
+  'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self'`, `frame-ancestors 'none'`, `object-src
+  'none'`, `form-action 'self'`, `base-uri 'self'`), `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`. Repeated in the
+  `/assets/` location (Nginx does not inherit `add_header` into a location with its own).
+- **CSP-clean build.** Vite `build.modulePreload.polyfill` disabled so the SPA ships **no inline
+  bootstrap `<script>`**, letting it run under a strict `script-src 'self'` (verified: built
+  `index.html` has zero inline scripts/styles/handlers; JS/CSS/woff2 all load 200).
+- **Verified in Docker (dev stack):** 20 login attempts pass (401), the 21st+ return 429 with
+  `Retry-After: 60`; a valid admin login returns 200 in a fresh window; all security headers present;
+  self-hosted font + assets load. Full backend suite green (**374 passed / 5 skipped**).
+- No schema/API-contract change. Docs: SECURITY.md §5 updated from intended → implemented.
+
+---
+
 ## [2026-07-09 18:00:00 UTC]
 
 CHG-0127 — Web RBAC enforcement + role-based dashboards + list filters/mobile

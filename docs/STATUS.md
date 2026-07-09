@@ -8,8 +8,14 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-09 (last change **CHG-0127**)
+- **As of:** 2026-07-09 (last change **CHG-0128**)
 - **Build:** green — backend `net8.0` (374 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **hardening — auth rate limiting + SPA security headers (CHG-0128, SECURITY.md §5)** — the
+  anonymous auth endpoints (`/auth/login`, `/register`, `/refresh`) now enforce a per-client fixed-window
+  rate limit (.NET 8 `AddRateLimiter`; 429 `RATE_LIMITED` + `Retry-After`; configurable `RateLimiting:Auth`,
+  default 20/60 s); the SPA's Nginx now sends CSP + `nosniff`/`X-Frame-Options: DENY`/`Referrer-Policy`,
+  and the Vite build ships no inline bootstrap script so it runs under a strict `script-src 'self'`.
+  Verified in Docker (20 pass → 429; valid login 200; headers + assets/font 200).
   Latest: **web RBAC + role-based dashboards + list filters/mobile (CHG-0127)** — the SPA now enforces
   permissions (route guard → 403 page; sidebar/⌘K/buttons hidden by permission; backend
   `RequireAuthorization` remains the hard wall, SECURITY.md §2); a second **role-based operational
