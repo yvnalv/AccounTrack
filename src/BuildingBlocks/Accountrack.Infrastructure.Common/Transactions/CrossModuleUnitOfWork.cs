@@ -69,8 +69,9 @@ internal sealed class CrossModuleUnitOfWork : ICrossModuleUnitOfWork
 
             // Persist the idempotency key in this same transaction (exactly-once). If a concurrent
             // request already claimed it, we lost the race: roll back our effects and return the id
-            // the winner produced, so the replay is a no-op that yields the original result.
-            if (_scope.Key is { } scopedKey && result.Value is Guid producedId)
+            // the winner produced, so the replay is a no-op that yields the original result. The id is
+            // the result itself for Result<Guid>, or its IdempotentId for a richer IIdempotentResult.
+            if (_scope.Key is { } scopedKey && IdempotentResults.IdOf(result.Value) is Guid producedId)
             {
                 var winningId = await _idempotency.WriteInTransactionAsync(
                     connection, transaction, scopedKey, producedId, ct);
@@ -79,7 +80,7 @@ internal sealed class CrossModuleUnitOfWork : ICrossModuleUnitOfWork
                 if (winningId != producedId)
                 {
                     await transaction.RollbackAsync(ct);
-                    return Result.Success((T)(object)winningId);
+                    return (Result<T>)IdempotentResults.RebuildResult(typeof(T), winningId);
                 }
             }
 

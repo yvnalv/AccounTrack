@@ -15,6 +15,15 @@ public class IdempotencyBehaviorTests
 
     private sealed record PlainDoc(string Name) : ICommand<Guid>;
 
+    // A richer result addressed by a single Guid — mirrors StockMovementResult (ReceiveStock).
+    private sealed record Receipt(Guid TransactionId, decimal Cost) : IIdempotentResult<Receipt>
+    {
+        public Guid IdempotentId => TransactionId;
+        public static Receipt FromIdempotentId(Guid id) => new(id, 0m);
+    }
+
+    private sealed record IdempotentRichDoc(string Name) : ICommand<Receipt>, IIdempotentCommand;
+
     private readonly IIdempotencyContext _context = Substitute.For<IIdempotencyContext>();
     private readonly IIdempotencyStore _store = Substitute.For<IIdempotencyStore>();
     private readonly ITenantContext _tenant = Substitute.For<ITenantContext>();
@@ -26,6 +35,9 @@ public class IdempotencyBehaviorTests
     }
 
     private IdempotencyBehavior<TReq, Result<Guid>> Behavior<TReq>() where TReq : notnull =>
+        new(_context, _store, _tenant, _scope);
+
+    private IdempotencyBehavior<TReq, Result<TResp>> Behavior<TReq, TResp>() where TReq : notnull =>
         new(_context, _store, _tenant, _scope);
 
     [Fact]
@@ -114,6 +126,39 @@ public class IdempotencyBehaviorTests
 
         _scope.Received(1).Begin(Arg.Is<string>(k => k.Contains("IdempotentDoc") && k.Contains("key-1")));
         _scope.Received(1).Clear();
+    }
+
+    [Fact]
+    public async Task Rich_idempotent_result_records_its_id_on_first_call()
+    {
+        _context.Key.Returns("key-1");
+        _store.TryGetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((Guid?)null);
+        var txnId = Guid.NewGuid();
+
+        var result = await Behavior<IdempotentRichDoc, Receipt>().Handle(
+            new IdempotentRichDoc("A"), () => Task.FromResult(Result.Success(new Receipt(txnId, 42m))), default);
+
+        result.Value.Cost.Should().Be(42m);
+        await _store.Received(1).SaveAsync(
+            Arg.Is<string>(k => k.Contains("IdempotentRichDoc") && k.Contains("key-1")), txnId, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Rich_idempotent_result_replay_returns_the_stored_id_with_other_fields_defaulted()
+    {
+        var prior = Guid.NewGuid();
+        _context.Key.Returns("key-1");
+        _store.TryGetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(prior);
+        var handlerRan = false;
+
+        var result = await Behavior<IdempotentRichDoc, Receipt>().Handle(
+            new IdempotentRichDoc("A"),
+            () => { handlerRan = true; return Task.FromResult(Result.Success(new Receipt(Guid.NewGuid(), 99m))); },
+            default);
+
+        handlerRan.Should().BeFalse();
+        result.Value.TransactionId.Should().Be(prior); // id survives the replay
+        result.Value.Cost.Should().Be(0m);             // other fields default (Option A)
     }
 
     [Fact]

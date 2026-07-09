@@ -81,7 +81,8 @@ configurable per company with the stated default.
 - **BR-INV-5** Back-dating within the open period triggers a forward recompute of the affected
   cost bucket — for **both** moving-average (replay + delta journal, ADR-0033) and **FIFO**
   (layer reconstruction + delta journal, ADR-0037; see BR-INV-10). Cross-bucket effects (a later
-  transfer or production movement) remain rejected pending the cross-bucket cascade.
+  transfer or production movement) remain rejected pending the cross-bucket cascade (designed in
+  ADR-0038, not yet implemented).
 - **BR-INV-6 (invariant)** A transfer carries source moving-average cost to the destination
   warehouse.
 - **BR-INV-7** Inventory valuation reconciles to the Inventory GL account.
@@ -94,8 +95,9 @@ configurable per company with the stated default.
   first, every layer's remaining quantity is rebuilt (a back-dated receipt opens a new oldest layer),
   each later issue's COGS is restated, and one net adjusting journal corrects the already-posted
   later issues (posted journals stay immutable, BR-INV-9). As with moving average, back-dating before
-  a later **transfer or production** movement (cross-bucket) is still rejected, and a back-date that
-  would drive stock negative (negative disallowed) is rejected.
+  a later **transfer or production** movement (cross-bucket) is still rejected (the cascade is designed
+  in ADR-0038 but not yet implemented), and a back-date that would drive stock negative (negative
+  disallowed) is rejected.
 
 ## Sales
 

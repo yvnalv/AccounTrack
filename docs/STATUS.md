@@ -8,8 +8,17 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-09 (last change **CHG-0122**)
+- **As of:** 2026-07-09 (last change **CHG-0124**)
 - **Build:** green — backend `net8.0` (357 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **cross-bucket back-dating design (CHG-0124, ADR-0038 Proposed)** — documentation only:
+  records the design for the last inventory back-dating debt (back-dating that cascades through a
+  warehouse transfer) — `TransferGroupId` link + coordinated multi-bucket replay + one net journal +
+  cycle rejection. No engine ships; implementation is a dedicated follow-up PR.
+  Latest: **ReceiveStock exactly-once (CHG-0123)** — manual goods-in is now idempotent: the idempotency
+  machinery was generalized beyond `Result<Guid>` (new `IIdempotentResult` marker; `StockMovementResult`
+  implements it) and `ReceiveStock` routed through the cross-module coordinator, so a retried receive
+  with the same `Idempotency-Key` no longer double-posts stock. Replay is id-only (Option A). **This
+  closes the idempotency backlog** — every posting/create flow is now exactly-once.
   Latest: **dashboard chart code-split (CHG-0122)** — ECharts moved into an async `AppChart` chunk, so
   the `DashboardView` route chunk drops 534 KB → ~10 KB and the chart library loads on demand (no visual
   change). Clears the Vite >500 KB warning on the route chunk.
@@ -20,8 +29,8 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
   Latest: **draft creates exactly-once (CHG-0120)** — Create Sales Order / Purchase Order / Expense
   Draft now commit through the cross-module coordinator, so the idempotency key is written atomically
   with the draft; a retried create with the same `Idempotency-Key` returns the original id instead of
-  creating a duplicate (which would burn a sequence number). Remaining idempotency gap: `ReceiveStock`
-  (non-`Guid` result).
+  creating a duplicate (which would burn a sequence number). (The last gap, `ReceiveStock`, was closed
+  in CHG-0123.)
   Latest: **FIFO back-dated in-period recompute (CHG-0119, ADR-0037)** — FIFO products now support
   back-dating within the open period (lifting the ADR-0034 forward-only limit): a new pure `FifoReplay`
   engine replays the bucket consuming oldest layers first, rebuilds every cost layer's remaining
@@ -187,7 +196,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   moving-average recompute (CHG-0104, ADR-0033)** — replay + net Inventory↔COGS/Variance adjusting
   journal, on the cross-module paths. ✅ **per-product FIFO costing (CHG-0109, ADR-0034)**;
   ✅ **FIFO back-dated in-period recompute (CHG-0119, ADR-0037)** — `FifoReplay` + layer reconstruction
-  + delta journal. Remaining: cross-bucket (transfer) back-dating (both methods).
+  + delta journal. Remaining: cross-bucket (transfer) back-dating (both methods) — designed in
+  ADR-0038 (CHG-0124), implementation pending.
   (Transfers are GL-neutral under a single Inventory control account.)
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
   `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
@@ -208,9 +218,10 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   crash-window. ✅ **draft creates exactly-once (CHG-0120)** — Create Sales Order, Create Purchase
   Order, and Create Expense Draft now commit through the cross-module coordinator, so the
   idempotency key is written atomically with the draft (a retried create with the same
-  `Idempotency-Key` never burns a second sequence number). Remaining: `ReceiveStock` (returns a
-  composite `StockMovementResult`, not `Result<Guid>`) needs the behavior generalized beyond
-  `Result<Guid>` before it can be exactly-once.
+  `Idempotency-Key` never burns a second sequence number). ✅ **`ReceiveStock` exactly-once
+  (CHG-0123)** — the behavior/coordinator were generalized beyond `Result<Guid>` (new
+  `IIdempotentResult` marker; `StockMovementResult` implements it) and `ReceiveStock` routed through the
+  coordinator; replay is id-only (Option A). **Idempotency backlog complete.**
 - **Frontend:** Vue 3 SPA — **pause for a UI/UX design discussion before building** (user
   preference: not template/AI-ish).
 - **Surfacing built-but-hidden backend in the UI:** ✅ **in-app notifications bell (CHG-0107)** —
@@ -234,14 +245,13 @@ locale; **✅ refresh-token rotation (silent refresh + retry — CHG-0090)**; **
 
 Backend threads that can be picked up independently if desired (none block the frontend):
 - **Idempotency keys** for the atomic posting flows — ✅ done (CHG-0040, ADR-0021); ✅ **same-transaction
-  key write / exactly-once (CHG-0102)**; ✅ **draft creates exactly-once (CHG-0120)** — SO/PO/expense
-  draft creates routed through the coordinator. Remaining: `ReceiveStock` (non-`Guid` result) needs the
-  behavior generalized first.
+  key write / exactly-once (CHG-0102)**; ✅ **draft creates exactly-once (CHG-0120)**; ✅ **`ReceiveStock`
+  exactly-once (CHG-0123)** — machinery generalized beyond `Result<Guid>`. Idempotency backlog complete.
 - **Reporting:** Cash Flow, AR/AP aging, **VAT (CHG-0043)**, **General Ledger / account detail
   (CHG-0058)**, **inventory valuation (CHG-0062)** done. Reporting suite complete.
 - **Accounting:** ✅ period-close balance snapshots (CHG-0079); year-end close to retained earnings (CHG-0059).
 - **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); ✅ per-company
-  negative-stock policy (CHG-0073); ✅ back-dated in-period recompute (CHG-0104, ADR-0033); ✅ per-product FIFO costing (CHG-0109, ADR-0034); ✅ FIFO back-dated recompute (CHG-0119, ADR-0037); remaining: cross-bucket (transfer) back-dating (both methods).
+  negative-stock policy (CHG-0073); ✅ back-dated in-period recompute (CHG-0104, ADR-0033); ✅ per-product FIFO costing (CHG-0109, ADR-0034); ✅ FIFO back-dated recompute (CHG-0119, ADR-0037); remaining: cross-bucket (transfer) back-dating (both methods) — designed in ADR-0038 (CHG-0124), implementation pending.
 - **Returns:** purchase & sales returns/credit notes.
 - A dev **customer seed** (none seeded today; created via API in e2e).
 
@@ -250,8 +260,9 @@ frontend**, which requires the **UI/UX design discussion** before any build (use
 template/AI-ish). Pause and raise it then.
 
 Other open threads (not blocking): **Inventory** cross-bucket (transfer) back-dating for both costing
-methods (FIFO forward costing ✅ CHG-0109; FIFO back-dating ✅ CHG-0119).
-(Idempotency exactly-once ✅ CHG-0102; inventory back-dating ✅ CHG-0104; returns detail ✅ CHG-0105.)
+methods — **designed in ADR-0038 (CHG-0124)**, implementation pending (FIFO forward costing ✅ CHG-0109;
+FIFO back-dating ✅ CHG-0119).
+(Idempotency exactly-once ✅ CHG-0102 / ReceiveStock ✅ CHG-0123; inventory back-dating ✅ CHG-0104; returns detail ✅ CHG-0105.)
 
 ## How to resume
 

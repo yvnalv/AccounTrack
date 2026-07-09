@@ -1,3 +1,4 @@
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Inventory.Domain;
 using Accountrack.SharedKernel.Results;
 
@@ -52,7 +53,18 @@ public interface IInventoryUnitOfWork
 }
 
 public sealed record StockMovementResult(
-    Guid TransactionId, decimal CostApplied, decimal RunningQtyAfter, decimal RunningAvgCostAfter);
+    Guid TransactionId, decimal CostApplied, decimal RunningQtyAfter, decimal RunningAvgCostAfter)
+    : IIdempotentResult<StockMovementResult>
+{
+    // Serialization-invisible: the identity equals TransactionId, so it must not leak into the API
+    // response (the wire contract is unchanged by the idempotency marker).
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Guid IdempotentId => TransactionId;
+
+    /// <summary>Replay reconstruction (id-only): a retried receipt returns its transaction id; the
+    /// derived cost/running figures are not stored and come back as defaults (ADR-0021).</summary>
+    public static StockMovementResult FromIdempotentId(Guid id) => new(id, 0m, 0m, 0m);
+}
 
 /// <summary>
 /// The stock ledger: applies receipts and issues, maintaining the moving-average bucket and writing

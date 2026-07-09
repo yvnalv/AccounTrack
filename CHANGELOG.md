@@ -1,5 +1,55 @@
 # Accountrack Changelog
 
+## [2026-07-09 12:30:00 UTC]
+
+CHG-0124 — Design: cross-bucket (transfer) back-dated recompute (ADR-0038, Proposed)
+
+- **Documentation only — no code/engine ships.** Records the accepted *design* for the last remaining
+  inventory back-dating debt: back-dating whose later movements include a **transfer**, which today both
+  recompute paths reject (`BackDatingCrossesTransfer`) and `TransferStockHandler` blocks directly.
+- **Why it needs its own ADR:** a transfer is GL-neutral itself (cost travels between warehouses,
+  BR-INV-6) but restating it moves value into another bucket whose later **sales** are GL events, so
+  correctness requires replaying every reached bucket in dependency order — and the transfer legs are
+  **not linked** today (`SourceDocumentId == null`), while cascades can chain (A→B→C) or cycle.
+- **Design (ADR-0038):** add a nullable `TransferGroupId` linking both transfer legs (migration; legacy
+  unlinked transfers stay rejected — no heuristic backfill); a coordinated multi-bucket recompute over
+  the existing pure `MovingAverageReplay`/`FifoReplay` engines (transitive discovery, topological order,
+  cross-bucket cost propagation, one net delta journal, cycle rejection); `TransferStockHandler` onto
+  `ICrossModuleUnitOfWork`. FIFO cross-bucket layer reconstruction is the highest-risk part — rollout may
+  be phased MA-then-FIFO.
+- Added `docs/adr/0038-inventory-crossbucket-backdated-recompute.md` (Status: **Proposed**), a DECISIONS
+  summary entry, and cross-references from BR-INV-5 / BR-INV-10. Implementation is a dedicated follow-up
+  PR after design sign-off.
+
+---
+
+## [2026-07-09 12:00:00 UTC]
+
+CHG-0123 — ReceiveStock exactly-once idempotency (ADR-0021)
+
+- **Closed the last idempotency gap:** manual goods-in (`ReceiveStock` — opening balances / manual
+  receipts) is now exactly-once. A network retry or double-click on the receive screen carrying the
+  same `Idempotency-Key` no longer posts the stock twice (which would corrupt on-hand and the moving
+  average). Previously `ReceiveStock` was the only posting flow left un-addressed because it returns a
+  richer `StockMovementResult`, not `Result<Guid>`.
+- **Generalized the idempotency machinery beyond `Result<Guid>`.** New `IIdempotentResult` /
+  `IIdempotentResult<TSelf>` marker (with a `FromIdempotentId` factory) lets a command result be
+  addressed by a single Guid identity even when the result is a multi-field record. `IdempotencyBehavior`
+  and the cross-module coordinator now store/replay any `Result<T>` whose `T` is addressable, via cached
+  reflection helpers (`IdempotentResults`); the existing `Result<Guid>` fast path is unchanged.
+  `StockMovementResult` implements the marker (`IdempotentId => TransactionId`).
+- **Replay semantics (Option A):** on a replay hit only the id is known, so the reconstructed result
+  carries the original `TransactionId` and defaults the derived cost/running figures. A replay response
+  is only ever observed when the original was lost — the client's job then is to confirm the id, not to
+  re-read the figures. The store schema is unchanged (still id-only).
+- **`ReceiveStockHandler` now commits through `ICrossModuleUnitOfWork`** (like Adjust/Opname), so the
+  key is written in the same transaction as the movement (exactly-once), not on a separate connection.
+  Manual-receipt back-dating remains rejected pending cross-bucket back-dating (see below / ADR-0033).
+- **Tests:** `IdempotencyBehaviorTests` gains rich-result coverage (first-call records the id; replay
+  returns the stored id with other fields defaulted). Suite green.
+
+---
+
 ## [2026-07-09 00:04:33 UTC]
 
 CHG-0122 — Code-split ECharts out of the dashboard chunk (frontend perf)
