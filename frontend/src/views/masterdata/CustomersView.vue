@@ -82,9 +82,9 @@ const { fileInput, open: importOpen, preview: importPreview, busy: importBusy, e
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('masterData.fields.code') },
   { key: 'name', label: t('masterData.fields.name') },
-  { key: 'taxId', label: t('masterData.fields.taxId') },
-  { key: 'paymentTermDays', label: t('masterData.fields.terms'), align: 'right', numeric: true },
-  { key: 'creditLimit', label: t('masterData.fields.creditLimit'), align: 'right', numeric: true },
+  { key: 'taxId', label: t('masterData.fields.taxId'), hideOnMobile: true },
+  { key: 'paymentTermDays', label: t('masterData.fields.terms'), align: 'right', numeric: true, hideOnMobile: true },
+  { key: 'creditLimit', label: t('masterData.fields.creditLimit'), align: 'right', numeric: true, hideOnMobile: true },
   { key: 'receivable', label: t('masterData.customers.receivable'), align: 'right', numeric: true },
   { key: 'isActive', label: t('masterData.status') },
   { key: 'actions', label: t('masterData.actions'), align: 'right' },

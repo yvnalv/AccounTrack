@@ -81,8 +81,8 @@ const priceListOptions = computed(() => [
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('masterData.fields.code') },
   { key: 'name', label: t('masterData.fields.name') },
-  { key: 'taxId', label: t('masterData.fields.taxId') },
-  { key: 'paymentTermDays', label: t('masterData.fields.terms'), align: 'right', numeric: true },
+  { key: 'taxId', label: t('masterData.fields.taxId'), hideOnMobile: true },
+  { key: 'paymentTermDays', label: t('masterData.fields.terms'), align: 'right', numeric: true, hideOnMobile: true },
   { key: 'payable', label: t('masterData.suppliers.payable'), align: 'right', numeric: true },
   { key: 'isActive', label: t('masterData.status') },
   { key: 'actions', label: t('masterData.actions'), align: 'right' },

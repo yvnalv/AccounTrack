@@ -34,6 +34,7 @@ export default {
     back: 'Kembali',
     retry: 'Coba lagi',
     viewAll: 'Lihat semua',
+    allStatuses: 'Semua status',
     comingSoon: 'Segera hadir',
     comingSoonBody: 'Bagian ini ada dalam peta jalan dan belum dibuat.',
     language: 'Bahasa',

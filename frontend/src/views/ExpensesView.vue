@@ -22,23 +22,29 @@ const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
 
-const rows = ref<ExpenseVoucherSummary[]>([])
+const vouchers = ref<ExpenseVoucherSummary[]>([])
 const filteredRows = ref<Record<string, unknown>[]>([])
 const categories = ref<ExpenseCategory[]>([])
 const loading = ref(true)
+const statusFilter = ref('')
+const statuses = ['Draft', 'PendingApproval', 'Posted', 'Rejected', 'Reversed', 'Cancelled']
+
+const rows = computed(() =>
+  vouchers.value.filter((v) => !statusFilter.value || v.status === statusFilter.value),
+)
 
 const insights = computed<Insight[]>(() => {
-  const total = rows.value.reduce((s, v) => s + v.grandTotal, 0)
+  const total = vouchers.value.reduce((s, v) => s + v.grandTotal, 0)
   return [
-    { label: t('common.insights.vouchers'), value: String(rows.value.length) },
+    { label: t('common.insights.vouchers'), value: String(vouchers.value.length) },
     { label: t('common.insights.value'), value: formatMoneyShort(total), tone: 'accent' },
   ]
 })
 
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('expenses.columns.number') },
-  { key: 'expenseDate', label: t('expenses.columns.date') },
-  { key: 'payeeName', label: t('expenses.columns.payee') },
+  { key: 'expenseDate', label: t('expenses.columns.date'), hideOnMobile: true },
+  { key: 'payeeName', label: t('expenses.columns.payee'), hideOnMobile: true },
   { key: 'grandTotal', label: t('expenses.columns.total'), align: 'right', numeric: true },
   { key: 'status', label: t('expenses.columns.status'), align: 'right' },
 ])
@@ -47,7 +53,7 @@ async function load() {
   loading.value = true
   try {
     const [vs, cats] = await Promise.all([expensesApi.vouchers(), expensesApi.categories()])
-    rows.value = vs
+    vouchers.value = vs
     categories.value = cats
   } finally {
     loading.value = false
@@ -130,6 +136,12 @@ async function toggleCat(c: ExpenseCategory) {
       clickable
       @row-click="openVoucher"
     >
+      <template #filters>
+        <select v-model="statusFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('common.allStatuses') }}</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ t(`expenses.status.${s}`) }}</option>
+        </select>
+      </template>
       <template #cell-payeeName="{ value }">{{ value || '—' }}</template>
       <template #cell-grandTotal="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-status="{ value, row }">

@@ -23,8 +23,8 @@ function open(row: Record<string, unknown>) {
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('invoiceList.columns.number') },
   { key: 'supplierName', label: t('invoiceList.columns.supplier') },
-  { key: 'invoiceDate', label: t('invoiceList.columns.date') },
-  { key: 'dueDate', label: t('invoiceList.columns.due') },
+  { key: 'invoiceDate', label: t('invoiceList.columns.date'), hideOnMobile: true },
+  { key: 'dueDate', label: t('invoiceList.columns.due'), hideOnMobile: true },
   { key: 'grandTotal', label: t('invoiceList.columns.total'), align: 'right', numeric: true },
   { key: 'journalEntryId', label: t('invoiceList.columns.status'), align: 'right' },
 ])

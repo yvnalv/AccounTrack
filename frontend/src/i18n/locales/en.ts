@@ -33,6 +33,7 @@ export default {
     back: 'Back',
     retry: 'Retry',
     viewAll: 'View all',
+    allStatuses: 'All statuses',
     comingSoon: 'Coming soon',
     comingSoonBody: 'This area is part of the roadmap and not built yet.',
     language: 'Language',

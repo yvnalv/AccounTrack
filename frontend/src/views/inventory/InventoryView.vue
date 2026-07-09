@@ -32,9 +32,9 @@ const filteredRows = ref<Record<string, unknown>[]>([])
 
 const columns = computed<Column[]>(() => [
   { key: 'product', label: t('inventory.columns.product') },
-  { key: 'warehouse', label: t('inventory.columns.warehouse') },
+  { key: 'warehouse', label: t('inventory.columns.warehouse'), hideOnMobile: true },
   { key: 'onHandQty', label: t('inventory.columns.onHand'), align: 'right', numeric: true },
-  { key: 'avgUnitCost', label: t('inventory.columns.avgCost'), align: 'right', numeric: true },
+  { key: 'avgUnitCost', label: t('inventory.columns.avgCost'), align: 'right', numeric: true, hideOnMobile: true },
   { key: 'value', label: t('inventory.columns.value'), align: 'right', numeric: true },
   { key: 'actions', label: t('inventory.columns.actions'), align: 'right' },
 ])
