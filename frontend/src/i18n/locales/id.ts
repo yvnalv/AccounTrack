@@ -20,6 +20,12 @@ export default {
     collapse: 'Ciutkan bilah sisi',
     expand: 'Perluas bilah sisi',
     menu: 'Buka menu',
+    forbidden: 'Tanpa akses',
+  },
+  forbidden: {
+    title: 'Anda tidak memiliki akses',
+    body: 'Peran Anda tidak mengizinkan halaman ini. Jika ini keliru, minta administrator memberi izin yang diperlukan.',
+    back: 'Kembali ke dasbor',
   },
   common: {
     search: 'Cari…',
@@ -995,6 +1001,9 @@ export default {
   dashboard: {
     greeting: 'Halo, {name}!',
     subtitle: 'Ringkasan bisnis Anda.',
+    welcome: 'Selamat datang, {name}',
+    welcomeBody: 'Langsung mulai bekerja. Berikut area yang dapat Anda akses.',
+    loadError: 'Tidak dapat memuat dasbor.',
     cashAndBank: 'Kas & bank',
     accountsReceivable: 'Piutang usaha',
     accountsPayable: 'Utang usaha',

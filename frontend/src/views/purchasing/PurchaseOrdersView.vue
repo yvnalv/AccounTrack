@@ -14,9 +14,11 @@ import ExportMenu from '@/components/ui/ExportMenu.vue'
 import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import type { Column } from '@/components/ui/types'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 const router = useRouter()
+const auth = useAuthStore()
 
 const orders = ref<PurchaseOrderSummary[]>([])
 const suppliers = ref(new Map<string, string>())
@@ -80,7 +82,7 @@ function open(row: Record<string, unknown>) {
       <AppButton variant="secondary" @click="router.push({ name: 'purchasingPaySupplier' })">
         <Wallet :size="16" /> {{ t('purchasing.paySupplier') }}
       </AppButton>
-      <AppButton @click="router.push({ name: 'purchaseOrderCreate' })">
+      <AppButton v-if="auth.has('Purchasing.Create')" @click="router.push({ name: 'purchaseOrderCreate' })">
         <Plus :size="16" /> {{ t('purchasing.new') }}
       </AppButton>
     </div>

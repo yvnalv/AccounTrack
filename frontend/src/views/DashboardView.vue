@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { RouterLink } from 'vue-router'
 import type { EChartsOption } from 'echarts'
+import { ShoppingCart, Truck, Boxes, Receipt, Package, CheckSquare, ArrowRight } from 'lucide-vue-next'
 import { http, unwrap } from '@/lib/api'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { DashboardAging, DashboardSummary } from '@/types/api'
 import { useThemeStore } from '@/stores/theme'
+import { useAuthStore } from '@/stores/auth'
 import AppCard from '@/components/ui/AppCard.vue'
 import StatTile from '@/components/ui/StatTile.vue'
 
@@ -15,18 +19,41 @@ const AppChart = defineAsyncComponent(() => import('@/components/ui/AppChart.vue
 
 const { t } = useI18n()
 const theme = useThemeStore()
+const auth = useAuthStore()
 
 const summary = ref<DashboardSummary | null>(null)
 const loading = ref(true)
 const error = ref('')
 
+// The finance summary requires Accounting.View. Roles without it (Sales, Purchasing, Warehouse) get a
+// role-aware landing instead of a hard error; richer per-role KPIs are a follow-up (PR2).
+const canViewFinance = computed(() => auth.has('Accounting.View'))
+
+interface QuickLink { to: { name: string }; label: string; icon: Component; permission?: string }
+const quickLinks = computed<QuickLink[]>(() =>
+  (
+    [
+      { to: { name: 'sales' }, label: t('nav.sales'), icon: ShoppingCart, permission: 'Sales.View' },
+      { to: { name: 'purchasing' }, label: t('nav.purchasing'), icon: Truck, permission: 'Purchasing.View' },
+      { to: { name: 'inventory' }, label: t('nav.inventory'), icon: Boxes, permission: 'Inventory.View' },
+      { to: { name: 'expenses' }, label: t('nav.expenses'), icon: Receipt, permission: 'Expenses.View' },
+      { to: { name: 'masterDataProducts' }, label: t('nav.masterData'), icon: Package, permission: 'MasterData.View' },
+      { to: { name: 'approvals' }, label: t('nav.approvals'), icon: CheckSquare },
+    ] as QuickLink[]
+  ).filter((l) => !l.permission || auth.has(l.permission)),
+)
+
 async function load() {
+  if (!canViewFinance.value) {
+    loading.value = false
+    return
+  }
   loading.value = true
   error.value = ''
   try {
     summary.value = await unwrap<DashboardSummary>(http.get('/dashboard/summary'))
   } catch {
-    error.value = 'Could not load the dashboard.'
+    error.value = t('dashboard.loadError')
   } finally {
     loading.value = false
   }
@@ -179,6 +206,28 @@ function barWidth(amount: number, list: { amount: number }[]): string {
 <template>
   <div class="space-y-6">
     <p v-if="loading" class="text-sm text-text-muted">{{ t('common.loading') }}</p>
+
+    <!-- Role-aware landing for users without finance access (no hard error). -->
+    <div v-else-if="!canViewFinance" class="space-y-5">
+      <AppCard>
+        <h2 class="text-base font-semibold text-text">{{ t('dashboard.welcome', { name: auth.user?.fullName ?? '' }) }}</h2>
+        <p class="mt-1 text-sm text-text-muted">{{ t('dashboard.welcomeBody') }}</p>
+      </AppCard>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <RouterLink
+          v-for="link in quickLinks"
+          :key="link.label"
+          :to="link.to"
+          class="group flex items-center gap-3 rounded-card border border-border bg-surface p-4 transition-colors hover:border-accent"
+        >
+          <div class="grid h-10 w-10 shrink-0 place-items-center rounded-control bg-accent-soft text-accent">
+            <component :is="link.icon" :size="20" />
+          </div>
+          <span class="flex-1 text-sm font-medium text-text">{{ link.label }}</span>
+          <ArrowRight :size="16" class="text-text-muted transition-transform group-hover:translate-x-0.5" />
+        </RouterLink>
+      </div>
+    </div>
 
     <div v-else-if="error" class="text-sm text-negative">
       {{ error }}

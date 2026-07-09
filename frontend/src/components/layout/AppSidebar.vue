@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { watch } from 'vue'
-import { RouterLink, useRoute, type RouteLocationRaw } from 'vue-router'
+import { computed, watch } from 'vue'
+import { RouterLink, useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useCommandPalette } from '@/composables/useCommandPalette'
 import { useLayoutStore } from '@/stores/layout'
+import { useAuthStore } from '@/stores/auth'
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -28,6 +29,8 @@ const { t } = useI18n()
 const palette = useCommandPalette()
 const layout = useLayoutStore()
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 
 // Close the mobile drawer whenever the route changes.
 watch(() => route.fullPath, () => layout.closeMobile())
@@ -39,7 +42,7 @@ interface NavItem {
   exact?: boolean
 }
 
-const groups: { label: string; items: NavItem[] }[] = [
+const allGroups: { label: string; items: NavItem[] }[] = [
   {
     label: t('nav.sections.main'),
     items: [{ to: { name: 'dashboard' }, icon: LayoutDashboard, label: t('nav.dashboard'), exact: true }],
@@ -72,6 +75,19 @@ const groups: { label: string; items: NavItem[] }[] = [
     ],
   },
 ]
+
+// A nav item is shown only when the user satisfies its target route's required permission — the same
+// permission the router guard enforces (single source of truth). Groups with no visible item are hidden.
+function canSee(item: NavItem): boolean {
+  const required = router.resolve(item.to).meta.permission
+  return !required || auth.has(required)
+}
+
+const groups = computed(() =>
+  allGroups
+    .map((g) => ({ label: g.label, items: g.items.filter(canSee) }))
+    .filter((g) => g.items.length > 0),
+)
 </script>
 
 <template>

@@ -14,9 +14,11 @@ import ExportMenu from '@/components/ui/ExportMenu.vue'
 import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import type { Column } from '@/components/ui/types'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 const router = useRouter()
+const auth = useAuthStore()
 
 const orders = ref<SalesOrderSummary[]>([])
 const customers = ref(new Map<string, string>())
@@ -83,7 +85,7 @@ function openOrder(row: Record<string, unknown>) {
       <AppButton variant="secondary" @click="router.push({ name: 'salesReceivePayment' })">
         <Wallet :size="16" /> {{ t('sales.receivePayment') }}
       </AppButton>
-      <AppButton @click="router.push({ name: 'salesOrderCreate' })">
+      <AppButton v-if="auth.has('Sales.Create')" @click="router.push({ name: 'salesOrderCreate' })">
         <Plus :size="16" /> {{ t('sales.new') }}
       </AppButton>
     </div>

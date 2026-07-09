@@ -19,6 +19,12 @@ export default {
     collapse: 'Collapse sidebar',
     expand: 'Expand sidebar',
     menu: 'Open menu',
+    forbidden: 'No access',
+  },
+  forbidden: {
+    title: 'You don’t have access',
+    body: 'Your role doesn’t permit this page. If you think this is a mistake, ask an administrator to grant the required permission.',
+    back: 'Back to dashboard',
   },
   common: {
     search: 'Search…',
@@ -994,6 +1000,9 @@ export default {
   dashboard: {
     greeting: 'Hello, {name}!',
     subtitle: "Here's your business at a glance.",
+    welcome: 'Welcome, {name}',
+    welcomeBody: 'Jump into your work. Here are the areas you have access to.',
+    loadError: 'Could not load the dashboard.',
     cashAndBank: 'Cash & bank',
     accountsReceivable: 'Accounts receivable',
     accountsPayable: 'Accounts payable',
