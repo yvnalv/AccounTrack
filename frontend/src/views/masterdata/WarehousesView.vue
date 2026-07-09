@@ -72,8 +72,8 @@ const form = reactive({ code: '', name: '', address: '' })
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('masterData.fields.code') },
   { key: 'name', label: t('masterData.fields.name') },
-  { key: 'address', label: t('masterData.fields.address') },
-  { key: 'skus', label: t('masterData.warehouses.skus'), align: 'right', numeric: true },
+  { key: 'address', label: t('masterData.fields.address'), hideOnMobile: true },
+  { key: 'skus', label: t('masterData.warehouses.skus'), align: 'right', numeric: true, hideOnMobile: true },
   { key: 'stockValue', label: t('masterData.warehouses.stockValue'), align: 'right', numeric: true },
   { key: 'isActive', label: t('masterData.status') },
   { key: 'actions', label: t('masterData.actions'), align: 'right' },

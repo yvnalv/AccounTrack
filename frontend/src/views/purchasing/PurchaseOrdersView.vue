@@ -24,17 +24,22 @@ const orders = ref<PurchaseOrderSummary[]>([])
 const suppliers = ref(new Map<string, string>())
 const loading = ref(true)
 const filteredRows = ref<Record<string, unknown>[]>([])
+const statusFilter = ref('')
 
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('purchasing.columns.number') },
   { key: 'supplier', label: t('purchasing.columns.supplier') },
-  { key: 'orderDate', label: t('purchasing.columns.date') },
+  { key: 'orderDate', label: t('purchasing.columns.date'), hideOnMobile: true },
   { key: 'status', label: t('purchasing.columns.status') },
   { key: 'grandTotal', label: t('purchasing.columns.total'), align: 'right', numeric: true },
 ])
 
+const statuses = ['Draft', 'PendingApproval', 'Approved', 'PartiallyReceived', 'Received', 'Cancelled', 'Rejected']
+
 const rows = computed(() =>
-  orders.value.map((o) => ({ ...o, supplier: suppliers.value.get(o.supplierId) ?? '—' })),
+  orders.value
+    .filter((o) => !statusFilter.value || o.status === statusFilter.value)
+    .map((o) => ({ ...o, supplier: suppliers.value.get(o.supplierId) ?? '—' })),
 )
 
 const insights = computed<Insight[]>(() => {
@@ -68,15 +73,15 @@ function open(row: Record<string, unknown>) {
 <template>
   <div class="space-y-4">
     <InsightCards :items="insights" />
-    <div class="flex justify-end gap-2">
+    <div class="flex flex-wrap justify-end gap-2">
       <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'purchase-orders', f)" />
-      <AppButton variant="ghost" @click="router.push({ name: 'purchaseInvoices' })">
+      <AppButton class="hidden md:inline-flex" variant="ghost" @click="router.push({ name: 'purchaseInvoices' })">
         <FileText :size="16" /> {{ t('invoiceList.purchaseTitle') }}
       </AppButton>
-      <AppButton variant="ghost" @click="router.push({ name: 'supplierPayments' })">
+      <AppButton class="hidden md:inline-flex" variant="ghost" @click="router.push({ name: 'supplierPayments' })">
         <Banknote :size="16" /> {{ t('paymentList.purchaseTitle') }}
       </AppButton>
-      <AppButton variant="ghost" @click="router.push({ name: 'purchaseReturns' })">
+      <AppButton class="hidden md:inline-flex" variant="ghost" @click="router.push({ name: 'purchaseReturns' })">
         <Undo2 :size="16" /> {{ t('returns.purchaseTitle') }}
       </AppButton>
       <AppButton variant="secondary" @click="router.push({ name: 'purchasingPaySupplier' })">
@@ -97,6 +102,12 @@ function open(row: Record<string, unknown>) {
       clickable
       @row-click="open"
     >
+      <template #filters>
+        <select v-model="statusFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('common.allStatuses') }}</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ t(`purchasing.status.${s}`) }}</option>
+        </select>
+      </template>
       <template #cell-status="{ value }">
         <StatusBadge :status="String(value)" :label="t(`purchasing.status.${value}`)" />
       </template>

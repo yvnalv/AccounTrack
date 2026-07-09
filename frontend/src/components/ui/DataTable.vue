@@ -75,8 +75,8 @@ function go(delta: number) {
 
 <template>
   <div class="overflow-hidden rounded-card border border-border bg-surface shadow-card">
-    <div v-if="searchable" class="border-b border-border p-2.5">
-      <div class="relative max-w-xs">
+    <div v-if="searchable || $slots.filters" class="flex flex-col gap-2.5 border-b border-border p-2.5 sm:flex-row sm:items-center">
+      <div v-if="searchable" class="relative w-full sm:max-w-xs">
         <Search :size="15" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
         <input
           v-model="query"
@@ -84,6 +84,10 @@ function go(delta: number) {
           :placeholder="searchPlaceholder ?? t('common.search')"
           class="field-input h-9 w-full pl-9 text-sm"
         />
+      </div>
+      <!-- Optional per-list filter controls (status, date range, party …). -->
+      <div v-if="$slots.filters" class="flex flex-wrap items-center gap-2 sm:ml-auto">
+        <slot name="filters" />
       </div>
     </div>
 
@@ -95,7 +99,7 @@ function go(delta: number) {
               v-for="col in props.columns"
               :key="col.key"
               class="bg-surface-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide"
-              :class="col.align === 'right' ? 'text-right' : 'text-left'"
+              :class="[col.align === 'right' ? 'text-right' : 'text-left', col.hideOnMobile ? 'hidden sm:table-cell' : '']"
             >
               {{ col.label }}
             </th>
@@ -124,7 +128,7 @@ function go(delta: number) {
               v-for="col in props.columns"
               :key="col.key"
               class="px-4 py-3 text-text"
-              :class="[col.align === 'right' ? 'text-right' : 'text-left', col.numeric ? 'tnum' : '']"
+              :class="[col.align === 'right' ? 'text-right' : 'text-left', col.numeric ? 'tnum' : '', col.hideOnMobile ? 'hidden sm:table-cell' : '']"
             >
               <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
                 {{ row[col.key] }}

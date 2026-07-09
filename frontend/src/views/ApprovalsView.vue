@@ -23,7 +23,7 @@ const error = ref('')
 const columns = computed<Column[]>(() => [
   { key: 'document', label: t('approvals.columns.document') },
   { key: 'reference', label: t('approvals.columns.reference') },
-  { key: 'level', label: t('approvals.columns.level') },
+  { key: 'level', label: t('approvals.columns.level'), hideOnMobile: true },
   { key: 'actions', label: '', align: 'right' },
 ])
 

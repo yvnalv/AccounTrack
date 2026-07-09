@@ -31,8 +31,8 @@ const typeOptions = computed(() => types.map((ty) => ({ value: ty, label: t(`acc
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('accounting.coa.code') },
   { key: 'name', label: t('accounting.coa.name') },
-  { key: 'type', label: t('accounting.coa.type') },
-  { key: 'allowPosting', label: t('accounting.coa.posting') },
+  { key: 'type', label: t('accounting.coa.type'), hideOnMobile: true },
+  { key: 'allowPosting', label: t('accounting.coa.posting'), hideOnMobile: true },
   { key: 'isActive', label: t('accounting.coa.status') },
   { key: 'actions', label: '', align: 'right' },
 ])

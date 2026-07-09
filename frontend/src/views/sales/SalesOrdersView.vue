@@ -24,17 +24,22 @@ const orders = ref<SalesOrderSummary[]>([])
 const customers = ref(new Map<string, string>())
 const loading = ref(true)
 const filteredRows = ref<Record<string, unknown>[]>([])
+const statusFilter = ref('')
 
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('sales.columns.number') },
   { key: 'customer', label: t('sales.columns.customer') },
-  { key: 'orderDate', label: t('sales.columns.date') },
+  { key: 'orderDate', label: t('sales.columns.date'), hideOnMobile: true },
   { key: 'status', label: t('sales.columns.status') },
   { key: 'grandTotal', label: t('sales.columns.total'), align: 'right', numeric: true },
 ])
 
+const statuses = ['Draft', 'PendingApproval', 'Approved', 'PartiallyDelivered', 'Delivered', 'Cancelled', 'Rejected']
+
 const rows = computed(() =>
-  orders.value.map((o) => ({ ...o, customer: customers.value.get(o.customerId) ?? '—' })),
+  orders.value
+    .filter((o) => !statusFilter.value || o.status === statusFilter.value)
+    .map((o) => ({ ...o, customer: customers.value.get(o.customerId) ?? '—' })),
 )
 
 const insights = computed<Insight[]>(() => {
@@ -68,18 +73,18 @@ function openOrder(row: Record<string, unknown>) {
 <template>
   <div class="space-y-4">
     <InsightCards :items="insights" />
-    <div class="flex justify-end gap-2">
+    <div class="flex flex-wrap justify-end gap-2">
       <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'sales-orders', f)" />
-      <AppButton variant="ghost" @click="router.push({ name: 'salesInvoices' })">
+      <AppButton class="hidden md:inline-flex" variant="ghost" @click="router.push({ name: 'salesInvoices' })">
         <FileText :size="16" /> {{ t('invoiceList.salesTitle') }}
       </AppButton>
-      <AppButton variant="ghost" @click="router.push({ name: 'salesDeliveries' })">
+      <AppButton class="hidden md:inline-flex" variant="ghost" @click="router.push({ name: 'salesDeliveries' })">
         <Truck :size="16" /> {{ t('deliveries.title') }}
       </AppButton>
-      <AppButton variant="ghost" @click="router.push({ name: 'customerPayments' })">
+      <AppButton class="hidden md:inline-flex" variant="ghost" @click="router.push({ name: 'customerPayments' })">
         <Banknote :size="16" /> {{ t('paymentList.salesTitle') }}
       </AppButton>
-      <AppButton variant="ghost" @click="router.push({ name: 'salesReturns' })">
+      <AppButton class="hidden md:inline-flex" variant="ghost" @click="router.push({ name: 'salesReturns' })">
         <Undo2 :size="16" /> {{ t('returns.salesTitle') }}
       </AppButton>
       <AppButton variant="secondary" @click="router.push({ name: 'salesReceivePayment' })">
@@ -100,6 +105,12 @@ function openOrder(row: Record<string, unknown>) {
       clickable
       @row-click="openOrder"
     >
+      <template #filters>
+        <select v-model="statusFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('common.allStatuses') }}</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ t(`sales.status.${s}`) }}</option>
+        </select>
+      </template>
       <template #cell-status="{ value }">
         <StatusBadge :status="String(value)" :label="t(`sales.status.${value}`)" />
       </template>

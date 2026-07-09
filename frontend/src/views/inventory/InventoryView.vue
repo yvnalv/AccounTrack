@@ -29,22 +29,26 @@ const products = ref(new Map<string, string>())
 const warehouses = ref(new Map<string, string>())
 const loading = ref(true)
 const filteredRows = ref<Record<string, unknown>[]>([])
+const warehouseFilter = ref('')
+const warehouseOptions = computed(() => [...warehouses.value.entries()].map(([id, name]) => ({ id, name })))
 
 const columns = computed<Column[]>(() => [
   { key: 'product', label: t('inventory.columns.product') },
-  { key: 'warehouse', label: t('inventory.columns.warehouse') },
+  { key: 'warehouse', label: t('inventory.columns.warehouse'), hideOnMobile: true },
   { key: 'onHandQty', label: t('inventory.columns.onHand'), align: 'right', numeric: true },
-  { key: 'avgUnitCost', label: t('inventory.columns.avgCost'), align: 'right', numeric: true },
+  { key: 'avgUnitCost', label: t('inventory.columns.avgCost'), align: 'right', numeric: true, hideOnMobile: true },
   { key: 'value', label: t('inventory.columns.value'), align: 'right', numeric: true },
   { key: 'actions', label: t('inventory.columns.actions'), align: 'right' },
 ])
 
 const rows = computed(() =>
-  stock.value.map((s) => ({
-    ...s,
-    product: products.value.get(s.productId) ?? '—',
-    warehouse: warehouses.value.get(s.warehouseId) ?? '—',
-  })),
+  stock.value
+    .filter((s) => !warehouseFilter.value || s.warehouseId === warehouseFilter.value)
+    .map((s) => ({
+      ...s,
+      product: products.value.get(s.productId) ?? '—',
+      warehouse: warehouses.value.get(s.warehouseId) ?? '—',
+    })),
 )
 
 const insights = computed<Insight[]>(() => {
@@ -168,6 +172,12 @@ async function submit() {
       clickable
       @row-click="openCard"
     >
+      <template #filters>
+        <select v-model="warehouseFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('inventory.allWarehouses') }}</option>
+          <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
+        </select>
+      </template>
       <template #cell-onHandQty="{ value }">{{ formatNumber(Number(value), 2) }}</template>
       <template #cell-avgUnitCost="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-value="{ value }">{{ formatMoney(Number(value)) }}</template>

@@ -34,6 +34,7 @@ export default {
     back: 'Kembali',
     retry: 'Coba lagi',
     viewAll: 'Lihat semua',
+    allStatuses: 'Semua status',
     comingSoon: 'Segera hadir',
     comingSoonBody: 'Bagian ini ada dalam peta jalan dan belum dibuat.',
     language: 'Bahasa',
@@ -401,6 +402,7 @@ export default {
   inventory: {
     title: 'Stok tersedia',
     columns: { product: 'Produk', warehouse: 'Gudang', onHand: 'Tersedia', avgCost: 'Biaya rata-rata', value: 'Nilai', actions: '' },
+    allWarehouses: 'Semua gudang',
     empty: 'Belum ada stok.',
     valuation: {
       title: 'Penilaian persediaan',
