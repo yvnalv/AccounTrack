@@ -10,6 +10,9 @@ import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { DashboardAging, DashboardSummary } from '@/types/api'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
+import { salesApi } from '@/lib/sales'
+import { purchasingApi } from '@/lib/purchasing'
+import { inventoryApi } from '@/lib/inventory'
 import AppCard from '@/components/ui/AppCard.vue'
 import StatTile from '@/components/ui/StatTile.vue'
 
@@ -25,9 +28,20 @@ const summary = ref<DashboardSummary | null>(null)
 const loading = ref(true)
 const error = ref('')
 
-// The finance summary requires Accounting.View. Roles without it (Sales, Purchasing, Warehouse) get a
-// role-aware landing instead of a hard error; richer per-role KPIs are a follow-up (PR2).
+// Two dashboards: users with Accounting.View (Administrator, Accountant) get the deep financial view;
+// everyone else gets a general, role-based operational view composed of the sections their permissions
+// allow (Sales / Purchasing / Inventory). A user with none of those falls back to quick links.
 const canViewFinance = computed(() => auth.has('Accounting.View'))
+const canSeeSales = computed(() => auth.has('Sales.View'))
+const canSeePurchasing = computed(() => auth.has('Purchasing.View'))
+const canSeeInventory = computed(() => auth.has('Inventory.View'))
+const hasOperational = computed(() => canSeeSales.value || canSeePurchasing.value || canSeeInventory.value)
+
+interface Kpi { label: string; value: string; hint?: string; tone?: 'positive' | 'negative' }
+const salesKpis = ref<Kpi[] | null>(null)
+const purchasingKpis = ref<Kpi[] | null>(null)
+const inventoryKpis = ref<Kpi[] | null>(null)
+const opsCurrency = ref('IDR')
 
 interface QuickLink { to: { name: string }; label: string; icon: Component; permission?: string }
 const quickLinks = computed<QuickLink[]>(() =>
@@ -43,15 +57,79 @@ const quickLinks = computed<QuickLink[]>(() =>
   ).filter((l) => !l.permission || auth.has(l.permission)),
 )
 
-async function load() {
-  if (!canViewFinance.value) {
-    loading.value = false
-    return
+function inThisMonth(dateIso: string): boolean {
+  const d = new Date(dateIso)
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+}
+
+async function loadSalesSection() {
+  try {
+    const orders = await salesApi.list()
+    const open = new Set(['Draft', 'PendingApproval', 'Approved', 'PartiallyDelivered'])
+    const toDeliver = new Set(['Approved', 'PartiallyDelivered'])
+    const monthly = orders.filter((o) => inThisMonth(o.orderDate))
+    salesKpis.value = [
+      { label: t('dashboard.ops.openOrders'), value: String(orders.filter((o) => open.has(o.status)).length) },
+      { label: t('dashboard.ops.ordersThisMonth'), value: String(monthly.length) },
+      { label: t('dashboard.ops.salesThisMonth'), value: formatMoneyShort(monthly.reduce((s, o) => s + o.grandTotal, 0), opsCurrency.value) },
+      { label: t('dashboard.ops.toDeliver'), value: String(orders.filter((o) => toDeliver.has(o.status)).length), tone: 'negative' },
+    ]
+  } catch {
+    salesKpis.value = []
   }
+}
+
+async function loadPurchasingSection() {
+  try {
+    const orders = await purchasingApi.list()
+    const open = new Set(['Draft', 'PendingApproval', 'Approved', 'PartiallyReceived'])
+    const toReceive = new Set(['Approved', 'PartiallyReceived'])
+    const monthly = orders.filter((o) => inThisMonth(o.orderDate))
+    purchasingKpis.value = [
+      { label: t('dashboard.ops.openPos'), value: String(orders.filter((o) => open.has(o.status)).length) },
+      { label: t('dashboard.ops.posThisMonth'), value: String(monthly.length) },
+      { label: t('dashboard.ops.purchasesThisMonth'), value: formatMoneyShort(monthly.reduce((s, o) => s + o.grandTotal, 0), opsCurrency.value) },
+      { label: t('dashboard.ops.toReceive'), value: String(orders.filter((o) => toReceive.has(o.status)).length), tone: 'negative' },
+    ]
+  } catch {
+    purchasingKpis.value = []
+  }
+}
+
+async function loadInventorySection() {
+  try {
+    const [valuation, onHand] = await Promise.all([inventoryApi.valuation(), inventoryApi.onHand()])
+    opsCurrency.value = valuation.currency || opsCurrency.value
+    const outOfStock = onHand.filter((r) => r.onHandQty <= 0).length
+    inventoryKpis.value = [
+      { label: t('dashboard.ops.stockValue'), value: formatMoneyShort(valuation.totalValue, valuation.currency) },
+      { label: t('dashboard.ops.skus'), value: String(valuation.rows.length) },
+      { label: t('dashboard.ops.outOfStock'), value: String(outOfStock), tone: outOfStock > 0 ? 'negative' : undefined },
+    ]
+  } catch {
+    inventoryKpis.value = []
+  }
+}
+
+async function loadOperational() {
+  const tasks: Promise<void>[] = []
+  // Inventory first so its currency is available to the money tiles of the other sections.
+  if (canSeeInventory.value) tasks.push(loadInventorySection())
+  if (canSeeSales.value) tasks.push(loadSalesSection())
+  if (canSeePurchasing.value) tasks.push(loadPurchasingSection())
+  await Promise.allSettled(tasks)
+}
+
+async function load() {
   loading.value = true
   error.value = ''
   try {
-    summary.value = await unwrap<DashboardSummary>(http.get('/dashboard/summary'))
+    if (canViewFinance.value) {
+      summary.value = await unwrap<DashboardSummary>(http.get('/dashboard/summary'))
+    } else if (hasOperational.value) {
+      await loadOperational()
+    }
   } catch {
     error.value = t('dashboard.loadError')
   } finally {
@@ -207,13 +285,51 @@ function barWidth(amount: number, list: { amount: number }[]): string {
   <div class="space-y-6">
     <p v-if="loading" class="text-sm text-text-muted">{{ t('common.loading') }}</p>
 
-    <!-- Role-aware landing for users without finance access (no hard error). -->
-    <div v-else-if="!canViewFinance" class="space-y-5">
-      <AppCard>
+    <!-- General, role-based operational dashboard for users without finance access (no hard error). -->
+    <div v-else-if="!canViewFinance" class="space-y-6">
+      <div>
         <h2 class="text-base font-semibold text-text">{{ t('dashboard.welcome', { name: auth.user?.fullName ?? '' }) }}</h2>
         <p class="mt-1 text-sm text-text-muted">{{ t('dashboard.welcomeBody') }}</p>
-      </AppCard>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      </div>
+
+      <!-- Sales -->
+      <section v-if="canSeeSales && salesKpis && salesKpis.length" class="space-y-3">
+        <div class="flex items-center gap-2">
+          <ShoppingCart :size="16" class="text-accent" />
+          <h3 class="text-sm font-semibold text-text">{{ t('nav.sales') }}</h3>
+          <RouterLink :to="{ name: 'sales' }" class="ml-auto text-xs font-medium text-accent hover:underline">{{ t('common.viewAll') }}</RouterLink>
+        </div>
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatTile v-for="k in salesKpis" :key="k.label" :label="k.label" :value="k.value" :hint="k.hint" :hint-tone="k.tone" />
+        </div>
+      </section>
+
+      <!-- Purchasing -->
+      <section v-if="canSeePurchasing && purchasingKpis && purchasingKpis.length" class="space-y-3">
+        <div class="flex items-center gap-2">
+          <Truck :size="16" class="text-accent" />
+          <h3 class="text-sm font-semibold text-text">{{ t('nav.purchasing') }}</h3>
+          <RouterLink :to="{ name: 'purchasing' }" class="ml-auto text-xs font-medium text-accent hover:underline">{{ t('common.viewAll') }}</RouterLink>
+        </div>
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatTile v-for="k in purchasingKpis" :key="k.label" :label="k.label" :value="k.value" :hint="k.hint" :hint-tone="k.tone" />
+        </div>
+      </section>
+
+      <!-- Inventory -->
+      <section v-if="canSeeInventory && inventoryKpis && inventoryKpis.length" class="space-y-3">
+        <div class="flex items-center gap-2">
+          <Boxes :size="16" class="text-accent" />
+          <h3 class="text-sm font-semibold text-text">{{ t('nav.inventory') }}</h3>
+          <RouterLink :to="{ name: 'inventory' }" class="ml-auto text-xs font-medium text-accent hover:underline">{{ t('common.viewAll') }}</RouterLink>
+        </div>
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <StatTile v-for="k in inventoryKpis" :key="k.label" :label="k.label" :value="k.value" :hint="k.hint" :hint-tone="k.tone" />
+        </div>
+      </section>
+
+      <!-- Quick links: primary navigation when the user has no operational section. -->
+      <div v-if="!hasOperational" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <RouterLink
           v-for="link in quickLinks"
           :key="link.label"
