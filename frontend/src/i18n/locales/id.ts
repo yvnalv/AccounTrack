@@ -402,6 +402,7 @@ export default {
   inventory: {
     title: 'Stok tersedia',
     columns: { product: 'Produk', warehouse: 'Gudang', onHand: 'Tersedia', avgCost: 'Biaya rata-rata', value: 'Nilai', actions: '' },
+    allWarehouses: 'Semua gudang',
     empty: 'Belum ada stok.',
     valuation: {
       title: 'Penilaian persediaan',

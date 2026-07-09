@@ -23,7 +23,7 @@ function open(row: Record<string, unknown>) {
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('returns.columns.number') },
   { key: 'customerName', label: t('returns.columns.customer') },
-  { key: 'returnDate', label: t('returns.columns.date') },
+  { key: 'returnDate', label: t('returns.columns.date'), hideOnMobile: true },
   { key: 'grandTotal', label: t('returns.columns.total'), align: 'right', numeric: true },
   { key: 'journalEntryId', label: t('returns.columns.status'), align: 'right' },
 ])

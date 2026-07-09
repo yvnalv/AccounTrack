@@ -401,6 +401,7 @@ export default {
   inventory: {
     title: 'Stock on hand',
     columns: { product: 'Product', warehouse: 'Warehouse', onHand: 'On hand', avgCost: 'Avg cost', value: 'Value', actions: '' },
+    allWarehouses: 'All warehouses',
     empty: 'No stock on hand yet.',
     valuation: {
       title: 'Inventory valuation',
