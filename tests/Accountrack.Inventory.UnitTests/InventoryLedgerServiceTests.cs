@@ -238,6 +238,102 @@ public class InventoryLedgerServiceTests
         result.Error.Code.Should().Be("INVENTORY.BACKDATING_CROSSES_TRANSFER");
     }
 
+    // ---- Cross-bucket (transfer) back-dated recompute (ADR-0038) ----
+
+    private readonly Guid _warehouseB = Guid.NewGuid();
+
+    [Fact]
+    public async Task Back_dated_cheaper_receipt_cascades_through_a_transfer_into_another_warehouses_sale()
+    {
+        // Warehouse A: Jun-1 receipt 100 @ 10 000; Jun-5 transfer-out 40 to B (carried 400 000).
+        // Warehouse B: Jun-5 transfer-in 40 @ 10 000; Jun-10 sales issue of 40 (COGS 400 000).
+        // Insert a back-dated A receipt 100 @ 8 000 on May-28 → A avg 9 000, the transfer now carries
+        // 40 @ 9 000 = 360 000 to B, so B's later sale drops to 360 000 (a −40 000 COGS correction).
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun5 = new DateOnly(2026, 6, 5);
+        var jun10 = new DateOnly(2026, 6, 10);
+        var group = Guid.NewGuid();
+
+        var aReceipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 10000m, 1_000_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 100m, 10000m);
+        var aTransferOut = InventoryTransaction.Record(_product, _warehouse, MovementType.TransferOut, 40m, 10000m, 400_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 60m, 10000m, group);
+        var bTransferIn = InventoryTransaction.Record(_product, _warehouseB, MovementType.TransferIn, 40m, 10000m, 400_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 40m, 10000m, group);
+        var bSale = InventoryTransaction.Record(_product, _warehouseB, MovementType.Issue, 40m, 10000m, 400_000m,
+            "IDR", jun10, MovementSource.Sales, null, null, 0m, 0m);
+
+        var bucketA = StockCostBucket.Create(_product, _warehouse, "IDR");
+        bucketA.Receive(100m, 10000m);
+        bucketA.Issue(40m, allowNegative: false); // on hand 60 @ 10 000
+        var bucketB = StockCostBucket.Create(_product, _warehouseB, "IDR");
+        bucketB.Receive(40m, 10000m);
+        bucketB.Issue(40m, allowNegative: false); // on hand 0
+
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucketA);
+        _buckets.ListForProductAsync(_product, Arg.Any<CancellationToken>()).Returns(new[] { bucketA, bucketB });
+        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(jun5);
+        _txns.HasTransferOnOrAfterAsync(_product, Arg.Any<DateOnly>(), Arg.Any<CancellationToken>()).Returns(true);
+        _txns.ListForProductChronologicalAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { aReceipt, aTransferOut, bTransferIn, bSale });
+
+        var result = await Service().ReceiveAsync(
+            _product, _warehouse, "IDR", 100m, 8000m, new DateOnly(2026, 5, 28),
+            MovementType.Receipt, MovementSource.Purchasing, null, "Late purchase", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CostApplied.Should().Be(800_000m);      // the new receipt: 100 @ 8 000
+
+        // The transfer legs are restated value-preservingly (both 360 000), and B's sale COGS drops.
+        aTransferOut.TotalCost.Should().Be(360_000m);
+        bTransferIn.TotalCost.Should().Be(360_000m);
+        bSale.TotalCost.Should().Be(360_000m);
+
+        // Buckets end: A 160 @ 9 000, B 0.
+        bucketA.OnHandQty.Should().Be(160m);
+        bucketA.AvgUnitCost.Should().Be(9000m);
+        bucketB.OnHandQty.Should().Be(0m);
+
+        // One net journal for the −40 000 COGS correction: Dr Inventory 40 000 / Cr COGS 40 000.
+        var call = _gl.ReceivedCalls().Should().ContainSingle().Which;
+        var request = (LedgerPostingRequest)call.GetArguments()[0]!;
+        request.Lines.Should().ContainSingle(l => l.AccountId == CogsAccount && l.Credit == 40_000m && l.Debit == 0m);
+        request.Lines.Should().ContainSingle(l => l.AccountId == InventoryAccount && l.Debit == 40_000m && l.Credit == 0m);
+    }
+
+    [Fact]
+    public async Task Back_dating_across_a_legacy_unlinked_transfer_is_rejected()
+    {
+        // Same shape, but the transfer legs predate the TransferGroupId link (null group) — the recompute
+        // cannot thread the cost, so it is rejected rather than miscomputed (ADR-0038 safe degradation).
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun5 = new DateOnly(2026, 6, 5);
+
+        var aReceipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 10000m, 1_000_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 100m, 10000m);
+        var aTransferOut = InventoryTransaction.Record(_product, _warehouse, MovementType.TransferOut, 40m, 10000m, 400_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 60m, 10000m, transferGroupId: null);
+        var bTransferIn = InventoryTransaction.Record(_product, _warehouseB, MovementType.TransferIn, 40m, 10000m, 400_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 40m, 10000m, transferGroupId: null);
+
+        var bucketA = StockCostBucket.Create(_product, _warehouse, "IDR");
+        bucketA.Receive(100m, 10000m);
+        bucketA.Issue(40m, allowNegative: false);
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucketA);
+        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(jun5);
+        _txns.HasTransferOnOrAfterAsync(_product, Arg.Any<DateOnly>(), Arg.Any<CancellationToken>()).Returns(true);
+        _txns.ListForProductChronologicalAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { aReceipt, aTransferOut, bTransferIn });
+
+        var result = await Service().ReceiveAsync(
+            _product, _warehouse, "IDR", 100m, 8000m, new DateOnly(2026, 5, 28),
+            MovementType.Receipt, MovementSource.Purchasing, null, "Late purchase", CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("INVENTORY.BACKDATING_CROSSES_TRANSFER");
+        await _gl.DidNotReceiveWithAnyArgs().PostAsync(default!, default);
+    }
+
     [Fact]
     public async Task Issue_fails_when_insufficient_stock_and_negative_disallowed()
     {
