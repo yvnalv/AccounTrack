@@ -8,8 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-09 (last change **CHG-0123**)
+- **As of:** 2026-07-09 (last change **CHG-0124**)
 - **Build:** green — backend `net8.0` (357 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **cross-bucket back-dating design (CHG-0124, ADR-0038 Proposed)** — documentation only:
+  records the design for the last inventory back-dating debt (back-dating that cascades through a
+  warehouse transfer) — `TransferGroupId` link + coordinated multi-bucket replay + one net journal +
+  cycle rejection. No engine ships; implementation is a dedicated follow-up PR.
   Latest: **ReceiveStock exactly-once (CHG-0123)** — manual goods-in is now idempotent: the idempotency
   machinery was generalized beyond `Result<Guid>` (new `IIdempotentResult` marker; `StockMovementResult`
   implements it) and `ReceiveStock` routed through the cross-module coordinator, so a retried receive
@@ -192,7 +196,8 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   moving-average recompute (CHG-0104, ADR-0033)** — replay + net Inventory↔COGS/Variance adjusting
   journal, on the cross-module paths. ✅ **per-product FIFO costing (CHG-0109, ADR-0034)**;
   ✅ **FIFO back-dated in-period recompute (CHG-0119, ADR-0037)** — `FifoReplay` + layer reconstruction
-  + delta journal. Remaining: cross-bucket (transfer) back-dating (both methods).
+  + delta journal. Remaining: cross-bucket (transfer) back-dating (both methods) — designed in
+  ADR-0038 (CHG-0124), implementation pending.
   (Transfers are GL-neutral under a single Inventory control account.)
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
   `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
@@ -246,7 +251,7 @@ Backend threads that can be picked up independently if desired (none block the f
   (CHG-0058)**, **inventory valuation (CHG-0062)** done. Reporting suite complete.
 - **Accounting:** ✅ period-close balance snapshots (CHG-0079); year-end close to retained earnings (CHG-0059).
 - **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); ✅ per-company
-  negative-stock policy (CHG-0073); ✅ back-dated in-period recompute (CHG-0104, ADR-0033); ✅ per-product FIFO costing (CHG-0109, ADR-0034); ✅ FIFO back-dated recompute (CHG-0119, ADR-0037); remaining: cross-bucket (transfer) back-dating (both methods).
+  negative-stock policy (CHG-0073); ✅ back-dated in-period recompute (CHG-0104, ADR-0033); ✅ per-product FIFO costing (CHG-0109, ADR-0034); ✅ FIFO back-dated recompute (CHG-0119, ADR-0037); remaining: cross-bucket (transfer) back-dating (both methods) — designed in ADR-0038 (CHG-0124), implementation pending.
 - **Returns:** purchase & sales returns/credit notes.
 - A dev **customer seed** (none seeded today; created via API in e2e).
 
@@ -255,8 +260,9 @@ frontend**, which requires the **UI/UX design discussion** before any build (use
 template/AI-ish). Pause and raise it then.
 
 Other open threads (not blocking): **Inventory** cross-bucket (transfer) back-dating for both costing
-methods (FIFO forward costing ✅ CHG-0109; FIFO back-dating ✅ CHG-0119).
-(Idempotency exactly-once ✅ CHG-0102; inventory back-dating ✅ CHG-0104; returns detail ✅ CHG-0105.)
+methods — **designed in ADR-0038 (CHG-0124)**, implementation pending (FIFO forward costing ✅ CHG-0109;
+FIFO back-dating ✅ CHG-0119).
+(Idempotency exactly-once ✅ CHG-0102 / ReceiveStock ✅ CHG-0123; inventory back-dating ✅ CHG-0104; returns detail ✅ CHG-0105.)
 
 ## How to resume
 

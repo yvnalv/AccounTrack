@@ -1,5 +1,28 @@
 # Accountrack Changelog
 
+## [2026-07-09 12:30:00 UTC]
+
+CHG-0124 — Design: cross-bucket (transfer) back-dated recompute (ADR-0038, Proposed)
+
+- **Documentation only — no code/engine ships.** Records the accepted *design* for the last remaining
+  inventory back-dating debt: back-dating whose later movements include a **transfer**, which today both
+  recompute paths reject (`BackDatingCrossesTransfer`) and `TransferStockHandler` blocks directly.
+- **Why it needs its own ADR:** a transfer is GL-neutral itself (cost travels between warehouses,
+  BR-INV-6) but restating it moves value into another bucket whose later **sales** are GL events, so
+  correctness requires replaying every reached bucket in dependency order — and the transfer legs are
+  **not linked** today (`SourceDocumentId == null`), while cascades can chain (A→B→C) or cycle.
+- **Design (ADR-0038):** add a nullable `TransferGroupId` linking both transfer legs (migration; legacy
+  unlinked transfers stay rejected — no heuristic backfill); a coordinated multi-bucket recompute over
+  the existing pure `MovingAverageReplay`/`FifoReplay` engines (transitive discovery, topological order,
+  cross-bucket cost propagation, one net delta journal, cycle rejection); `TransferStockHandler` onto
+  `ICrossModuleUnitOfWork`. FIFO cross-bucket layer reconstruction is the highest-risk part — rollout may
+  be phased MA-then-FIFO.
+- Added `docs/adr/0038-inventory-crossbucket-backdated-recompute.md` (Status: **Proposed**), a DECISIONS
+  summary entry, and cross-references from BR-INV-5 / BR-INV-10. Implementation is a dedicated follow-up
+  PR after design sign-off.
+
+---
+
 ## [2026-07-09 12:00:00 UTC]
 
 CHG-0123 — ReceiveStock exactly-once idempotency (ADR-0021)

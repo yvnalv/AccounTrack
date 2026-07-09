@@ -759,8 +759,43 @@ each later issue (ledger/GL noise); (C) keep FIFO forward-only (contradicts ADR-
 **Consequences.** (+) FIFO gains the same late-entry correction as moving average; layers + valuation +
 GL stay reconciled; average path untouched; BR-INV-10 flips from limit to supported. (−) a second replay
 engine to maintain; a FIFO back-date replays the in-period bucket and rewrites its layer remainders.
-**Still rejected:** cross-bucket (transfer/production) back-dating for both methods; a back-date that
-would drive stock negative (negative disallowed); manual receipts (module-UoW path).
+**Still rejected:** cross-bucket (transfer/production) back-dating for both methods (design in
+ADR-0038); a back-date that would drive stock negative (negative disallowed); manual receipts
+(module-UoW path — the receipt path was moved onto the cross-module coordinator in CHG-0123, but
+back-dating stays rejected pending ADR-0038).
+
+---
+
+## ADR-0038: Cross-bucket (transfer) back-dated recompute — coordinated multi-bucket replay
+
+- **Status:** Proposed (design only — not yet implemented) — **Date:** 2026-07-09 · full text: [adr/0038-inventory-crossbucket-backdated-recompute.md](adr/0038-inventory-crossbucket-backdated-recompute.md)
+
+**Context.** Single-bucket back-dated recompute exists for moving average (ADR-0033) and FIFO
+(ADR-0037), but both **reject** a back-date whose later movements include a **transfer** — the last
+inventory back-dating debt. A transfer is GL-neutral itself (cost travels between warehouses, BR-INV-6)
+but restating it moves value into another bucket whose later **sales** *are* GL events, so correctness
+needs a multi-bucket replay. Two blockers: the transfer legs (`TransferOut`/`TransferIn`) are **not
+linked** (`SourceDocumentId == null`), and cascades can chain (A→B→C) or cycle (A→B→A).
+
+**Decision (design).** (1) Add a nullable `TransferGroupId` to `InventoryTransaction`; the transfer
+handler stamps one id on both legs (EF migration). Legacy unlinked transfers stay rejected — no
+heuristic backfill. (2) Add a **coordinated multi-bucket recompute** over the existing pure
+`MovingAverageReplay`/`FifoReplay` engines: discover the affected buckets transitively via
+`TransferGroupId`, **topologically order** them (source before destination), feed each `TransferIn`'s
+inbound cost from its already-replayed source `TransferOut`, and post **one** net delta journal for the
+COGS/variance across all buckets — all in one cross-module transaction. **Reject cycles**
+(`BackDatingCrossesTransferCycle`). FIFO additionally rebuilds layers across buckets; rollout may be
+phased MA-then-FIFO. (3) `TransferStockHandler` moves onto `ICrossModuleUnitOfWork`.
+
+**Options.** (A) coordinated multi-bucket replay + `TransferGroupId` ← chosen; (B) reverse-and-repost
+across buckets (ledger/GL noise); (C) keep cross-bucket rejected (real correction gap); (D) reuse
+`SourceDocumentId` instead of a new column (overloads a field, leaves legacy unlinked).
+
+**Consequences.** (+) closes the last back-dating debt; in-place correction even when stock moved
+warehouses; valuation + GL stay reconciled; single-bucket paths untouched. (−) a migration; a back-date
+can fan out across buckets; a new orchestration bug class (ordering/propagation/cycles) in the
+accounting-integrity core → heavy tests + optional phased rollout; cycles + legacy-unlinked transfers
+rejected by design. **No engine ships with this ADR** — implementation is a dedicated follow-up PR.
 
 ---
 
