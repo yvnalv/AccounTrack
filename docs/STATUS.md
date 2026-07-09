@@ -8,8 +8,13 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-09 (last change **CHG-0126**)
+- **As of:** 2026-07-09 (last change **CHG-0127**)
 - **Build:** green — backend `net8.0` (374 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **web RBAC + role-based dashboards + list filters/mobile (CHG-0127)** — the SPA now enforces
+  permissions (route guard → 403 page; sidebar/⌘K/buttons hidden by permission; backend
+  `RequireAuthorization` remains the hard wall, SECURITY.md §2); a second **role-based operational
+  dashboard** (Sales/Purchasing/Inventory KPIs) for non-finance users; per-list status/warehouse filters
+  + `hideOnMobile` columns + responsive toolbars. Sign-out redirect fixed.
   Latest: **manual Adjust + Opname exactly-once (CHG-0126, ADR-0021)** — the last two GL-posting manual
   stock commands are now idempotent (they already commit through the coordinator); `StockOpnameResult`
   is addressable, with an exact-match no-op having no id. Every GL-posting manual stock command

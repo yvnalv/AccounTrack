@@ -39,6 +39,12 @@ Related: MULTI_TENANCY.md (isolation), ADR-0019/0020.
   their permissions are editable); a role still assigned to users cannot be deleted.
 - **Company scope**: every authorized action is checked against the active `CompanyId` ∈ the
   user's granted companies (see MULTI_TENANCY.md).
+- **Frontend enforcement is UX only, never the security boundary (CHG-0127).** The SPA mirrors the
+  same permissions: routes declare a required permission (`meta.permission`, inherited by children) and
+  a global navigation guard redirects a user who lacks it to a **403 page**; the sidebar, ⌘K command
+  palette, and write-action buttons are hidden by the same permission (one source of truth). This is
+  defense-in-depth for usability — the **authoritative gate is the backend** `RequireAuthorization` on
+  every endpoint, so a hand-crafted request from a user missing the permission is still rejected (403).
 
 ### Segregation of Duties (SoD)
 - Sensitive verbs are **distinct permissions**: Create vs **Edit** vs **Cancel**/**Delete** vs Approve
