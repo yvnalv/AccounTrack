@@ -15,7 +15,7 @@ public sealed class InventoryTransaction : TenantOwnedEntity, IAggregateRoot
         Guid productId, Guid warehouseId, MovementType type,
         decimal quantity, decimal unitCost, decimal totalCost, string currency,
         DateOnly movementDate, MovementSource source, Guid? sourceDocumentId, string? description,
-        decimal runningQtyAfter, decimal runningAvgCostAfter)
+        decimal runningQtyAfter, decimal runningAvgCostAfter, Guid? transferGroupId)
     {
         ProductId = productId;
         WarehouseId = warehouseId;
@@ -30,6 +30,7 @@ public sealed class InventoryTransaction : TenantOwnedEntity, IAggregateRoot
         Description = description;
         RunningQtyAfter = runningQtyAfter;
         RunningAvgCostAfter = runningAvgCostAfter;
+        TransferGroupId = transferGroupId;
     }
 
     public Guid ProductId { get; private set; }
@@ -49,13 +50,23 @@ public sealed class InventoryTransaction : TenantOwnedEntity, IAggregateRoot
     public decimal RunningQtyAfter { get; private set; }
     public decimal RunningAvgCostAfter { get; private set; }
 
+    /// <summary>
+    /// Correlates the two legs of a warehouse transfer (the <see cref="MovementType.TransferOut"/> and
+    /// its paired <see cref="MovementType.TransferIn"/> share one id); null for every non-transfer
+    /// movement. Lets a cross-bucket back-dated recompute thread a restated transfer-out cost to its
+    /// destination leg (ADR-0038). Legacy transfers recorded before this field are null and are rejected
+    /// (not recomputed).
+    /// </summary>
+    public Guid? TransferGroupId { get; private set; }
+
     public static InventoryTransaction Record(
         Guid productId, Guid warehouseId, MovementType type,
         decimal quantity, decimal unitCost, decimal totalCost, string currency,
         DateOnly movementDate, MovementSource source, Guid? sourceDocumentId, string? description,
-        decimal runningQtyAfter, decimal runningAvgCostAfter) =>
+        decimal runningQtyAfter, decimal runningAvgCostAfter, Guid? transferGroupId = null) =>
         new(productId, warehouseId, type, quantity, unitCost, totalCost,
-            currency, movementDate, source, sourceDocumentId, description, runningQtyAfter, runningAvgCostAfter);
+            currency, movementDate, source, sourceDocumentId, description, runningQtyAfter, runningAvgCostAfter,
+            transferGroupId);
 
     /// <summary>
     /// Restates the <em>derived</em> valuation of this entry after a back-dated recompute (ADR-0033):

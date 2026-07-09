@@ -15,6 +15,9 @@ public sealed class StockBucketRepository : IStockBucketRepository
     public async Task<IReadOnlyList<StockCostBucket>> ListAsync(CancellationToken ct) =>
         await _db.StockCostBuckets.OrderBy(b => b.WarehouseId).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<StockCostBucket>> ListForProductAsync(Guid productId, CancellationToken ct) =>
+        await _db.StockCostBuckets.Where(b => b.ProductId == productId).ToListAsync(ct);
+
     public void Add(StockCostBucket bucket) => _db.StockCostBuckets.Add(bucket);
 }
 
@@ -73,6 +76,20 @@ public sealed class InventoryTransactionRepository : IInventoryTransactionReposi
             .OrderBy(t => t.MovementDate)
             .ThenBy(t => t.CreatedAt)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<InventoryTransaction>> ListForProductChronologicalAsync(
+        Guid productId, CancellationToken ct) =>
+        await _db.InventoryTransactions
+            .Where(t => t.ProductId == productId)
+            .OrderBy(t => t.MovementDate)
+            .ThenBy(t => t.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<bool> HasTransferOnOrAfterAsync(Guid productId, DateOnly date, CancellationToken ct) =>
+        await _db.InventoryTransactions.AnyAsync(
+            t => t.ProductId == productId && t.MovementDate >= date
+                && (t.Type == MovementType.TransferOut || t.Type == MovementType.TransferIn),
+            ct);
 
     public async Task<DateOnly?> MaxMovementDateAsync(Guid productId, Guid warehouseId, CancellationToken ct)
     {

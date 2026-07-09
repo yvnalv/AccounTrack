@@ -230,18 +230,24 @@ public sealed class TransferStockHandler : ICommandHandler<TransferStockCommand,
             return InventoryErrors.SameWarehouse;
         }
 
-        // A transfer commits through the module unit of work, not the cross-module transaction, so a
-        // back-dated recompute could not post its GL correction (ADR-0033). Reject either side.
+        // Directly back-dating a transfer (inserting both legs before existing movements in two buckets)
+        // is a separate follow-up; reject it here. A back-dated movement that later cascades *through* a
+        // forward transfer is handled by the cross-bucket recompute (ADR-0038). This handler still commits
+        // through the module unit of work — a forward transfer is GL-neutral (cost travels with the goods).
         if (await _ledger.IsBackDatedAsync(request.ProductId, request.FromWarehouseId, request.Date, ct)
             || await _ledger.IsBackDatedAsync(request.ProductId, request.ToWarehouseId, request.Date, ct))
         {
             return InventoryErrors.BackDatingNotSupported;
         }
 
+        // Correlates the two legs so a later back-dated recompute can thread the transfer's cost from the
+        // source bucket to the destination (ADR-0038).
+        var transferGroupId = Guid.NewGuid();
+
         // Issue from source at its moving average; the cost travels to the destination.
         var outResult = await _ledger.IssueAsync(
             request.ProductId, request.FromWarehouseId, request.Quantity, request.Date,
-            MovementType.TransferOut, MovementSource.Transfer, null, "Transfer out", ct);
+            MovementType.TransferOut, MovementSource.Transfer, null, "Transfer out", ct, transferGroupId);
 
         if (outResult.IsFailure)
         {
@@ -255,7 +261,7 @@ public sealed class TransferStockHandler : ICommandHandler<TransferStockCommand,
 
         var inResult = await _ledger.ReceiveAsync(
             request.ProductId, request.ToWarehouseId, currency, request.Quantity, unitCost, request.Date,
-            MovementType.TransferIn, MovementSource.Transfer, null, "Transfer in", ct);
+            MovementType.TransferIn, MovementSource.Transfer, null, "Transfer in", ct, transferGroupId);
 
         if (inResult.IsFailure)
         {

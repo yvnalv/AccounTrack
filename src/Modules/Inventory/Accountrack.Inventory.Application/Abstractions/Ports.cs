@@ -8,6 +8,11 @@ public interface IStockBucketRepository
 {
     Task<StockCostBucket?> GetAsync(Guid productId, Guid warehouseId, CancellationToken ct);
     Task<IReadOnlyList<StockCostBucket>> ListAsync(CancellationToken ct);
+
+    /// <summary>Every cost bucket for a product across all warehouses — for cross-bucket back-dated
+    /// recompute, which sets each affected bucket's final state (ADR-0038). Returns tracked entities.</summary>
+    Task<IReadOnlyList<StockCostBucket>> ListForProductAsync(Guid productId, CancellationToken ct);
+
     void Add(StockCostBucket bucket);
 }
 
@@ -23,6 +28,18 @@ public interface IInventoryTransactionRepository
     /// </summary>
     Task<IReadOnlyList<InventoryTransaction>> ListForBucketChronologicalAsync(
         Guid productId, Guid warehouseId, CancellationToken ct);
+
+    /// <summary>
+    /// Every movement for a product across <em>all</em> warehouses in global chronological order
+    /// (MovementDate, then insertion order), for cross-bucket back-dated recompute (ADR-0038). Returns
+    /// tracked entities so a recompute can restate them in place.
+    /// </summary>
+    Task<IReadOnlyList<InventoryTransaction>> ListForProductChronologicalAsync(Guid productId, CancellationToken ct);
+
+    /// <summary>True if the product has any warehouse-transfer leg dated on or after
+    /// <paramref name="date"/> — the signal that a back-dated movement may cascade across buckets and
+    /// needs the cross-bucket recompute rather than the single-bucket one (ADR-0038).</summary>
+    Task<bool> HasTransferOnOrAfterAsync(Guid productId, DateOnly date, CancellationToken ct);
 
     /// <summary>The latest movement date recorded for a cost bucket, or null if it has none — used to
     /// detect a back-dated movement (ADR-0033).</summary>
@@ -76,12 +93,12 @@ public interface IInventoryLedger
     Task<Result<StockMovementResult>> ReceiveAsync(
         Guid productId, Guid warehouseId, string currency, decimal quantity, decimal unitCost,
         DateOnly date, MovementType type, MovementSource source, Guid? sourceDocumentId, string? description,
-        CancellationToken ct);
+        CancellationToken ct, Guid? transferGroupId = null);
 
     Task<Result<StockMovementResult>> IssueAsync(
         Guid productId, Guid warehouseId, decimal quantity,
         DateOnly date, MovementType type, MovementSource source, Guid? sourceDocumentId, string? description,
-        CancellationToken ct);
+        CancellationToken ct, Guid? transferGroupId = null);
 
     Task<decimal> GetOnHandAsync(Guid productId, Guid warehouseId, CancellationToken ct);
 

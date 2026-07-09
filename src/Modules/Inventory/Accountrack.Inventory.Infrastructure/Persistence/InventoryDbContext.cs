@@ -61,6 +61,8 @@ public sealed class InventoryDbContext : BaseDbContext, IInventoryUnitOfWork
             b.Property(x => x.Description).HasMaxLength(512);
             b.HasIndex(x => new { x.TenantId, x.CompanyId, x.ProductId, x.WarehouseId });
             b.HasIndex(x => new { x.TenantId, x.CompanyId, x.MovementDate });
+            // Pairs a transfer's two legs for cross-bucket back-dated recompute (ADR-0038); nullable.
+            b.HasIndex(x => new { x.TenantId, x.CompanyId, x.TransferGroupId });
         });
 
         base.OnModelCreating(modelBuilder);
