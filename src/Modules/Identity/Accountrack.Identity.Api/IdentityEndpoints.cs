@@ -6,12 +6,18 @@ using Accountrack.Web.Common.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 
 namespace Accountrack.Identity.Api;
 
 public static class IdentityEndpoints
 {
+    /// <summary>Rate-limit policy for the anonymous auth endpoints; registered by the host
+    /// (<c>AuthRateLimiting</c>, SECURITY.md §5). Kept as a plain string so the module needs no
+    /// dependency on the bootstrapper.</summary>
+    public const string RateLimitPolicy = "auth";
+
     public sealed record LoginRequest(string Email, string Password);
     public sealed record RegisterRequest(
         string OrganizationName, string CompanyName, string FunctionalCurrency,
@@ -40,6 +46,7 @@ public static class IdentityEndpoints
             return result.ToHttpResult();
         })
         .AllowAnonymous()
+        .RequireRateLimiting(RateLimitPolicy)
         .WithName("Login");
 
         auth.MapPost("/register", async (RegisterRequest body, ISender sender, CancellationToken ct) =>
@@ -50,6 +57,7 @@ public static class IdentityEndpoints
             return result.ToHttpResult();
         })
         .AllowAnonymous()
+        .RequireRateLimiting(RateLimitPolicy)
         .WithName("RegisterOrganization");
 
         auth.MapPost("/refresh", async (RefreshRequest body, ISender sender, CancellationToken ct) =>
@@ -58,6 +66,7 @@ public static class IdentityEndpoints
             return result.ToHttpResult();
         })
         .AllowAnonymous()
+        .RequireRateLimiting(RateLimitPolicy)
         .WithName("RefreshToken");
 
         auth.MapPost("/logout", async (LogoutRequest body, ISender sender, CancellationToken ct) =>

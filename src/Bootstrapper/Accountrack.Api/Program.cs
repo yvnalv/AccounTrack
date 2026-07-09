@@ -141,6 +141,9 @@ builder.Services
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddAuthorization();
 
+// Brute-force / credential-stuffing protection for the anonymous auth endpoints (SECURITY.md §5).
+builder.Services.AddAuthRateLimiting(builder.Configuration);
+
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -155,6 +158,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

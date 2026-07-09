@@ -81,11 +81,23 @@ See MULTI_TENANCY.md. Summary of the non-negotiables:
 - **Validation** on every command (FluentValidation); reject unknown/oversized payloads.
 - **Parameterized queries / EF** only; no string-concatenated SQL. Any raw SQL is reviewed and
   must include tenant predicates.
-- **HTTPS everywhere**; HSTS in production; TLS termination at Nginx.
-- Security headers: CSP, X-Content-Type-Options, X-Frame-Options/frame-ancestors, Referrer-
-  Policy.
-- **CORS** restricted to known frontend origins.
-- **Rate limiting** on auth and sensitive endpoints (brute-force protection).
+- **HTTPS everywhere**; HSTS in production; TLS termination at the edge Nginx.
+- **Security headers — implemented** (CHG-0128) at the SPA's Nginx (`frontend/nginx.conf`), the
+  internet-facing surface: `Content-Security-Policy` (`default-src 'self'`; `script-src 'self'` — the
+  Vite build ships **no inline bootstrap script**, the module-preload polyfill is disabled for this
+  reason; `style-src 'self' 'unsafe-inline'` for Vue/ECharts inline styles; `img-src 'self' data:`;
+  self-hosted `font-src 'self'`; `frame-ancestors 'none'`; `object-src 'none'`; `form-action 'self'`),
+  `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy:
+  strict-origin-when-cross-origin`. Repeated in the `/assets/` location (Nginx does not inherit
+  `add_header` into a location that sets its own).
+- **CORS**: the SPA and API are **same-origin** (Nginx reverse-proxies `/api/` to the API container),
+  so no cross-origin grant is configured — nothing to restrict.
+- **Rate limiting — implemented** (CHG-0128): a per-client fixed window (`AuthRateLimiting`, .NET 8
+  `AddRateLimiter`) on the anonymous auth endpoints `/auth/login`, `/auth/register`, `/auth/refresh`.
+  Over-limit requests get `429` in the standard failure envelope (`RATE_LIMITED`) with `Retry-After`.
+  Configurable under `RateLimiting:Auth` (default 20 / 60 s). The client key is the leftmost
+  `X-Forwarded-For` hop (then `X-Real-IP`, then the socket) — **spoofable**, so fully robust per-IP
+  limiting additionally requires the edge proxy to overwrite (not append) the client-facing hop.
 - **CSRF** protection if cookies are used for auth.
 - File uploads (if any): type/size validation, stored outside web root, scanned.
 
