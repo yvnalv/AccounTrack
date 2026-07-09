@@ -1,3 +1,5 @@
+using Accountrack.Application.Abstractions.Idempotency;
+
 namespace Accountrack.Inventory.Application.Contracts;
 
 public sealed record StockOnHandDto(
@@ -12,7 +14,19 @@ public sealed record TransferStockResult(Guid OutTransactionId, Guid InTransacti
 /// <summary>Outcome of a stock opname: the system vs counted quantities, the variance, and the
 /// reconciling movement (null when the count matched exactly).</summary>
 public sealed record StockOpnameResult(
-    decimal SystemQty, decimal CountedQty, decimal Variance, Guid? TransactionId, decimal CostApplied);
+    decimal SystemQty, decimal CountedQty, decimal Variance, Guid? TransactionId, decimal CostApplied)
+    : IIdempotentResult<StockOpnameResult>
+{
+    // Addressed by the reconciling movement's id so a retried opname never double-posts the adjustment +
+    // its variance journal (ADR-0021). An exact-match opname posts nothing, so it has no id (Guid.Empty).
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Guid IdempotentId => TransactionId ?? Guid.Empty;
+
+    /// <summary>Replay reconstruction (id-only): returns the reconciling movement's id; the quantities
+    /// are not stored and come back as defaults. An exact-match no-op maps back to a null movement.</summary>
+    public static StockOpnameResult FromIdempotentId(Guid id) =>
+        new(0m, 0m, 0m, id == Guid.Empty ? null : id, 0m);
+}
 
 /// <summary>One line of the inventory valuation report — a product's on-hand quantity and value
 /// (aggregated across warehouses) at moving-average cost.</summary>

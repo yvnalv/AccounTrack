@@ -385,6 +385,13 @@ derived fields — a replay is only ever seen when the original response was los
 then is to confirm the id, not re-read the running figures. (Manual-receipt *back-dating* stays
 rejected, independent of idempotency — see ADR-0033.)
 
+**Manual Adjust + Opname exactly-once (CHG-0126).** The two remaining GL-posting manual stock commands
+— `AdjustStockCommand` and `StockOpnameCommand` — are now marked `IIdempotentCommand`. They already
+commit their movement + variance journal through the coordinator, so the key writes in the same
+transaction (exactly-once). `StockOpnameResult` implements `IIdempotentResult` keyed by its reconciling
+movement id; an **exact-match opname posts nothing and has no id** (`Guid.Empty`, mapping back to a null
+movement on replay). Every GL-posting manual stock command (Receive/Adjust/Opname) is now replay-safe.
+
 **Amended (ADR-0032).** With the move to PostgreSQL, `RowVersion` is no longer a store-generated
 SQL Server `rowversion`. It is now a provider-agnostic `bytea` **concurrency token** whose value the
 `AuditingSaveChangesInterceptor` bumps (`Guid.NewGuid().ToByteArray()`) on every insert/update; EF
