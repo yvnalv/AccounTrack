@@ -90,7 +90,7 @@ const commands = computed<Command[]>(() => {
         persistLocale(next)
       },
     },
-    { id: 'signout', label: t('common.signOut'), group: actions, icon: LogOut, run: () => { void auth.logout(); router.push({ name: 'login' }) } },
+    { id: 'signout', label: t('common.signOut'), group: actions, icon: LogOut, run: async () => { await auth.logout(); void router.push({ name: 'login' }) } },
   ]
 })
 

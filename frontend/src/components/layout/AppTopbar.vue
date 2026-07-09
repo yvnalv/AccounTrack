@@ -25,8 +25,11 @@ const initials = computed(() => {
     .join('')
 })
 
-function signOut() {
-  void auth.logout() // revokes the refresh token server-side, then clears the local session
+async function signOut() {
+  // Must await: logout() clears the session only after revoking server-side. Navigating before it
+  // resolves would leave the user "authenticated", and the guard would bounce /login back to the
+  // dashboard. Clearing first means the guard lets the redirect through.
+  await auth.logout()
   void router.push({ name: 'login' })
 }
 </script>
