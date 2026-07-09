@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-07-09 14:53:54 UTC]
+
+CHG-0129 — Docs: public-launch readiness assessment + hardening backlog (SECURITY.md §12)
+
+- Recorded the production-readiness assessment into the security-authoritative docs so the remaining
+  hardening can be planned deliberately. **Documentation only — no code/behavior change.**
+- **SECURITY.md §12 (new) — "Public-Launch Readiness — Hardening Backlog":** two launch scenarios
+  (controlled/invite-only pilot = close to ready; open public self-serve signup = not ready) and the
+  full prioritized gap list, security first. 🔴 blockers: (1) no email delivery infrastructure — root
+  dependency; (2) no password reset; (3) no email verification on signup; (4) weak password policy
+  (`MinimumLength(8)`, no complexity/breach check); (5) no account lockout. 🟠 hardening: (6) auth
+  tokens (access + refresh) in `localStorage`; (7) no error/uptime monitoring; (8) rate limiting is
+  auth-only; (9) untested DR restore. 🟡 business/legal: (10) no ToS/Privacy/consent; (11) no
+  billing/subscription enforcement; (12) data-subject export/delete not surfaced. Includes evidence
+  file refs, the already-in-place strengths for context, and a suggested sequencing.
+- **STATUS.md:** added a 🔴 "Public-launch readiness (security priority)" entry at the top of the
+  Deferred backlog, summarizing the blockers and pointing to SECURITY.md §12.
+
+---
+
 ## [2026-07-09 14:24:57 UTC]
 
 CHG-0128 — Hardening: auth rate limiting + SPA security headers (SECURITY.md §5)

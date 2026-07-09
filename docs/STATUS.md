@@ -179,6 +179,17 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 
 ## Deferred backlog (planned slices / debts)
 
+- **🔴 Public-launch readiness (security priority) — see [SECURITY.md §12](SECURITY.md) (CHG-0129):**
+  the core ERP engine is production-grade, but **open public self-serve signup is NOT ready.**
+  **Controlled / invite-only pilot is close to ready.** Blockers before opening `/register` to the
+  public (all currently unimplemented): 🔴 (1) no email delivery infrastructure — root dependency;
+  (2) no password reset/forgot-password; (3) no email verification on signup; (4) weak password policy
+  (`MinimumLength(8)` only, no complexity/breach check); (5) no account lockout (per-IP rate limit
+  CHG-0128 doesn't stop targeted stuffing). 🟠 (6) auth tokens (access + refresh) in `localStorage`
+  (XSS token-theft; move refresh to httpOnly cookie); (7) no error/uptime monitoring; (8) rate limiting
+  is auth-only; (9) untested DR restore. 🟡 (10) no ToS/Privacy/consent; (11) no billing/subscription
+  enforcement; (12) data-subject export/delete not surfaced. Sequence: close 🔴 as one coupled epic
+  (email unlocks 2–3), then 🟠, then 🟡. Full detail, evidence, and strengths in SECURITY.md §12.
 - **Returns:** ✅ sales returns (CHG-0046, BR-SAL-8) + purchase returns (CHG-0047, BR-PUR-7) — credit/
   debit notes that restock/de-stock at cost, reverse Revenue/VAT/AR resp. AP/VAT-Input, and move the
   subledger; ✅ **settled-invoice refund + returns list screens (CHG-0074)** — returning a paid

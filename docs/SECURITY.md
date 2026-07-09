@@ -143,3 +143,74 @@ See MULTI_TENANCY.md. Summary of the non-negotiables:
 4. Broken SoD enabling fraud (create+approve+pay by one user) → §2 (High).
 5. Injection via raw SQL → §5 (Medium).
 6. Secret leakage in config/logs → §6 (Medium).
+
+## 12. Public-Launch Readiness — Hardening Backlog
+
+Assessed 2026-07-09 (CHG-0129). This section records the gaps between "works" and "safe to open to
+the public", so hardening can be planned deliberately. **Security is the priority** — every 🔴 and 🟠
+item below must be closed before open self-serve signup. Nothing here is implemented yet unless marked
+✅. Keep this list authoritative: as items land, tick them and add the CHG id.
+
+### Launch scenarios
+
+- **Controlled / invite-only pilot** (operators provision each tenant/admin for trusted customers):
+  **close to ready.** The core engine is production-grade (see "Strengths" below). The 🔴 identity-
+  lifecycle gaps are tolerable here because accounts are created by trusted operators, passwords can be
+  set out-of-band, and there is no untrusted self-registration surface. Recommended first go-live mode.
+- **Open public self-serve signup** (anyone registers a company at `/register`): **NOT ready.** All 🔴
+  and 🟠 items must be closed first. The blockers are in the account-lifecycle / identity layer, not the
+  accounting core.
+
+### 🔴 Blockers — must close before open public signup
+
+1. **No email delivery infrastructure.** No SMTP/provider integration or `IEmailSender`; the
+   Notification module is in-app only. This is the *root* dependency for items 2–3. (Nothing under
+   `SmtpClient`/`SendGrid`/`IEmailSender`.)
+2. **No password reset / forgot-password flow.** A user who forgets their password is permanently locked
+   out. Requires (1). No `ForgotPassword`/`ResetPassword` code exists.
+3. **No email verification on signup.** `/auth/register`
+   (`RegisterOrganization`) provisions a tenant immediately with an unverified email, so anyone can
+   register a company under any address (spam / impersonation / abuse). Requires (1).
+4. **Weak password policy.** Only `MinimumLength(8)` in `RegisterOrganization` and `CreateUser`
+   validators — no complexity and no breach-list (HaveIBeenPwned) check, despite §1 promising both.
+5. **No account lockout.** No failed-attempt lockout / exponential backoff (§1 promises it). The
+   per-IP auth rate limit (§5, CHG-0128) blunts volumetric brute-force but does **not** stop targeted
+   credential-stuffing against a single account from distributed IPs.
+
+### 🟠 Should-fix — security hardening before public exposure
+
+6. **Auth tokens in `localStorage`** — both the access **and** refresh token
+   (`frontend/src/lib/api.ts`). XSS-exploitable token theft; contradicts §1 (access token in memory +
+   refresh token in an httpOnly/Secure/SameSite cookie). The CSP added in CHG-0128 narrows the XSS
+   surface but does not close this. Move refresh to an httpOnly cookie (adds CSRF handling, §5).
+7. **No error / uptime monitoring.** OpenTelemetry is "future"; there is no crash/error reporting
+   (e.g. Sentry) or alerting — production incidents would go unseen.
+8. **Rate limiting is auth-only.** No global or per-tenant throttle on the rest of the API (abuse /
+   scraping / accidental hot loops are unbounded). Extend the §5 limiter beyond the auth endpoints.
+9. **Disaster-recovery restore is unproven.** Nightly PostgreSQL backups exist (CHG-0100) but no
+   documented, tested restore drill — an untested backup is not a backup.
+
+### 🟡 Business / legal — required for a public product (not purely security)
+
+10. **No Terms of Service / Privacy Policy** pages and no cookie/GDPR-style consent surface.
+11. **No billing / subscription enforcement.** The tenant is modelled as a "subscription owner", but
+    there is no payment, plan, or usage-limit enforcement — open signup has no monetization or abuse
+    ceiling.
+12. **Data-subject / retention obligations** (export-my-data, delete-my-data) beyond the existing
+    permissioned hard-purge (§8) are not surfaced to end users.
+
+### Strengths already in place (context — not blockers)
+
+Tenant isolation (enforced by global query filters + ambient context, and covered by a permanent
+cross-tenant test suite, §3/MULTI_TENANCY.md §9); RBAC + segregation of duties (§2); double-entry
+accounting integrity with immutable posted journals (§4); immutable audit log (§4); idempotent /
+exactly-once posting; JWT with rotating, reuse-detected refresh tokens (§1); PBKDF2 password hashing
+(§1); TLS at the edge; CI/CD auto-deploy; nightly backups; and, as of CHG-0128, per-IP auth rate
+limiting + SPA security headers/CSP (§5). The foundation is sound; the gaps above are the "SaaS
+wrapper" around it.
+
+### Suggested sequencing
+
+Close 🔴 as one coupled epic (email delivery unlocks 2–3; do 4–5 alongside), then 🟠 (start with token
+storage, item 6), then 🟡 in parallel with go-to-market. Track the epic in STATUS.md ("Deferred
+backlog → Public-launch readiness").
