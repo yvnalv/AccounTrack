@@ -8,8 +8,12 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-09 (last change **CHG-0125**)
-- **Build:** green — backend `net8.0` (368 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-07-09 (last change **CHG-0126**)
+- **Build:** green — backend `net8.0` (374 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **manual Adjust + Opname exactly-once (CHG-0126, ADR-0021)** — the last two GL-posting manual
+  stock commands are now idempotent (they already commit through the coordinator); `StockOpnameResult`
+  is addressable, with an exact-match no-op having no id. Every GL-posting manual stock command
+  (Receive/Adjust/Opname) is now replay-safe.
   Latest: **cross-bucket back-dating — moving average (CHG-0125, ADR-0038 Phase 1)** — a back-dated
   moving-average movement that cascades through a warehouse transfer now recomputes across buckets
   (new pure `CrossBucketMovingAverageReplay`; `TransferGroupId` links the legs; one net delta journal).

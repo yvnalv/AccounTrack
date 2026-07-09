@@ -122,7 +122,7 @@ public sealed class ReceiveStockHandler : ICommandHandler<ReceiveStockCommand, S
 // ---- Stock adjustment (increase/decrease with reason) ----
 public sealed record AdjustStockCommand(
     Guid ProductId, Guid WarehouseId, decimal Quantity, bool Increase, decimal? UnitCost, DateOnly Date, string Reason)
-    : ICommand<StockMovementResult>;
+    : ICommand<StockMovementResult>, IIdempotentCommand;
 
 public sealed class AdjustStockValidator : AbstractValidator<AdjustStockCommand>
 {
@@ -276,7 +276,7 @@ public sealed class TransferStockHandler : ICommandHandler<TransferStockCommand,
 // ---- Stock opname (physical count → reconcile to system on-hand, INVENTORY_DESIGN.md §5) ----
 public sealed record StockOpnameCommand(
     Guid ProductId, Guid WarehouseId, decimal CountedQuantity, decimal? UnitCost, DateOnly Date, string? Notes)
-    : ICommand<StockOpnameResult>;
+    : ICommand<StockOpnameResult>, IIdempotentCommand;
 
 public sealed class StockOpnameValidator : AbstractValidator<StockOpnameCommand>
 {

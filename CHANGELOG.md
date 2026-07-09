@@ -1,5 +1,25 @@
 # Accountrack Changelog
 
+## [2026-07-09 16:00:00 UTC]
+
+CHG-0126 — Exactly-once for manual stock Adjust + Opname (ADR-0021)
+
+- Extend exactly-once idempotency to the two remaining GL-posting manual stock commands: **Stock
+  Adjustment** and **Stock Opname**. Both already commit their inventory movement and variance journal
+  through the cross-module coordinator, so a retried request with the same `Idempotency-Key` (network
+  retry, double-click) would otherwise post the adjustment — and its GL journal — twice. Now the key is
+  written in the same transaction as the effects, so a replay returns the original result and posts nothing.
+- `AdjustStockCommand` and `StockOpnameCommand` are marked `IIdempotentCommand`. `StockMovementResult`
+  was already addressable (CHG-0123); `StockOpnameResult` now implements `IIdempotentResult` too, keyed
+  by its reconciling movement id — an **exact-match opname posts nothing, so it has no id** (`Guid.Empty`,
+  round-tripping back to a null movement on replay). The `IdempotentId` is `[JsonIgnore]`d, so the wire
+  contract is unchanged.
+- **Tests:** `InventoryIdempotencyTests` — the three GL-posting manual commands (Receive/Adjust/Opname)
+  are marked idempotent, and the Adjust/Opname result markers round-trip (including the no-op opname).
+  Suite green (374 passed / 5 skipped).
+
+---
+
 ## [2026-07-09 15:00:00 UTC]
 
 CHG-0125 — Cross-bucket back-dated recompute — moving average (ADR-0038 Phase 1)
