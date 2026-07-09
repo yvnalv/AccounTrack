@@ -1,5 +1,22 @@
 # Accountrack Changelog
 
+## [2026-07-09 00:04:33 UTC]
+
+CHG-0122 — Code-split ECharts out of the dashboard chunk (frontend perf)
+
+- The dashboard bundled the full ECharts library, making `DashboardView` a **534 KB** chunk (the Vite
+  >500 KB warning). Extracted the chart into a new async wrapper `components/ui/AppChart.vue` (owns the
+  tree-shaken ECharts registration + `vue-echarts`), loaded via `defineAsyncComponent` in
+  `DashboardView`.
+- Result: the `DashboardView` route chunk drops to **~10 KB** (gzip 3.4 KB) and ECharts becomes its own
+  on-demand `AppChart` chunk fetched in parallel — the KPI cards/tables paint without waiting for the
+  chart library to parse. Charts render into fixed-height (`h-[300px]`/`h-[260px]`) wrappers, so there
+  is no layout shift while the chunk loads. No visual change.
+- Verified: `vue-tsc` typecheck clean; `vite build` produces `DashboardView` ~10 KB + `AppChart`
+  ~524 KB; the running web container serves both chunks.
+
+---
+
 ## [2026-07-08 23:46:30 UTC]
 
 CHG-0121 — Brand typeface embedded in PDFs + self-hosted in the SPA (ADR-0031)

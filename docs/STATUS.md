@@ -8,8 +8,11 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-09 (last change **CHG-0121**)
+- **As of:** 2026-07-09 (last change **CHG-0122**)
 - **Build:** green — backend `net8.0` (357 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **dashboard chart code-split (CHG-0122)** — ECharts moved into an async `AppChart` chunk, so
+  the `DashboardView` route chunk drops 534 KB → ~10 KB and the chart library loads on demand (no visual
+  change). Clears the Vite >500 KB warning on the route chunk.
   Latest: **brand typeface, self-hosted (CHG-0121)** — Plus Jakarta Sans (SIL OFL 1.1) embedded in the
   QuestPDF renderer (documents + report PDFs now match the SPA) and self-hosted in the frontend, dropping
   the Google Fonts CDN so the app is offline-clean on the VPS. Verified live: report PDF embeds the font;

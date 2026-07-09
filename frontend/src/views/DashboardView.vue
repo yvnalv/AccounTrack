@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { EChartsOption } from 'echarts'
-import VChart from 'vue-echarts'
-import { use } from 'echarts/core'
-import { BarChart, LineChart, PieChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
 import { http, unwrap } from '@/lib/api'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
 import type { DashboardAging, DashboardSummary } from '@/types/api'
@@ -14,7 +9,9 @@ import { useThemeStore } from '@/stores/theme'
 import AppCard from '@/components/ui/AppCard.vue'
 import StatTile from '@/components/ui/StatTile.vue'
 
-use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
+// ECharts (~500 KB) is loaded on demand as its own chunk, so it no longer bloats the dashboard route
+// chunk; the KPI cards render immediately while the charts hydrate into their fixed-height containers.
+const AppChart = defineAsyncComponent(() => import('@/components/ui/AppChart.vue'))
 
 const { t } = useI18n()
 const theme = useThemeStore()
@@ -201,10 +198,14 @@ function barWidth(amount: number, list: { amount: number }[]): string {
       <!-- Trend + expense breakdown -->
       <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <AppCard :title="t('dashboard.trend')" class="lg:col-span-2">
-          <VChart :option="trendOption" autoresize class="h-[300px] w-full" />
+          <div class="h-[300px] w-full">
+            <AppChart :option="trendOption" />
+          </div>
         </AppCard>
         <AppCard :title="t('dashboard.expenseBreakdown')">
-          <VChart v-if="hasExpense" :option="expenseOption" autoresize class="h-[300px] w-full" />
+          <div v-if="hasExpense" class="h-[300px] w-full">
+            <AppChart :option="expenseOption" />
+          </div>
           <p v-else class="grid h-[300px] place-items-center text-sm text-text-muted">{{ t('dashboard.noData') }}</p>
         </AppCard>
       </div>
@@ -212,10 +213,14 @@ function barWidth(amount: number, list: { amount: number }[]): string {
       <!-- Aging -->
       <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <AppCard :title="t('dashboard.receivableAging')">
-          <VChart :option="arAgingOption" autoresize class="h-[260px] w-full" />
+          <div class="h-[260px] w-full">
+            <AppChart :option="arAgingOption" />
+          </div>
         </AppCard>
         <AppCard :title="t('dashboard.payableAging')">
-          <VChart :option="apAgingOption" autoresize class="h-[260px] w-full" />
+          <div class="h-[260px] w-full">
+            <AppChart :option="apAgingOption" />
+          </div>
         </AppCard>
       </div>
 
