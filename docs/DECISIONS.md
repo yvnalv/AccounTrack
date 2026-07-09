@@ -373,10 +373,17 @@ idempotency key is written atomically with the draft (exactly-once). A retried c
 otherwise burn a document sequence number. (The single-module create simply enlists no other context;
 the coordinator only saves contexts that changed.)
 
-**Remaining.** `ReceiveStock` returns a composite `StockMovementResult`, not `Result<Guid>`, so the
-`IdempotencyBehavior` (hardcoded to `Result<Guid>`) does not apply to it; making it exactly-once needs
-the behavior generalized to non-`Guid` results first — a low-priority follow-up (a duplicate manual
-receipt has no GL effect and is reversible).
+**ReceiveStock exactly-once (CHG-0123).** The last gap is closed. The `IdempotencyBehavior` and
+coordinator no longer hardcode `Result<Guid>`: a command result can now expose a single-Guid identity
+via the `IIdempotentResult` / `IIdempotentResult<TSelf>` marker (with a `FromIdempotentId` factory),
+and the machinery stores/replays any `Result<T>` whose `T` is so addressable (cached reflection in
+`IdempotentResults`; the `Result<Guid>` fast path is unchanged). `StockMovementResult` implements the
+marker (`IdempotentId => TransactionId`), `ReceiveStockCommand` is marked `IIdempotentCommand`, and
+`ReceiveStockHandler` commits through `ICrossModuleUnitOfWork`. **Replay is id-only (Option A):** the
+store still persists just the id, so a replay reconstructs the result with the original id and default
+derived fields — a replay is only ever seen when the original response was lost, and the caller's job
+then is to confirm the id, not re-read the running figures. (Manual-receipt *back-dating* stays
+rejected, independent of idempotency — see ADR-0033.)
 
 **Amended (ADR-0032).** With the move to PostgreSQL, `RowVersion` is no longer a store-generated
 SQL Server `rowversion`. It is now a provider-agnostic `bytea` **concurrency token** whose value the

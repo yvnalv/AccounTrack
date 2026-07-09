@@ -1,4 +1,5 @@
 using Accountrack.Application.Abstractions.Context;
+using Accountrack.Application.Abstractions.Idempotency;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Inventory.Application.Abstractions;
 using Accountrack.Inventory.Application.Contracts;
@@ -60,7 +61,7 @@ internal static class StockVariancePosting
 // ---- Receive stock (opening balances / manual goods-in) ----
 public sealed record ReceiveStockCommand(
     Guid ProductId, Guid WarehouseId, decimal Quantity, decimal UnitCost, DateOnly Date, string? Description)
-    : ICommand<StockMovementResult>;
+    : ICommand<StockMovementResult>, IIdempotentCommand;
 
 public sealed class ReceiveStockValidator : AbstractValidator<ReceiveStockCommand>
 {
@@ -78,9 +79,9 @@ public sealed class ReceiveStockHandler : ICommandHandler<ReceiveStockCommand, S
     private readonly IInventoryLedger _ledger;
     private readonly ICompanyDirectory _companies;
     private readonly ITenantContext _tenant;
-    private readonly IInventoryUnitOfWork _uow;
+    private readonly ICrossModuleUnitOfWork _uow;
 
-    public ReceiveStockHandler(IInventoryLedger ledger, ICompanyDirectory companies, ITenantContext tenant, IInventoryUnitOfWork uow)
+    public ReceiveStockHandler(IInventoryLedger ledger, ICompanyDirectory companies, ITenantContext tenant, ICrossModuleUnitOfWork uow)
     {
         _ledger = ledger;
         _companies = companies;
@@ -88,7 +89,13 @@ public sealed class ReceiveStockHandler : ICommandHandler<ReceiveStockCommand, S
         _uow = uow;
     }
 
-    public async Task<Result<StockMovementResult>> Handle(ReceiveStockCommand request, CancellationToken ct)
+    // Commits through the cross-module coordinator so a supplied Idempotency-Key is written in the same
+    // transaction as the stock movement (exactly-once, ADR-0021): a network retry / double-click on the
+    // receive screen never posts the goods-in twice.
+    public Task<Result<StockMovementResult>> Handle(ReceiveStockCommand request, CancellationToken ct) =>
+        _uow.ExecuteAsync(token => ReceiveAsync(request, token), ct);
+
+    private async Task<Result<StockMovementResult>> ReceiveAsync(ReceiveStockCommand request, CancellationToken ct)
     {
         var company = await _companies.GetAsync(_tenant.CompanyId, ct);
         if (company is null)
@@ -96,8 +103,9 @@ public sealed class ReceiveStockHandler : ICommandHandler<ReceiveStockCommand, S
             return Error.NotFound("INVENTORY.COMPANY_NOT_FOUND", "Active company not found.");
         }
 
-        // A manual receipt commits through the module unit of work, not the cross-module transaction, so
-        // it cannot post the GL correction a back-dated recompute needs (ADR-0033). Reject it here.
+        // Manual-receipt back-dating stays out of scope: a back-dated receipt would recompute later
+        // issues' cost and can cascade through a warehouse transfer into another bucket, which the
+        // single-bucket recompute cannot correct (ADR-0033; cross-bucket back-dating is future work).
         if (await _ledger.IsBackDatedAsync(request.ProductId, request.WarehouseId, request.Date, ct))
         {
             return InventoryErrors.BackDatingNotSupported;
@@ -107,13 +115,7 @@ public sealed class ReceiveStockHandler : ICommandHandler<ReceiveStockCommand, S
             request.ProductId, request.WarehouseId, company.FunctionalCurrency, request.Quantity, request.UnitCost,
             request.Date, MovementType.Receipt, MovementSource.Manual, null, request.Description, ct);
 
-        if (result.IsFailure)
-        {
-            return result.Error;
-        }
-
-        await _uow.SaveChangesAsync(ct);
-        return result.Value;
+        return result.IsFailure ? result.Error : result.Value;
     }
 }
 

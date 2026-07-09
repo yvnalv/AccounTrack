@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-07-09 12:00:00 UTC]
+
+CHG-0123 — ReceiveStock exactly-once idempotency (ADR-0021)
+
+- **Closed the last idempotency gap:** manual goods-in (`ReceiveStock` — opening balances / manual
+  receipts) is now exactly-once. A network retry or double-click on the receive screen carrying the
+  same `Idempotency-Key` no longer posts the stock twice (which would corrupt on-hand and the moving
+  average). Previously `ReceiveStock` was the only posting flow left un-addressed because it returns a
+  richer `StockMovementResult`, not `Result<Guid>`.
+- **Generalized the idempotency machinery beyond `Result<Guid>`.** New `IIdempotentResult` /
+  `IIdempotentResult<TSelf>` marker (with a `FromIdempotentId` factory) lets a command result be
+  addressed by a single Guid identity even when the result is a multi-field record. `IdempotencyBehavior`
+  and the cross-module coordinator now store/replay any `Result<T>` whose `T` is addressable, via cached
+  reflection helpers (`IdempotentResults`); the existing `Result<Guid>` fast path is unchanged.
+  `StockMovementResult` implements the marker (`IdempotentId => TransactionId`).
+- **Replay semantics (Option A):** on a replay hit only the id is known, so the reconstructed result
+  carries the original `TransactionId` and defaults the derived cost/running figures. A replay response
+  is only ever observed when the original was lost — the client's job then is to confirm the id, not to
+  re-read the figures. The store schema is unchanged (still id-only).
+- **`ReceiveStockHandler` now commits through `ICrossModuleUnitOfWork`** (like Adjust/Opname), so the
+  key is written in the same transaction as the movement (exactly-once), not on a separate connection.
+  Manual-receipt back-dating remains rejected pending cross-bucket back-dating (see below / ADR-0033).
+- **Tests:** `IdempotencyBehaviorTests` gains rich-result coverage (first-call records the id; replay
+  returns the stored id with other fields defaulted). Suite green.
+
+---
+
 ## [2026-07-09 00:04:33 UTC]
 
 CHG-0122 — Code-split ECharts out of the dashboard chunk (frontend perf)
