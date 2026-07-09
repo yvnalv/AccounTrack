@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-07-09 18:00:00 UTC]
+
+CHG-0127 — Web RBAC enforcement + role-based dashboards + list filters/mobile
+
+- **RBAC enforced in the SPA (defense-in-depth; backend remains the hard wall).** Routes carry a
+  required permission (`meta.permission`, inherited by children); a navigation guard redirects a user
+  lacking it to a new **403 page**. The sidebar, ⌘K command palette, and primary write-action buttons
+  (New Sales/Purchase Order, New Expense + categories, Adjust/Opname) are hidden by the same permission —
+  one source of truth. Previously any signed-in user could reach Accounting/Settings by URL and every
+  role saw every menu. See SECURITY.md §2.
+- **Sign-out fix:** `signOut` now awaits `logout()` before navigating, so the session is cleared first;
+  the guard no longer bounces `/login` back to a stranded, empty-sidebar dashboard.
+- **Two dashboards.** Users with `Accounting.View` (Administrator, Accountant) keep the deep financial
+  dashboard. Everyone else gets a **general, role-based operational dashboard** — Sales / Purchasing /
+  Inventory KPI sections, each gated by that module's View permission and composed from the list
+  endpoints the user can already access. This also fixes the hard error a non-finance login used to hit
+  (the finance summary requires `Accounting.View`).
+- **Filters + mobile across the list menus.** `DataTable` gained a filter slot (responsive toolbar) and
+  per-column `hideOnMobile`. Status filters on Sales Orders / Purchase Orders / Expenses; warehouse
+  filter on Inventory (search was already on every list). Wide tables collapse secondary columns under
+  `sm`; crowded order toolbars wrap and hide secondary cross-nav buttons on mobile; tighter phone padding.
+- Frontend-only (no backend/API/schema change); i18n en/id; `vue-tsc` + `vite build` green; verified in
+  Docker across an admin and a Sales test user. **Follow-up:** dedicated per-module dashboard summary
+  endpoints (server-side aggregation) can replace the client-side list crunching as data grows.
+
+---
+
 ## [2026-07-09 16:00:00 UTC]
 
 CHG-0126 — Exactly-once for manual stock Adjust + Opname (ADR-0021)
