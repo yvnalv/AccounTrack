@@ -31,6 +31,8 @@ interface Command {
   group: string
   icon: Component
   run: () => void
+  /** Target route name for a navigation command; used to gate it by the route's permission. */
+  route?: string
 }
 
 const { isOpen, close, toggle } = useCommandPalette()
@@ -47,33 +49,35 @@ const commands = computed<Command[]>(() => {
   const nav = t('command.navigate')
   const actions = t('command.actions')
   const go = (name: string) => () => router.push({ name })
+  const n = (id: string, label: string, icon: Component, route: string): Command =>
+    ({ id, label, group: nav, icon, run: go(route), route })
   return [
-    { id: 'dashboard', label: t('nav.dashboard'), group: nav, icon: LayoutDashboard, run: go('dashboard') },
-    { id: 'sales', label: t('sales.title'), group: nav, icon: ShoppingCart, run: go('sales') },
-    { id: 'sales-new', label: t('sales.new'), group: nav, icon: Plus, run: go('salesOrderCreate') },
-    { id: 'sales-invoices', label: t('invoiceList.salesTitle'), group: nav, icon: FileText, run: go('salesInvoices') },
-    { id: 'sales-payments', label: `${t('sales.title')} · ${t('paymentList.salesTitle')}`, group: nav, icon: Banknote, run: go('customerPayments') },
-    { id: 'sales-pay', label: t('sales.receivePayment'), group: nav, icon: Wallet, run: go('salesReceivePayment') },
-    { id: 'purchasing', label: t('purchasing.title'), group: nav, icon: Truck, run: go('purchasing') },
-    { id: 'po-new', label: t('purchasing.new'), group: nav, icon: Plus, run: go('purchaseOrderCreate') },
-    { id: 'po-invoices', label: t('invoiceList.purchaseTitle'), group: nav, icon: FileText, run: go('purchaseInvoices') },
-    { id: 'po-payments', label: `${t('purchasing.title')} · ${t('paymentList.purchaseTitle')}`, group: nav, icon: Banknote, run: go('supplierPayments') },
-    { id: 'po-pay', label: t('purchasing.paySupplier'), group: nav, icon: Wallet, run: go('purchasingPaySupplier') },
-    { id: 'inventory', label: t('inventory.title'), group: nav, icon: Boxes, run: go('inventory') },
-    { id: 'inventory-valuation', label: t('inventory.valuation.title'), group: nav, icon: Boxes, run: go('inventoryValuation') },
-    { id: 'acc-tb', label: t('accounting.tabs.trialBalance'), group: nav, icon: BookOpen, run: go('accountingTrialBalance') },
-    { id: 'acc-pl', label: t('accounting.tabs.profitLoss'), group: nav, icon: BookOpen, run: go('accountingProfitLoss') },
-    { id: 'acc-bs', label: t('accounting.tabs.balanceSheet'), group: nav, icon: BookOpen, run: go('accountingBalanceSheet') },
-    { id: 'acc-cf', label: t('accounting.tabs.cashFlow'), group: nav, icon: BookOpen, run: go('accountingCashFlow') },
-    { id: 'acc-gl', label: t('accounting.tabs.generalLedger'), group: nav, icon: BookOpen, run: go('accountingGeneralLedger') },
-    { id: 'acc-vat', label: t('accounting.tabs.vat'), group: nav, icon: BookOpen, run: go('accountingVat') },
-    { id: 'acc-periods', label: t('accounting.tabs.periods'), group: nav, icon: BookOpen, run: go('accountingPeriods') },
-    { id: 'md-products', label: t('masterData.tabs.products'), group: nav, icon: Database, run: go('masterDataProducts') },
-    { id: 'md-customers', label: t('masterData.tabs.customers'), group: nav, icon: Database, run: go('masterDataCustomers') },
-    { id: 'md-suppliers', label: t('masterData.tabs.suppliers'), group: nav, icon: Database, run: go('masterDataSuppliers') },
-    { id: 'md-warehouses', label: t('masterData.tabs.warehouses'), group: nav, icon: Database, run: go('masterDataWarehouses') },
-    { id: 'expenses', label: t('nav.expenses'), group: nav, icon: Wallet, run: go('expenses') },
-    { id: 'settings', label: t('nav.settings'), group: nav, icon: Settings, run: go('settings') },
+    n('dashboard', t('nav.dashboard'), LayoutDashboard, 'dashboard'),
+    n('sales', t('sales.title'), ShoppingCart, 'sales'),
+    n('sales-new', t('sales.new'), Plus, 'salesOrderCreate'),
+    n('sales-invoices', t('invoiceList.salesTitle'), FileText, 'salesInvoices'),
+    n('sales-payments', `${t('sales.title')} · ${t('paymentList.salesTitle')}`, Banknote, 'customerPayments'),
+    n('sales-pay', t('sales.receivePayment'), Wallet, 'salesReceivePayment'),
+    n('purchasing', t('purchasing.title'), Truck, 'purchasing'),
+    n('po-new', t('purchasing.new'), Plus, 'purchaseOrderCreate'),
+    n('po-invoices', t('invoiceList.purchaseTitle'), FileText, 'purchaseInvoices'),
+    n('po-payments', `${t('purchasing.title')} · ${t('paymentList.purchaseTitle')}`, Banknote, 'supplierPayments'),
+    n('po-pay', t('purchasing.paySupplier'), Wallet, 'purchasingPaySupplier'),
+    n('inventory', t('inventory.title'), Boxes, 'inventory'),
+    n('inventory-valuation', t('inventory.valuation.title'), Boxes, 'inventoryValuation'),
+    n('acc-tb', t('accounting.tabs.trialBalance'), BookOpen, 'accountingTrialBalance'),
+    n('acc-pl', t('accounting.tabs.profitLoss'), BookOpen, 'accountingProfitLoss'),
+    n('acc-bs', t('accounting.tabs.balanceSheet'), BookOpen, 'accountingBalanceSheet'),
+    n('acc-cf', t('accounting.tabs.cashFlow'), BookOpen, 'accountingCashFlow'),
+    n('acc-gl', t('accounting.tabs.generalLedger'), BookOpen, 'accountingGeneralLedger'),
+    n('acc-vat', t('accounting.tabs.vat'), BookOpen, 'accountingVat'),
+    n('acc-periods', t('accounting.tabs.periods'), BookOpen, 'accountingPeriods'),
+    n('md-products', t('masterData.tabs.products'), Database, 'masterDataProducts'),
+    n('md-customers', t('masterData.tabs.customers'), Database, 'masterDataCustomers'),
+    n('md-suppliers', t('masterData.tabs.suppliers'), Database, 'masterDataSuppliers'),
+    n('md-warehouses', t('masterData.tabs.warehouses'), Database, 'masterDataWarehouses'),
+    n('expenses', t('nav.expenses'), Wallet, 'expenses'),
+    n('settings', t('nav.settings'), Settings, 'settings'),
     { id: 'theme', label: t('command.toggleTheme'), group: actions, icon: Moon, run: () => theme.toggle() },
     {
       id: 'lang',
@@ -86,13 +90,22 @@ const commands = computed<Command[]>(() => {
         persistLocale(next)
       },
     },
-    { id: 'signout', label: t('common.signOut'), group: actions, icon: LogOut, run: () => { void auth.logout(); router.push({ name: 'login' }) } },
+    { id: 'signout', label: t('common.signOut'), group: actions, icon: LogOut, run: async () => { await auth.logout(); void router.push({ name: 'login' }) } },
   ]
 })
 
+// Hide navigation commands the user can't reach — same permission the router guard + sidebar enforce.
+const visible = computed(() =>
+  commands.value.filter((c) => {
+    if (!c.route) return true
+    const required = router.resolve({ name: c.route }).meta.permission
+    return !required || auth.has(required)
+  }),
+)
+
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
-  return q ? commands.value.filter((c) => c.label.toLowerCase().includes(q) || c.group.toLowerCase().includes(q)) : commands.value
+  return q ? visible.value.filter((c) => c.label.toLowerCase().includes(q) || c.group.toLowerCase().includes(q)) : visible.value
 })
 
 // Show a group header before the first item of each group (over the filtered order).

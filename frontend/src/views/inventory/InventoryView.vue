@@ -17,9 +17,12 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import FormField from '@/components/ui/FormField.vue'
 import type { Column } from '@/components/ui/types'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 const router = useRouter()
+const auth = useAuthStore()
+const canAdjust = computed(() => auth.has('Inventory.Adjust'))
 
 const stock = ref<StockOnHand[]>([])
 const products = ref(new Map<string, string>())
@@ -171,17 +174,20 @@ async function submit() {
       <template #cell-actions="{ row }">
         <div class="flex justify-end gap-1" @click.stop>
           <button
+            v-if="canAdjust"
             class="rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
             @click="open('adjust', row)"
           >
             {{ t('inventory.adjust.action') }}
           </button>
           <button
+            v-if="canAdjust"
             class="rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
             @click="open('opname', row)"
           >
             {{ t('inventory.opname.action') }}
           </button>
+          <span v-if="!canAdjust" class="text-xs text-text-muted">—</span>
         </div>
       </template>
     </DataTable>

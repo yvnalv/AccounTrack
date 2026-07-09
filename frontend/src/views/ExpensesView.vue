@@ -16,9 +16,11 @@ import FormField from '@/components/ui/FormField.vue'
 import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { Column } from '@/components/ui/types'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 const router = useRouter()
+const auth = useAuthStore()
 
 const rows = ref<ExpenseVoucherSummary[]>([])
 const filteredRows = ref<Record<string, unknown>[]>([])
@@ -114,8 +116,8 @@ async function toggleCat(c: ExpenseCategory) {
     <InsightCards :items="insights" />
     <div class="flex justify-end gap-2">
       <ExportMenu :download="(f) => exportTable(columns, filteredRows, 'expense-vouchers', f)" />
-      <AppButton variant="ghost" @click="openCategories"><Tags :size="16" /> {{ t('expenses.categories.manage') }}</AppButton>
-      <AppButton @click="router.push({ name: 'expenseCreate' })"><Plus :size="16" /> {{ t('expenses.new') }}</AppButton>
+      <AppButton v-if="auth.has('Expenses.Manage')" variant="ghost" @click="openCategories"><Tags :size="16" /> {{ t('expenses.categories.manage') }}</AppButton>
+      <AppButton v-if="auth.has('Expenses.Create')" @click="router.push({ name: 'expenseCreate' })"><Plus :size="16" /> {{ t('expenses.new') }}</AppButton>
     </div>
 
     <DataTable
