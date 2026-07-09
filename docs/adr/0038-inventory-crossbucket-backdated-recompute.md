@@ -1,9 +1,17 @@
 # ADR-0038: Cross-bucket (transfer) back-dated recompute — coordinated multi-bucket replay
 
-- **Status:** Proposed (design only — not yet implemented)
+- **Status:** Accepted — **Phase 1 (moving average) implemented** (CHG-0125). Phase 2 (direct transfer
+  back-dating + FIFO cross-bucket) deferred — see *Phasing*.
 - **Date:** 2026-07-09
 - **Deciders:** Product owner, engineering
 - **Tags:** inventory | accounting
+
+> **Implementation refinement.** The design below was drafted with a topological sort of affected
+> buckets plus cycle rejection. The implementation uses a strictly simpler **single global-chronological
+> pass** across all of a product's buckets (§2): because a transfer's `TransferOut` is always recorded
+> before its paired `TransferIn`, one forward pass threads every transfer's cost correctly and a cost
+> cycle is **impossible by construction** — so no topological sort and no cycle handling are needed. The
+> `TransferGroupId` linkage and the rest of the decision stand as written.
 
 ## Context
 
@@ -60,34 +68,48 @@ created after the migration participate in cross-bucket back-dating.
 
 ### 2. Coordinated replay (new orchestration over the existing pure engines)
 
-Keep `MovingAverageReplay` and `FifoReplay` as the pure per-bucket engines; add an orchestration in the
-inventory ledger service:
+Keep `MovingAverageReplay` and `FifoReplay` as the pure single-bucket engines; add a pure **multi-bucket**
+engine (`CrossBucketMovingAverageReplay`) and an orchestration in the inventory ledger service. As
+implemented (Phase 1, moving average):
 
-1. **Discover the affected set.** Starting from the edited bucket, replay it; whenever a later
-   `TransferOut` whose cost changed is found, follow its `TransferGroupId` to the destination bucket and
-   enqueue it. Repeat transitively.
-2. **Order by dependency.** Topologically sort affected buckets so a source is always replayed before
-   its destination (a transfer edge = "source → destination"). **Reject cycles** with a new specific
-   error (`BackDatingCrossesTransferCycle`) — a cost cycle has no stable fixed point in one pass.
-3. **Propagate.** When replaying a destination bucket, the paired `TransferIn`'s inbound unit cost is
-   taken from the **already-replayed** source `TransferOut`'s restated cost (not the stale recorded
-   value). This is the only new coupling; each bucket still runs through the unchanged pure engine.
-4. **One net journal.** Accumulate COGS deltas (later `Sales` issues) and variance deltas (later
-   `Adjustment` issues) across **all** replayed buckets, and post a **single** net delta adjusting
-   journal balanced against Inventory, via the posting-rule engine (ADR-0024), dated at the back-dated
-   movement so the closed-period guard applies. Transfer legs themselves stay GL-neutral.
-5. **Atomicity.** The whole multi-bucket replay + all layer/ledger restatements + the net journal
-   commit in **one** cross-module transaction (ADR-0021), serialized on each affected bucket's
-   RowVersion. `TransferStockHandler` moves onto `ICrossModuleUnitOfWork` so a directly back-dated
-   transfer runs through the same path.
+1. **Global chronological replay.** Load **all** of the product's movements across every warehouse and
+   replay them in one global `(MovementDate, insertion-order)` pass, maintaining per-warehouse
+   running qty/average. A `TransferOut` records its issued **total** cost in a `TransferGroupId → cost`
+   map; the paired `TransferIn` (always later in the pass) reads that map and receives the value
+   (value-preserving, matching the forward transfer path's rounding). One pass therefore threads every
+   transfer's cost from source bucket to destination bucket; because a leg can never depend on a later
+   one, **cost cycles cannot occur** and no topological sort / cycle handling is required.
+2. **One net journal.** Accumulate COGS deltas (later `Sales` issues) and variance deltas (later
+   `Adjustment` issues) across **all** buckets — each row's restated `TotalCost` minus its stored one —
+   and post a **single** net delta adjusting journal balanced against Inventory, via the posting-rule
+   engine (ADR-0024), dated at the back-dated movement so the closed-period guard applies. Transfer legs
+   themselves stay GL-neutral (value threads to the destination).
+3. **Restate in place.** Every ledger row is restated (rebuildable projection, ADR-0014) and each
+   affected bucket is set to its final running state; posted journals stay immutable (ADR-0009).
+4. **Atomicity.** The whole multi-bucket replay + restatements + the net journal commit in **one**
+   cross-module transaction (ADR-0021) — the ledger service already runs inside the caller's
+   coordinator (e.g. `AdjustStockHandler`, goods receipt, delivery).
+5. **Routing.** A back-dated moving-average movement uses the cross-bucket path only when the product
+   has a transfer on or after the movement's date (`HasTransferOnOrAfterAsync`); otherwise the proven
+   single-bucket path (ADR-0033) is unchanged. A legacy **unlinked** transfer (null `TransferGroupId`)
+   or any production movement in the set is rejected (`BackDatingCrossesTransfer`) — the recompute
+   cannot thread a cost it cannot pair.
 
-### 3. FIFO across buckets
+### 3. FIFO across buckets (Phase 2 — deferred)
 
 The FIFO case additionally rebuilds **layers across buckets**: a destination `TransferIn` opens a
 layer at the transfer-out's FIFO-derived unit cost, which is itself the cost consumed from the
-source's oldest layers during the source replay. Layer reconstruction (ADR-0037) runs per bucket in
-dependency order. Because this is the highest-risk part, implementation **may** land moving-average
-first (FIFO cross-bucket still rejected with a clear error) and FIFO second — see Options.
+source's oldest layers during the source replay. Because this is the highest-risk part, it is
+**deferred**: a FIFO back-date that crosses a transfer is still rejected with a clear error, and the
+moving-average phase shipped first.
+
+### Phasing
+
+- **Phase 1 (shipped, CHG-0125):** moving-average — a back-dated movement that **cascades through** an
+  existing forward transfer recomputes across buckets. Forward transfers stamp `TransferGroupId`.
+- **Phase 2 (deferred):** (a) **directly back-dating a transfer document** (inserting both legs before
+  existing movements in two buckets) — `TransferStockHandler` still rejects this; and (b) **FIFO**
+  cross-bucket. Both remain rejected with a clear error until implemented.
 
 ## Options Considered
 
@@ -116,11 +138,11 @@ first (FIFO cross-bucket still rejected with a clear error) and FIFO second — 
   orchestration bug to guard against (ordering, propagation, cycles) in the accounting-integrity core —
   hence heavy testing and, optionally, a phased MA-then-FIFO rollout; cycles and legacy-unlinked
   transfers remain rejected by design.
-- **Follow-ups:** implement in a dedicated PR after this design is accepted; new error(s)
-  `BackDatingCrossesTransferCycle` (and, if phased, a FIFO-cross-bucket-not-yet error); flip
-  `BR-INV-5` / `BR-INV-10`'s "cross-bucket rejected" clause and add a `BR-INV-11` for the cross-bucket
-  cascade + cycle/legacy rejection; update INVENTORY_DESIGN.md §10; production consume/receive inherits
-  the same `TransferGroupId` correlation when Manufacturing lands.
+- **Follow-ups:** Phase 2 — directly back-dating a transfer document, and FIFO cross-bucket layer
+  reconstruction; production consume/receive inherits the same `TransferGroupId` correlation when
+  Manufacturing lands. (`BR-INV-11` added for the cross-bucket cascade + legacy/unlinked rejection; the
+  cycle-rejection error the draft anticipated proved unnecessary — cost cycles cannot occur under the
+  global-chronological pass.)
 
 ## References
 

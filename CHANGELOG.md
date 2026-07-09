@@ -1,5 +1,36 @@
 # Accountrack Changelog
 
+## [2026-07-09 15:00:00 UTC]
+
+CHG-0125 — Cross-bucket back-dated recompute — moving average (ADR-0038 Phase 1)
+
+- Implements the design from CHG-0124/ADR-0038 for **moving-average** products: a back-dated movement
+  that **cascades through a warehouse transfer** now recomputes correctly across buckets instead of
+  being rejected (`BackDatingCrossesTransfer`). Example: a late purchase receipt entered in Warehouse A,
+  where the goods were since transferred to Warehouse B and sold — B's later COGS is now corrected.
+- **New pure engine `CrossBucketMovingAverageReplay`** (Domain): a single **global-chronological** pass
+  over all of a product's movements across every warehouse, threading each transfer's issued total from
+  its source leg to its destination leg via a `TransferGroupId → cost` map (value-preserving, matching
+  the forward transfer path). Because a transfer-out always precedes its transfer-in, one forward pass
+  threads every transfer and **cost cycles are impossible by construction** — no topological sort or
+  cycle handling (a refinement over the ADR-0038 draft; the anticipated cycle error was unnecessary).
+- **Schema:** nullable `TransferGroupId` on `InventoryTransaction` (+ index, EF migration) links a
+  transfer's two legs; `TransferStockHandler` stamps one id on both forward legs. Legacy transfers
+  recorded before the migration are null and stay **rejected** (safe degradation — no heuristic backfill).
+- **Ledger routing:** a back-dated moving-average movement uses the cross-bucket recompute only when the
+  product has a transfer on/after the date (`HasTransferOnOrAfterAsync`); otherwise the proven
+  single-bucket path (ADR-0033) is unchanged. The cross-bucket path restates every ledger row in place,
+  sets each affected bucket's final state, and posts **one** net delta journal (COGS for later Sales,
+  variance for later Adjustments) across all buckets, in the caller's cross-module transaction.
+- **FIFO** keeps its single-bucket layer replay and still rejects cross-bucket; **directly back-dating a
+  transfer document** (dual-leg insertion) is still rejected. Both are **ADR-0038 Phase 2** follow-ups.
+- **Tests:** new `CrossBucketMovingAverageReplayTests` (7 — cascade, A→B→C chain, back-and-forth
+  non-cycle, per-bucket qty, negative-stock reject, unlinked reject) + ledger-service cases (cascade into
+  another warehouse's sale posting a −40 000 COGS journal; legacy-unlinked rejection). Suite green
+  (368 passed / 5 skipped). Docs: ADR-0038 (→ Accepted, Phase 1), DECISIONS, BR-INV-5/10/**11**, STATUS.
+
+---
+
 ## [2026-07-09 12:30:00 UTC]
 
 CHG-0124 — Design: cross-bucket (transfer) back-dated recompute (ADR-0038, Proposed)
