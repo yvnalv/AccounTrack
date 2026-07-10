@@ -19,6 +19,8 @@ Decisions confirmed 2026-06-13 are recorded in [DECISIONS.md](DECISIONS.md).
   (master data → purchasing → sales → expenses → inventory) and how to read the resulting accounting.
 - [PRD.md](PRD.md) — product requirements, MVP scope.
 - [ROADMAP.md](ROADMAP.md) — phased delivery plan.
+- [SUBSCRIPTION_BILLING.md](SUBSCRIPTION_BILLING.md) — monetization: how Accountrack charges its own
+  tenants (plans, payment providers, subscription lifecycle, tax) — *draft for discussion*.
 
 ### Architecture & Integration
 - [ARCHITECTURE.md](ARCHITECTURE.md) — modular monolith, clean architecture, boundaries, pipeline.
