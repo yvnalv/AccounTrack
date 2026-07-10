@@ -214,13 +214,17 @@ public sealed class TransferStockHandler : ICommandHandler<TransferStockCommand,
     private readonly ICompanyDirectory _companies;
     private readonly ITenantContext _tenant;
     private readonly IInventoryUnitOfWork _uow;
+    private readonly ICrossModuleUnitOfWork _crossUow;
 
-    public TransferStockHandler(IInventoryLedger ledger, ICompanyDirectory companies, ITenantContext tenant, IInventoryUnitOfWork uow)
+    public TransferStockHandler(
+        IInventoryLedger ledger, ICompanyDirectory companies, ITenantContext tenant,
+        IInventoryUnitOfWork uow, ICrossModuleUnitOfWork crossUow)
     {
         _ledger = ledger;
         _companies = companies;
         _tenant = tenant;
         _uow = uow;
+        _crossUow = crossUow;
     }
 
     public async Task<Result<TransferStockResult>> Handle(TransferStockCommand request, CancellationToken ct)
@@ -230,14 +234,23 @@ public sealed class TransferStockHandler : ICommandHandler<TransferStockCommand,
             return InventoryErrors.SameWarehouse;
         }
 
-        // Directly back-dating a transfer (inserting both legs before existing movements in two buckets)
-        // is a separate follow-up; reject it here. A back-dated movement that later cascades *through* a
-        // forward transfer is handled by the cross-bucket recompute (ADR-0038). This handler still commits
-        // through the module unit of work — a forward transfer is GL-neutral (cost travels with the goods).
+        // Directly back-dating a transfer inserts both legs before existing movements in two buckets, so the
+        // carried cost and every later issue it disturbs must be recomputed across buckets in one atomic pass
+        // (ADR-0038 Phase 2b). Because that recompute posts a net GL delta journal (later issues' COGS/
+        // variance), it commits through the cross-module coordinator — unlike a forward transfer, which is
+        // GL-neutral and stays on the fast in-order module-only path below.
         if (await _ledger.IsBackDatedAsync(request.ProductId, request.FromWarehouseId, request.Date, ct)
             || await _ledger.IsBackDatedAsync(request.ProductId, request.ToWarehouseId, request.Date, ct))
         {
-            return InventoryErrors.BackDatingNotSupported;
+            return await _crossUow.ExecuteAsync<TransferStockResult>(async token =>
+            {
+                var backDated = await _ledger.TransferBackDatedAsync(
+                    request.ProductId, request.FromWarehouseId, request.ToWarehouseId, request.Quantity, request.Date, token);
+                return backDated.IsFailure
+                    ? backDated.Error
+                    : new TransferStockResult(
+                        backDated.Value.OutTransactionId, backDated.Value.InTransactionId, backDated.Value.UnitCost);
+            }, ct);
         }
 
         // Correlates the two legs so a later back-dated recompute can thread the transfer's cost from the

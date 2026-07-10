@@ -1,8 +1,8 @@
 # ADR-0038: Cross-bucket (transfer) back-dated recompute — coordinated multi-bucket replay
 
-- **Status:** Accepted — **Phase 1 (moving average) implemented** (CHG-0125); **Phase 2a (FIFO
-  cross-bucket) implemented** (CHG-0129). Phase 2b (directly back-dating a transfer document) deferred —
-  see *Phasing*.
+- **Status:** Accepted — **fully implemented**: Phase 1 (moving average, CHG-0125), Phase 2a (FIFO
+  cross-bucket, CHG-0129), Phase 2b (directly back-dating a transfer document, CHG-0130). All inventory
+  back-dating debt is closed.
 - **Date:** 2026-07-09
 - **Deciders:** Product owner, engineering
 - **Tags:** inventory | accounting

@@ -498,52 +498,56 @@ public sealed class InventoryLedgerService : IInventoryLedger
     }
 
     /// <summary>
-    /// Cross-bucket back-dated moving-average recompute (ADR-0038). Inserts the back-dated movement into
-    /// the product's <em>global</em> chronological movement stream (all warehouses), replays it with
-    /// <see cref="CrossBucketMovingAverageReplay"/> — threading each transfer's cost from its source leg
-    /// to its destination — restates every ledger row in place (a rebuildable projection, ADR-0014), sets
-    /// each affected bucket's final state, and posts <em>one</em> net adjusting journal for the COGS
-    /// (later <c>Sales</c> issues) and variance (later <c>Adjustment</c> issues) difference across all
-    /// buckets. Transfers are GL-neutral in themselves (value threads to the destination). A legacy
-    /// unlinked transfer, or any production movement, cannot be threaded and is rejected.
+    /// Cross-bucket back-dated moving-average recompute (ADR-0038): builds the single back-dated movement
+    /// and applies it across buckets via <see cref="ApplyCrossBucketMovingAverageAsync"/>.
     /// </summary>
     private async Task<Result<StockMovementResult>> RecomputeAcrossBucketsAsync(
         StockCostBucket originBucket, Guid productId, Guid warehouseId, MovementType type, decimal quantity,
         decimal unitCost, DateOnly date, MovementSource source, Guid? sourceDocumentId, string? description,
         Guid? transferGroupId, bool allowNegative, CancellationToken ct)
     {
-        var existing = await _transactions.ListForProductChronologicalAsync(productId, ct);
-
-        // Every transfer leg must be linked (so its cost can be threaded) and there must be no production
-        // movements (out of scope) — otherwise the cross-bucket replay cannot be trusted, so reject.
-        foreach (var t in existing)
-        {
-            if ((t.Type is MovementType.TransferOut or MovementType.TransferIn) && t.TransferGroupId is null)
-            {
-                return InventoryErrors.BackDatingCrossesTransfer;
-            }
-
-            if (t.Type is MovementType.ProductionConsume or MovementType.ProductionReceive)
-            {
-                return InventoryErrors.BackDatingCrossesTransfer;
-            }
-        }
-
         var isOutbound = CrossBucketMovingAverageReplay.IsOutbound(type);
         var newTxn = InventoryTransaction.Record(
             productId, warehouseId, type, quantity, isOutbound ? 0m : unitCost, 0m, originBucket.Currency,
             date, source, sourceDocumentId, description, 0m, 0m, transferGroupId);
 
-        // Global chronological order; the new movement sorts last within its own date, and a transfer-in
-        // never precedes its paired transfer-out (they can share a CreatedAt) so the cost threads forward.
-        var ordered = existing
-            .Select(t => (Txn: t, t.MovementDate, Seq: t.CreatedAt))
-            .Append((Txn: newTxn, MovementDate: date, Seq: DateTime.MaxValue))
-            .OrderBy(x => x.MovementDate)
-            .ThenBy(x => x.Seq)
-            .ThenBy(x => x.Txn.Type == MovementType.TransferIn ? 1 : 0)
-            .Select(x => x.Txn)
-            .ToList();
+        var applied = await ApplyCrossBucketMovingAverageAsync(
+            productId, warehouseId, date, new[] { newTxn }, allowNegative, ct);
+        if (applied.IsFailure)
+        {
+            return applied.Error;
+        }
+
+        var line = applied.Value[newTxn.Id];
+        return new StockMovementResult(newTxn.Id, line.TotalCost, line.RunningQtyAfter, line.RunningAvgCostAfter);
+    }
+
+    /// <summary>
+    /// The shared cross-bucket <em>moving-average</em> apply (ADR-0038). Inserts <paramref name="newTxns"/>
+    /// (one for a back-dated movement; the linked out/in pair for a back-dated transfer document) into the
+    /// product's <em>global</em> chronological stream (all warehouses), replays it with
+    /// <see cref="CrossBucketMovingAverageReplay"/> — threading each transfer's cost from its source leg to
+    /// its destination — restates every existing ledger row in place (a rebuildable projection, ADR-0014),
+    /// adds the new rows, sets each affected bucket's final state, and posts <em>one</em> net adjusting
+    /// journal for the COGS (later <c>Sales</c>) and variance (later <c>Adjustment</c>) difference across
+    /// all buckets. Returns each replayed line by transaction id. A legacy unlinked transfer, or any
+    /// production movement, cannot be threaded and is rejected.
+    /// </summary>
+    private async Task<Result<IReadOnlyDictionary<Guid, CrossBucketMovingAverageReplay.Line>>>
+        ApplyCrossBucketMovingAverageAsync(
+            Guid productId, Guid journalWarehouseId, DateOnly date,
+            IReadOnlyList<InventoryTransaction> newTxns, bool allowNegative, CancellationToken ct)
+    {
+        var existing = await _transactions.ListForProductChronologicalAsync(productId, ct);
+
+        var rejection = ValidateCrossBucketEligible(existing);
+        if (rejection is not null)
+        {
+            return rejection;
+        }
+
+        var newSet = new HashSet<InventoryTransaction>(newTxns);
+        var ordered = OrderForCrossBucketReplay(existing, newTxns, date);
 
         var input = ordered
             .Select(t => new CrossBucketMovingAverageReplay.Movement(
@@ -563,11 +567,11 @@ public sealed class InventoryLedgerService : IInventoryLedger
 
         var lineById = lines.ToDictionary(l => l.TransactionId);
 
-        // Accumulate the GL correction for already-posted later issues across all buckets.
+        // Restate every existing row and accumulate the GL correction for already-posted later issues.
         decimal cogsDelta = 0m, varianceDelta = 0m;
         foreach (var t in ordered)
         {
-            if (ReferenceEquals(t, newTxn))
+            if (newSet.Contains(t))
             {
                 continue;
             }
@@ -575,80 +579,43 @@ public sealed class InventoryLedgerService : IInventoryLedger
             var line = lineById[t.Id];
             if (line.IsOutbound)
             {
-                var delta = line.TotalCost - t.TotalCost;
-                if (delta != 0m)
+                var delta = ClassifyOutboundDelta(t, line.TotalCost, ref cogsDelta, ref varianceDelta);
+                if (delta is not null)
                 {
-                    switch (t.Source)
-                    {
-                        case MovementSource.Sales:
-                            cogsDelta += delta;
-                            break;
-                        case MovementSource.Adjustment:
-                            varianceDelta += delta;
-                            break;
-                        case MovementSource.Transfer:
-                            break; // GL-neutral; the value change is threaded into the destination bucket
-                        default:
-                            return InventoryErrors.BackDatingCrossesTransfer; // unknown outbound source
-                    }
+                    return delta;
                 }
             }
 
             t.Restate(line.UnitCost, line.TotalCost, line.RunningQtyAfter, line.RunningAvgCostAfter);
         }
 
-        var newLine = lineById[newTxn.Id];
-        newTxn.Restate(newLine.UnitCost, newLine.TotalCost, newLine.RunningQtyAfter, newLine.RunningAvgCostAfter);
-        _transactions.Add(newTxn);
-
-        // Set each affected bucket to its final running state (the last line for its warehouse).
-        var buckets = (await _buckets.ListForProductAsync(productId, ct)).ToDictionary(b => b.WarehouseId);
-        var lastByWarehouse = new Dictionary<Guid, CrossBucketMovingAverageReplay.Line>();
-        foreach (var line in lines)
+        foreach (var t in newTxns)
         {
-            lastByWarehouse[line.WarehouseId] = line; // lines are in order, so the last one wins per warehouse
+            var line = lineById[t.Id];
+            t.Restate(line.UnitCost, line.TotalCost, line.RunningQtyAfter, line.RunningAvgCostAfter);
+            _transactions.Add(t);
         }
 
-        foreach (var (wh, line) in lastByWarehouse)
-        {
-            if (buckets.TryGetValue(wh, out var b))
-            {
-                b.SetState(line.RunningQtyAfter, line.RunningAvgCostAfter);
-            }
-        }
+        await SetFinalBucketStatesAsync(
+            productId, lines.Select(l => (l.WarehouseId, l.RunningQtyAfter, l.RunningAvgCostAfter)).ToList(), ct);
 
         if (cogsDelta != 0m || varianceDelta != 0m)
         {
-            var posted = await PostRecomputeDeltaAsync(warehouseId, date, newTxn.Id, cogsDelta, varianceDelta, ct);
+            var posted = await PostRecomputeDeltaAsync(journalWarehouseId, date, newTxns[0].Id, cogsDelta, varianceDelta, ct);
             if (posted.IsFailure)
             {
                 return posted.Error;
             }
         }
 
-        return new StockMovementResult(newTxn.Id, newLine.TotalCost, newLine.RunningQtyAfter, newLine.RunningAvgCostAfter);
+        return Result<IReadOnlyDictionary<Guid, CrossBucketMovingAverageReplay.Line>>.Of(lineById);
     }
 
-    /// <summary>
-    /// Cross-bucket back-dated <em>FIFO</em> recompute (ADR-0038) — the FIFO analogue of
-    /// <see cref="RecomputeAcrossBucketsAsync"/>. Inserts the back-dated movement into the product's global
-    /// chronological stream (all warehouses), replays it with <see cref="CrossBucketFifoReplay"/> — consuming
-    /// each bucket's oldest layers first and threading a transfer's cost from its source leg into the single
-    /// blended layer its destination leg opens — restates every ledger row in place, rebuilds every cost
-    /// layer's remaining quantity across all affected buckets, sets each bucket's final state, and posts
-    /// <em>one</em> net adjusting journal for the COGS (later <c>Sales</c>) and variance (later
-    /// <c>Adjustment</c>) difference. Transfers are GL-neutral (value threads to the destination). A legacy
-    /// unlinked transfer, or any production movement, cannot be threaded and is rejected.
-    /// </summary>
-    private async Task<Result<StockMovementResult>> RecomputeAcrossBucketsFifoAsync(
-        StockCostBucket originBucket, Guid productId, Guid warehouseId, MovementType type, decimal quantity,
-        decimal unitCost, DateOnly date, MovementSource source, Guid? sourceDocumentId, string? description,
-        Guid? transferGroupId, bool allowNegative, CancellationToken ct)
+    /// <summary>Rejects a cross-bucket recompute whose stream contains a leg the replay cannot thread: a
+    /// legacy <em>unlinked</em> transfer, or any production movement (out of scope). Returns the error, or
+    /// null when eligible.</summary>
+    private static Error? ValidateCrossBucketEligible(IReadOnlyList<InventoryTransaction> existing)
     {
-        var existing = await _transactions.ListForProductChronologicalAsync(productId, ct);
-
-        // Every transfer leg must be linked (so its cost can be threaded) and there must be no production
-        // movements (out of scope) — otherwise the cross-bucket replay cannot be trusted, so reject.
         foreach (var t in existing)
         {
             if ((t.Type is MovementType.TransferOut or MovementType.TransferIn) && t.TransferGroupId is null)
@@ -662,21 +629,123 @@ public sealed class InventoryLedgerService : IInventoryLedger
             }
         }
 
-        var isOutbound = CrossBucketFifoReplay.IsOutbound(type);
-        var newTxn = InventoryTransaction.Record(
-            productId, warehouseId, type, quantity, isOutbound ? 0m : unitCost, 0m, originBucket.Currency,
-            date, source, sourceDocumentId, description, 0m, 0m, transferGroupId);
+        return null;
+    }
 
-        // Global chronological order; the new movement sorts last within its own date, and a transfer-in
-        // never precedes its paired transfer-out (they can share a CreatedAt) so the cost threads forward.
-        var ordered = existing
+    /// <summary>Global chronological order for a cross-bucket replay: existing movements by (date, insertion
+    /// order), then the new movements last within <paramref name="date"/>, with a transfer-in ordered after
+    /// its paired transfer-out so the cost threads forward.</summary>
+    private static List<InventoryTransaction> OrderForCrossBucketReplay(
+        IReadOnlyList<InventoryTransaction> existing, IReadOnlyList<InventoryTransaction> newTxns, DateOnly date) =>
+        existing
             .Select(t => (Txn: t, t.MovementDate, Seq: t.CreatedAt))
-            .Append((Txn: newTxn, MovementDate: date, Seq: DateTime.MaxValue))
+            .Concat(newTxns.Select(t => (Txn: t, MovementDate: date, Seq: DateTime.MaxValue)))
             .OrderBy(x => x.MovementDate)
             .ThenBy(x => x.Seq)
             .ThenBy(x => x.Txn.Type == MovementType.TransferIn ? 1 : 0)
             .Select(x => x.Txn)
             .ToList();
+
+    /// <summary>Classifies an already-posted later issue's cost change onto the COGS (Sales) or variance
+    /// (Adjustment) accumulator; a transfer leg is GL-neutral. Returns an error for an unknown outbound
+    /// source, else null.</summary>
+    private static Error? ClassifyOutboundDelta(
+        InventoryTransaction t, decimal newTotalCost, ref decimal cogsDelta, ref decimal varianceDelta)
+    {
+        var delta = newTotalCost - t.TotalCost;
+        if (delta == 0m)
+        {
+            return null;
+        }
+
+        switch (t.Source)
+        {
+            case MovementSource.Sales:
+                cogsDelta += delta;
+                return null;
+            case MovementSource.Adjustment:
+                varianceDelta += delta;
+                return null;
+            case MovementSource.Transfer:
+                return null; // GL-neutral; the value change threads into the destination bucket
+            default:
+                return InventoryErrors.BackDatingCrossesTransfer;
+        }
+    }
+
+    /// <summary>Sets each affected bucket to its final running quantity/average — the last replayed line for
+    /// its warehouse (lines arrive in global order, so the last one per warehouse wins).</summary>
+    private async Task SetFinalBucketStatesAsync(
+        Guid productId, IReadOnlyList<(Guid WarehouseId, decimal Qty, decimal Avg)> lines, CancellationToken ct)
+    {
+        var buckets = (await _buckets.ListForProductAsync(productId, ct)).ToDictionary(b => b.WarehouseId);
+        var lastByWarehouse = new Dictionary<Guid, (decimal Qty, decimal Avg)>();
+        foreach (var l in lines)
+        {
+            lastByWarehouse[l.WarehouseId] = (l.Qty, l.Avg);
+        }
+
+        foreach (var (wh, state) in lastByWarehouse)
+        {
+            if (buckets.TryGetValue(wh, out var b))
+            {
+                b.SetState(state.Qty, state.Avg);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Cross-bucket back-dated <em>FIFO</em> recompute (ADR-0038): builds the single back-dated movement and
+    /// applies it across buckets via <see cref="ApplyCrossBucketFifoAsync"/>.
+    /// </summary>
+    private async Task<Result<StockMovementResult>> RecomputeAcrossBucketsFifoAsync(
+        StockCostBucket originBucket, Guid productId, Guid warehouseId, MovementType type, decimal quantity,
+        decimal unitCost, DateOnly date, MovementSource source, Guid? sourceDocumentId, string? description,
+        Guid? transferGroupId, bool allowNegative, CancellationToken ct)
+    {
+        var isOutbound = CrossBucketFifoReplay.IsOutbound(type);
+        var newTxn = InventoryTransaction.Record(
+            productId, warehouseId, type, quantity, isOutbound ? 0m : unitCost, 0m, originBucket.Currency,
+            date, source, sourceDocumentId, description, 0m, 0m, transferGroupId);
+
+        var applied = await ApplyCrossBucketFifoAsync(
+            productId, warehouseId, date, new[] { newTxn }, allowNegative, ct);
+        if (applied.IsFailure)
+        {
+            return applied.Error;
+        }
+
+        var line = applied.Value[newTxn.Id];
+        return new StockMovementResult(newTxn.Id, line.TotalCost, line.RunningQtyAfter, line.RunningAvgCostAfter);
+    }
+
+    /// <summary>
+    /// The shared cross-bucket <em>FIFO</em> apply (ADR-0038) — the FIFO analogue of
+    /// <see cref="ApplyCrossBucketMovingAverageAsync"/>. Inserts <paramref name="newTxns"/> into the
+    /// product's global chronological stream, replays with <see cref="CrossBucketFifoReplay"/> — consuming
+    /// each bucket's oldest layers first and threading a transfer's cost from its source leg into the single
+    /// blended layer its destination leg opens — restates every existing ledger row in place, rebuilds every
+    /// cost layer's remaining quantity across all affected buckets (a new inbound movement opens a layer),
+    /// adds the new rows, sets each bucket's final state, and posts <em>one</em> net adjusting journal.
+    /// Returns each replayed line by transaction id. A legacy unlinked transfer, or any production movement,
+    /// is rejected. A receipt layer's unit cost is an immutable fact (only its remainder is restated); a
+    /// transfer-in layer's cost is derived from the (now-restated) source, so both are rebuilt.
+    /// </summary>
+    private async Task<Result<IReadOnlyDictionary<Guid, CrossBucketFifoReplay.Line>>>
+        ApplyCrossBucketFifoAsync(
+            Guid productId, Guid journalWarehouseId, DateOnly date,
+            IReadOnlyList<InventoryTransaction> newTxns, bool allowNegative, CancellationToken ct)
+    {
+        var existing = await _transactions.ListForProductChronologicalAsync(productId, ct);
+
+        var rejection = ValidateCrossBucketEligible(existing);
+        if (rejection is not null)
+        {
+            return rejection;
+        }
+
+        var newSet = new HashSet<InventoryTransaction>(newTxns);
+        var ordered = OrderForCrossBucketReplay(existing, newTxns, date);
 
         var input = ordered
             .Select(t => new CrossBucketFifoReplay.Movement(
@@ -696,11 +765,10 @@ public sealed class InventoryLedgerService : IInventoryLedger
 
         var lineById = lines.ToDictionary(l => l.TransactionId);
 
-        // Accumulate the GL correction for already-posted later issues across all buckets.
         decimal cogsDelta = 0m, varianceDelta = 0m;
         foreach (var t in ordered)
         {
-            if (ReferenceEquals(t, newTxn))
+            if (newSet.Contains(t))
             {
                 continue;
             }
@@ -708,53 +776,36 @@ public sealed class InventoryLedgerService : IInventoryLedger
             var line = lineById[t.Id];
             if (line.IsOutbound)
             {
-                var delta = line.TotalCost - t.TotalCost;
-                if (delta != 0m)
+                var delta = ClassifyOutboundDelta(t, line.TotalCost, ref cogsDelta, ref varianceDelta);
+                if (delta is not null)
                 {
-                    switch (t.Source)
-                    {
-                        case MovementSource.Sales:
-                            cogsDelta += delta;
-                            break;
-                        case MovementSource.Adjustment:
-                            varianceDelta += delta;
-                            break;
-                        case MovementSource.Transfer:
-                            break; // GL-neutral; the value change is threaded into the destination bucket
-                        default:
-                            return InventoryErrors.BackDatingCrossesTransfer; // unknown outbound source
-                    }
+                    return delta;
                 }
             }
 
             t.Restate(line.UnitCost, line.TotalCost, line.RunningQtyAfter, line.RunningAvgCostAfter);
         }
 
-        var newLine = lineById[newTxn.Id];
-        newTxn.Restate(newLine.UnitCost, newLine.TotalCost, newLine.RunningQtyAfter, newLine.RunningAvgCostAfter);
-        _transactions.Add(newTxn);
+        foreach (var t in newTxns)
+        {
+            var line = lineById[t.Id];
+            t.Restate(line.UnitCost, line.TotalCost, line.RunningQtyAfter, line.RunningAvgCostAfter);
+            _transactions.Add(t);
+        }
 
-        // Rebuild every layer across all affected buckets from the replay. Existing inbound movements
-        // (receipts and transfer-ins) each own a layer; a back-dated inbound opens a new one. A receipt
-        // layer's unit cost is an immutable fact so only its remainder is restated; a transfer-in layer's
-        // cost is derived from the (now-restated) source, so both its cost and remainder are rebuilt.
+        // Rebuild every existing layer's remainder (transfer-in layers also have their derived cost rebuilt),
+        // then open a fresh layer for each new inbound movement (a back-dated receipt or a transfer-in).
+        var newIds = newTxns.Select(t => t.Id).ToHashSet();
         var existingLayers = await _layers.ListAllForProductAsync(productId, ct);
         var layerByTxn = existingLayers.ToDictionary(l => l.SourceTransactionId);
         foreach (var line in lines)
         {
-            if (line.IsOutbound)
+            if (line.IsOutbound || newIds.Contains(line.TransactionId))
             {
                 continue;
             }
 
-            if (line.TransactionId == newTxn.Id)
-            {
-                var newLayer = StockCostLayer.Create(
-                    productId, warehouseId, originBucket.Currency, newTxn.Id, date, unitCost, quantity);
-                newLayer.Restate(line.LayerRemainingQty);
-                _layers.Add(newLayer);
-            }
-            else if (layerByTxn.TryGetValue(line.TransactionId, out var layer))
+            if (layerByTxn.TryGetValue(line.TransactionId, out var layer))
             {
                 if (line.Type == MovementType.TransferIn)
                 {
@@ -767,31 +818,83 @@ public sealed class InventoryLedgerService : IInventoryLedger
             }
         }
 
-        // Set each affected bucket to its final running state (the last line for its warehouse).
-        var buckets = (await _buckets.ListForProductAsync(productId, ct)).ToDictionary(b => b.WarehouseId);
-        var lastByWarehouse = new Dictionary<Guid, CrossBucketFifoReplay.Line>();
-        foreach (var line in lines)
+        foreach (var t in newTxns)
         {
-            lastByWarehouse[line.WarehouseId] = line; // lines are in order, so the last one wins per warehouse
+            if (CrossBucketFifoReplay.IsOutbound(t.Type))
+            {
+                continue;
+            }
+
+            var line = lineById[t.Id];
+            var newLayer = StockCostLayer.Create(productId, t.WarehouseId, t.Currency, t.Id, date, line.UnitCost, t.Quantity);
+            newLayer.Restate(line.LayerRemainingQty);
+            _layers.Add(newLayer);
         }
 
-        foreach (var (wh, line) in lastByWarehouse)
-        {
-            if (buckets.TryGetValue(wh, out var b))
-            {
-                b.SetState(line.RunningQtyAfter, line.RunningAvgCostAfter);
-            }
-        }
+        await SetFinalBucketStatesAsync(
+            productId, lines.Select(l => (l.WarehouseId, l.RunningQtyAfter, l.RunningAvgCostAfter)).ToList(), ct);
 
         if (cogsDelta != 0m || varianceDelta != 0m)
         {
-            var posted = await PostRecomputeDeltaAsync(warehouseId, date, newTxn.Id, cogsDelta, varianceDelta, ct);
+            var posted = await PostRecomputeDeltaAsync(journalWarehouseId, date, newTxns[0].Id, cogsDelta, varianceDelta, ct);
             if (posted.IsFailure)
             {
                 return posted.Error;
             }
         }
 
-        return new StockMovementResult(newTxn.Id, newLine.TotalCost, newLine.RunningQtyAfter, newLine.RunningAvgCostAfter);
+        return Result<IReadOnlyDictionary<Guid, CrossBucketFifoReplay.Line>>.Of(lineById);
+    }
+
+    /// <summary>
+    /// Cross-bucket recompute of a directly back-dated <em>transfer document</em> (ADR-0038 Phase 2b):
+    /// inserts BOTH legs (a linked <see cref="MovementType.TransferOut"/>/<c>TransferIn</c> pair) into the
+    /// product's global stream and replays across buckets in one atomic pass — so the cost the back-dated
+    /// transfer carries, and every later issue in either bucket it disturbs, is recomputed and a single net
+    /// journal posted. Routes to the FIFO or moving-average engine by the product's costing method; the
+    /// negative-stock policy and functional currency are resolved here (as the forward transfer path does).
+    /// </summary>
+    public async Task<Result<TransferMovementResult>> TransferBackDatedAsync(
+        Guid productId, Guid fromWarehouseId, Guid toWarehouseId, decimal quantity, DateOnly date, CancellationToken ct)
+    {
+        if (quantity <= 0)
+        {
+            return InventoryErrors.InvalidQuantity;
+        }
+
+        var allowNegative = await _companies.GetBoolSettingAsync(
+            _tenant.CompanyId, CompanySettingKeys.AllowNegativeStock, false, ct);
+        var company = await _companies.GetAsync(_tenant.CompanyId, ct);
+        var currency = company?.FunctionalCurrency ?? "XXX";
+
+        var sourceBucket = await _buckets.GetAsync(productId, fromWarehouseId, ct);
+        var method = sourceBucket?.CostingMethod ?? await _masterData.GetCostingMethodAsync(productId, ct);
+
+        // One TransferGroupId links the legs so the replay threads the carried cost (ADR-0038).
+        var group = Guid.NewGuid();
+        var newOut = InventoryTransaction.Record(
+            productId, fromWarehouseId, MovementType.TransferOut, quantity, 0m, 0m, currency,
+            date, MovementSource.Transfer, null, "Transfer out", 0m, 0m, group);
+        var newIn = InventoryTransaction.Record(
+            productId, toWarehouseId, MovementType.TransferIn, quantity, 0m, 0m, currency,
+            date, MovementSource.Transfer, null, "Transfer in", 0m, 0m, group);
+        var newTxns = new[] { newOut, newIn };
+
+        decimal outTotal;
+        if (method == CostingMethod.Fifo)
+        {
+            var applied = await ApplyCrossBucketFifoAsync(productId, fromWarehouseId, date, newTxns, allowNegative, ct);
+            if (applied.IsFailure) return applied.Error;
+            outTotal = applied.Value[newOut.Id].TotalCost;
+        }
+        else
+        {
+            var applied = await ApplyCrossBucketMovingAverageAsync(productId, fromWarehouseId, date, newTxns, allowNegative, ct);
+            if (applied.IsFailure) return applied.Error;
+            outTotal = applied.Value[newOut.Id].TotalCost;
+        }
+
+        var unitCost = quantity == 0m ? 0m : outTotal / quantity;
+        return new TransferMovementResult(newOut.Id, newIn.Id, unitCost);
     }
 }

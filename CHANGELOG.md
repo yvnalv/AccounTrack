@@ -1,5 +1,39 @@
 # Accountrack Changelog
 
+## [2026-07-10 12:41:59 UTC]
+
+CHG-0130 — Inventory: back-dating a transfer document (ADR-0038 Phase 2b — Phase 2 complete)
+
+- **Directly back-dating a warehouse transfer** is now supported for both costing methods, closing the
+  last inventory back-dating debt. `TransferStockHandler` previously rejected a back-dated transfer
+  (`INVENTORY.BACKDATING_NOT_SUPPORTED`); it now inserts **both legs** (a linked `TransferOut`/`TransferIn`
+  pair) into the product's global movement stream and recomputes across buckets in **one atomic pass**, so
+  the cost the back-dated transfer carries — and every later issue in either bucket it disturbs — is
+  recomputed and a single net journal posted.
+- **New ledger operation `IInventoryLedger.TransferBackDatedAsync`** (+ `TransferMovementResult`): resolves
+  the negative-stock policy and functional currency (as the forward path does), links the legs with one
+  `TransferGroupId`, and routes to the FIFO or moving-average engine by the product's costing method.
+- **Commits cross-module.** Because the recompute posts a net GL delta journal (later issues' COGS/
+  variance), the back-dated branch commits through `ICrossModuleUnitOfWork` (the forward, GL-neutral
+  transfer stays on the module-only fast path).
+- **Refactor (no behaviour change to Phase 1/2a):** the two cross-bucket recompute methods were extracted
+  into shared `ApplyCrossBucketMovingAverageAsync` / `ApplyCrossBucketFifoAsync` cores that accept a **list**
+  of new movements (one for a back-dated movement; the out/in pair for a back-dated transfer), plus small
+  shared helpers (`ValidateCrossBucketEligible`, `OrderForCrossBucketReplay`, `ClassifyOutboundDelta`,
+  `SetFinalBucketStatesAsync`). Legacy unlinked transfers and production movements are still rejected.
+- **Tests:** +3 `InventoryLedgerService` tests — moving-average transfer back-dating repricing a later
+  destination sale (+32 000 COGS), FIFO transfer back-dating repricing a later source sale (+80 000 COGS,
+  oldest layer carried), and legacy-unlinked rejection. Full suite green (**388 passed / 5 skipped**).
+- **Verified in Docker (dev stack)** — see below. No schema change (reuses `TransferGroupId` from CHG-0125);
+  no API-contract change (the `POST /api/v1/stock/transfers` request/response are unchanged; a back-dated
+  date now succeeds instead of 400).
+- **ADR-0038 Phase 2 is now complete** (2a FIFO cross-bucket CHG-0129 + 2b transfer document CHG-0130).
+  **All inventory back-dating debt is closed.** Docs: DECISIONS.md ADR-0038, STATUS.md, MODULES.md updated.
+- Note: there is still no UI to *create* a transfer (backend-only `POST /stock/transfers`); a transfer
+  screen is planned in the UI/UX polish thread.
+
+---
+
 ## [2026-07-10 08:52:08 UTC]
 
 CHG-0129 — Inventory: cross-bucket back-dated FIFO recompute (ADR-0038 Phase 2a)
