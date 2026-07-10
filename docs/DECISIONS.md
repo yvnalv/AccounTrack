@@ -775,7 +775,7 @@ back-dating stays rejected pending ADR-0038).
 
 ## ADR-0038: Cross-bucket (transfer) back-dated recompute — coordinated multi-bucket replay
 
-- **Status:** Accepted — **Phase 1 (moving average) implemented (CHG-0125)**; **Phase 2a (FIFO cross-bucket) implemented (CHG-0129)**; Phase 2b (directly back-dating a transfer document) deferred — **Date:** 2026-07-09 · full text: [adr/0038-inventory-crossbucket-backdated-recompute.md](adr/0038-inventory-crossbucket-backdated-recompute.md)
+- **Status:** Accepted — **fully implemented**: Phase 1 (moving average, CHG-0125), Phase 2a (FIFO cross-bucket, CHG-0129), Phase 2b (directly back-dating a transfer document, CHG-0130). All inventory back-dating debt closed. — **Date:** 2026-07-09 · full text: [adr/0038-inventory-crossbucket-backdated-recompute.md](adr/0038-inventory-crossbucket-backdated-recompute.md)
 
 **Context.** Single-bucket back-dated recompute exists for moving average (ADR-0033) and FIFO
 (ADR-0037), but both **reject** a back-date whose later movements include a **transfer** — the last
@@ -801,9 +801,14 @@ always precedes its transfer-in, so cost cycles cannot occur (the anticipated
 (oldest consumed first) and collapses each transfer's consumed source layers into a single blended
 destination layer at `issuedTotal / qty` — exactly as the forward transfer path does. Because a
 transfer-in layer's cost is derived from the source, a restated source also rebuilds that layer's cost
-(`StockCostLayer.RestateCost`), not just its remainder. (3) **Phase 2b deferred:** directly back-dating a
-transfer document (dual-leg insertion) — `TransferStockHandler` still rejects it — rejected with a clear
-error meanwhile.
+(`StockCostLayer.RestateCost`), not just its remainder. **Phase 2b (directly back-dating a transfer
+document, CHG-0130):** `TransferStockHandler` now inserts both legs (a linked `TransferOut`/`TransferIn`
+pair) into the global stream and runs the same cross-bucket replay in one atomic pass via a new
+`IInventoryLedger.TransferBackDatedAsync`; the two single-insertion recompute methods were refactored into
+shared apply-cores accepting a list of new movements (one, or the transfer pair). Because the recompute
+posts a GL delta journal, the back-dated transfer commits through `ICrossModuleUnitOfWork` (the forward,
+GL-neutral transfer stays module-only). **ADR-0038 is now fully implemented; all inventory back-dating
+debt is closed.**
 
 **Options.** (A) coordinated multi-bucket replay + `TransferGroupId` ← chosen; (B) reverse-and-repost
 across buckets (ledger/GL noise); (C) keep cross-bucket rejected (real correction gap); (D) reuse

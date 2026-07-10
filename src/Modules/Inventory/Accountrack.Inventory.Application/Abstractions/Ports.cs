@@ -89,6 +89,10 @@ public sealed record StockMovementResult(
     public static StockMovementResult FromIdempotentId(Guid id) => new(id, 0m, 0m, 0m);
 }
 
+/// <summary>The two ledger entries a warehouse transfer writes, plus the unit cost carried to the
+/// destination — returned by the back-dated transfer path (ADR-0038 Phase 2b).</summary>
+public sealed record TransferMovementResult(Guid OutTransactionId, Guid InTransactionId, decimal UnitCost);
+
 /// <summary>
 /// The stock ledger: applies receipts and issues, maintaining the moving-average bucket and writing
 /// the immutable ledger entry (ADR-0014/0015). Does not save — the calling use case owns the unit
@@ -111,4 +115,10 @@ public interface IInventoryLedger
     /// <summary>True if <paramref name="date"/> falls before the bucket's latest movement — i.e. this
     /// movement is back-dated and (for supported paths) triggers a moving-average recompute (ADR-0033).</summary>
     Task<bool> IsBackDatedAsync(Guid productId, Guid warehouseId, DateOnly date, CancellationToken ct);
+
+    /// <summary>Records a directly back-dated warehouse transfer (both legs) and recomputes across buckets
+    /// in one pass (ADR-0038 Phase 2b). Save-less: enlists in the caller's unit of work. Rejected for a
+    /// stream with a legacy unlinked transfer or a production movement.</summary>
+    Task<Result<TransferMovementResult>> TransferBackDatedAsync(
+        Guid productId, Guid fromWarehouseId, Guid toWarehouseId, decimal quantity, DateOnly date, CancellationToken ct);
 }

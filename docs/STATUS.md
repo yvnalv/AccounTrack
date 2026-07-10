@@ -8,14 +8,20 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-10 (last change **CHG-0129**)
-- **Build:** green — backend `net8.0` (385 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-07-10 (last change **CHG-0130**)
+- **Build:** green — backend `net8.0` (388 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **back-dating a transfer document (CHG-0130, ADR-0038 Phase 2b — Phase 2 complete)** — directly
+  back-dating a warehouse transfer now inserts both legs and recomputes across buckets in one atomic pass
+  (new `IInventoryLedger.TransferBackDatedAsync`; the two cross-bucket recompute methods were refactored
+  into shared apply-cores taking a list of new movements). The back-dated branch commits cross-module
+  (it posts a net GL delta journal); the forward GL-neutral transfer stays module-only. **All inventory
+  back-dating debt is now closed.** Verified in Docker (MA + FIFO, books balanced).
   Latest: **cross-bucket back-dated FIFO recompute (CHG-0129, ADR-0038 Phase 2a)** — a back-dated FIFO
   movement that cascades through a warehouse transfer now recomputes across buckets (new pure
   `CrossBucketFifoReplay`: per-warehouse layer stacks, oldest-first, each transfer collapsed into one
   blended destination layer; one net delta journal). Mirrors the moving-average engine (CHG-0125). A
-  transfer-in layer's derived cost is rebuilt with the source (`StockCostLayer.RestateCost`). Deferred
-  (Phase 2b): directly back-dating a transfer document.
+  transfer-in layer's derived cost is rebuilt with the source (`StockCostLayer.RestateCost`). (Phase 2b —
+  directly back-dating a transfer document — followed in CHG-0130.)
   Latest: **hardening — auth rate limiting + SPA security headers (CHG-0128, SECURITY.md §5)** — the
   anonymous auth endpoints (`/auth/login`, `/register`, `/refresh`) now enforce a per-client fixed-window
   rate limit (.NET 8 `AddRateLimiter`; 429 `RATE_LIMITED` + `Retry-After`; configurable `RateLimiting:Auth`,
@@ -168,7 +174,7 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
 - 🟡 **Inventory** (slice 1 + 2) — transaction ledger, moving-average buckets, receive/adjust/transfer,
   on-hand + stock card, `IInventoryLedger` (CHG-0010); **slice 2 (CHG-0057)** — adjustments + stock
   opname post Dr/Cr Inventory↔Variance to the GL atomically (Adjust/Count UI); **per-company
-  negative-stock policy (CHG-0073)**; ✅ **back-dated in-period moving-average recompute (CHG-0104, ADR-0033)** — with UI guidance + reject reasons surfaced on the Adjust/Opname forms (CHG-0107); ✅ **per-product FIFO costing (CHG-0109, ADR-0034)** — cost layers, consumed oldest-first, valuation reconciled to the GL; ✅ **FIFO back-dated in-period recompute (CHG-0119, ADR-0037)** — `FifoReplay` + layer reconstruction + delta journal; ✅ **cross-bucket (transfer) cascade — moving average (CHG-0125, ADR-0038 Phase 1) + FIFO (CHG-0129, ADR-0038 Phase 2a)**. Remaining: directly back-dating a transfer document (ADR-0038 Phase 2b)
+  negative-stock policy (CHG-0073)**; ✅ **back-dated in-period moving-average recompute (CHG-0104, ADR-0033)** — with UI guidance + reject reasons surfaced on the Adjust/Opname forms (CHG-0107); ✅ **per-product FIFO costing (CHG-0109, ADR-0034)** — cost layers, consumed oldest-first, valuation reconciled to the GL; ✅ **FIFO back-dated in-period recompute (CHG-0119, ADR-0037)** — `FifoReplay` + layer reconstruction + delta journal; ✅ **cross-bucket (transfer) cascade — moving average (CHG-0125, ADR-0038 Phase 1) + FIFO (CHG-0129, ADR-0038 Phase 2a)** + ✅ **directly back-dating a transfer document (CHG-0130, ADR-0038 Phase 2b)**. All inventory back-dating debt closed (ADR-0038 complete)
 - ✅ **Purchasing** (procure-to-pay complete) — Purchase Orders + Approval/Process-Tracker/Notification
   (CHG-0015); **Goods Receipt** → atomic inventory + Dr Inventory/Cr GR-IR (CHG-0019); **Purchase
   Invoice** → atomic Dr GR-IR+VAT/Cr AP + AP open item, clears GR-IR (CHG-0020); **Supplier Payment**
@@ -224,7 +230,9 @@ Legend: ✅ done · 🟡 partial (slice) · 🔜 next · ◻️ not started.
   net journal). ✅ **cross-bucket (transfer) cascade — FIFO (CHG-0129, ADR-0038 Phase 2a)** — new
   `CrossBucketFifoReplay` (per-warehouse layer stacks, oldest-first, each transfer collapsed into one
   blended destination layer; derived transfer-in layer cost rebuilt via `StockCostLayer.RestateCost`).
-  Remaining (ADR-0038 Phase 2b): directly back-dating a transfer document.
+  ✅ **directly back-dating a transfer document (CHG-0130, ADR-0038 Phase 2b)** — inserts both legs and
+  recomputes across buckets in one atomic pass (`TransferBackDatedAsync`; commits cross-module for the net
+  journal). **ADR-0038 complete — all inventory back-dating debt closed.**
   (Transfers are GL-neutral under a single Inventory control account.)
 - **Cross-module atomic posting:** ✅ foundation done (CHG-0019) — shared connection +
   `ICrossModuleUnitOfWork`, used by Goods Receipt. Sales shipment (stock issue + COGS) and invoice
@@ -278,7 +286,7 @@ Backend threads that can be picked up independently if desired (none block the f
   (CHG-0058)**, **inventory valuation (CHG-0062)** done. Reporting suite complete.
 - **Accounting:** ✅ period-close balance snapshots (CHG-0079); year-end close to retained earnings (CHG-0059).
 - **Inventory slice 2:** ✅ GL posting on adjustments + stock opname done (CHG-0057); ✅ per-company
-  negative-stock policy (CHG-0073); ✅ back-dated in-period recompute (CHG-0104, ADR-0033); ✅ per-product FIFO costing (CHG-0109, ADR-0034); ✅ FIFO back-dated recompute (CHG-0119, ADR-0037); ✅ cross-bucket (transfer) cascade — moving average (CHG-0125, ADR-0038 Phase 1) + FIFO (CHG-0129, ADR-0038 Phase 2a); remaining (ADR-0038 Phase 2b): directly back-dating a transfer document.
+  negative-stock policy (CHG-0073); ✅ back-dated in-period recompute (CHG-0104, ADR-0033); ✅ per-product FIFO costing (CHG-0109, ADR-0034); ✅ FIFO back-dated recompute (CHG-0119, ADR-0037); ✅ cross-bucket (transfer) cascade — moving average (CHG-0125, ADR-0038 Phase 1) + FIFO (CHG-0129, ADR-0038 Phase 2a); ✅ directly back-dating a transfer document (CHG-0130, ADR-0038 Phase 2b). All inventory back-dating debt closed.
 - **Returns:** purchase & sales returns/credit notes.
 - A dev **customer seed** (none seeded today; created via API in e2e).
 
@@ -287,8 +295,9 @@ frontend**, which requires the **UI/UX design discussion** before any build (use
 template/AI-ish). Pause and raise it then.
 
 Other open threads (not blocking): **Inventory** cross-bucket (transfer) back-dating — ✅ **moving
-average (CHG-0125, ADR-0038 Phase 1)** + ✅ **FIFO (CHG-0129, ADR-0038 Phase 2a)**; remaining **Phase 2b**:
-directly back-dating a transfer document (FIFO forward costing ✅ CHG-0109; FIFO back-dating ✅ CHG-0119).
+average (CHG-0125, ADR-0038 Phase 1)** + ✅ **FIFO (CHG-0129, ADR-0038 Phase 2a)** + ✅ **transfer document
+(CHG-0130, ADR-0038 Phase 2b)** — ADR-0038 complete, all inventory back-dating debt closed (FIFO forward
+costing ✅ CHG-0109; FIFO back-dating ✅ CHG-0119).
 (Idempotency exactly-once ✅ CHG-0102 / ReceiveStock ✅ CHG-0123; inventory back-dating ✅ CHG-0104; returns detail ✅ CHG-0105.)
 
 ## How to resume

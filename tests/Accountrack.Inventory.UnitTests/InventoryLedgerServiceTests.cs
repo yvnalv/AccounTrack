@@ -457,6 +457,131 @@ public class InventoryLedgerServiceTests
         request.Lines.Should().ContainSingle(l => l.AccountId == CogsAccount && l.Credit == 50_000m && l.Debit == 0m);
     }
 
+    // ---- Directly back-dating a transfer document (ADR-0038 Phase 2b) ----
+
+    [Fact]
+    public async Task Transfer_back_dated_moving_average_reprices_a_later_destination_sale()
+    {
+        // MAIN: Jun-1 receipt 100 @ 10 000. STORE: Jun-2 receipt 10 @ 6 000; Jun-10 sale 10 (COGS 60 000).
+        // Directly back-date a transfer of 40 MAIN -> STORE on Jun-5: STORE's average before the sale becomes
+        // (10*6 000 + 40*10 000)/50 = 9 200, so its later sale is repriced 60 000 -> 92 000 (+32 000 COGS).
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun2 = new DateOnly(2026, 6, 2);
+        var jun10 = new DateOnly(2026, 6, 10);
+
+        var mainReceipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 10000m, 1_000_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 100m, 10000m);
+        var storeReceipt = InventoryTransaction.Record(_product, _warehouseB, MovementType.Receipt, 10m, 6000m, 60_000m,
+            "IDR", jun2, MovementSource.Purchasing, null, null, 10m, 6000m);
+        var storeSale = InventoryTransaction.Record(_product, _warehouseB, MovementType.Issue, 10m, 6000m, 60_000m,
+            "IDR", jun10, MovementSource.Sales, null, null, 0m, 0m);
+
+        var bucketMain = StockCostBucket.Create(_product, _warehouse, "IDR");
+        var bucketStore = StockCostBucket.Create(_product, _warehouseB, "IDR");
+
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucketMain);
+        _buckets.ListForProductAsync(_product, Arg.Any<CancellationToken>()).Returns(new[] { bucketMain, bucketStore });
+        _txns.ListForProductChronologicalAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { mainReceipt, storeReceipt, storeSale });
+
+        var result = await Service().TransferBackDatedAsync(
+            _product, _warehouse, _warehouseB, 40m, new DateOnly(2026, 6, 5), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.UnitCost.Should().Be(10000m);                 // 400 000 carried / 40
+
+        storeSale.TotalCost.Should().Be(92_000m);                  // repriced from 60 000
+        bucketMain.OnHandQty.Should().Be(60m);                     // 100 − 40 transferred
+        bucketMain.AvgUnitCost.Should().Be(10000m);
+        bucketStore.OnHandQty.Should().Be(40m);                    // 10 + 40 − 10 sold
+        bucketStore.AvgUnitCost.Should().Be(9200m);
+
+        // One net journal: Dr COGS 32 000 / Cr Inventory 32 000.
+        var call = _gl.ReceivedCalls().Should().ContainSingle().Which;
+        var request = (LedgerPostingRequest)call.GetArguments()[0]!;
+        request.Lines.Should().ContainSingle(l => l.AccountId == CogsAccount && l.Debit == 32_000m && l.Credit == 0m);
+        request.Lines.Should().ContainSingle(l => l.AccountId == InventoryAccount && l.Credit == 32_000m && l.Debit == 0m);
+    }
+
+    [Fact]
+    public async Task Transfer_back_dated_fifo_reprices_a_later_source_sale()
+    {
+        // MAIN (FIFO): Jun-1 receipt 100 @ 8 000, Jun-2 receipt 100 @ 10 000; Jun-10 sale 120 (originally
+        // 100 @ 8 000 + 20 @ 10 000 = 1 000 000). Back-date a transfer of 40 MAIN -> STORE on Jun-5: the
+        // transfer consumes the oldest 8 000 layer, so the later sale now takes 60 @ 8 000 + 60 @ 10 000 =
+        // 1 080 000 (+80 000 COGS). STORE receives the 40 @ 8 000.
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun2 = new DateOnly(2026, 6, 2);
+        var jun10 = new DateOnly(2026, 6, 10);
+
+        var r1 = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 8000m, 800_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 100m, 8000m);
+        var r2 = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 10000m, 1_000_000m,
+            "IDR", jun2, MovementSource.Purchasing, null, null, 200m, 9000m);
+        var mainSale = InventoryTransaction.Record(_product, _warehouse, MovementType.Issue, 120m, 8333.3333m, 1_000_000m,
+            "IDR", jun10, MovementSource.Sales, null, null, 80m, 10000m);
+
+        var l1 = StockCostLayer.Create(_product, _warehouse, "IDR", r1.Id, jun1, 8000m, 100m);
+        l1.Consume(100m); // originally fully consumed by the sale
+        var l2 = StockCostLayer.Create(_product, _warehouse, "IDR", r2.Id, jun2, 10000m, 100m);
+        l2.Consume(20m); // originally 20 consumed → 80 remaining
+
+        var bucketMain = StockCostBucket.Create(_product, _warehouse, "IDR", CostingMethod.Fifo);
+        var bucketStore = StockCostBucket.Create(_product, _warehouseB, "IDR", CostingMethod.Fifo);
+
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucketMain);
+        _buckets.ListForProductAsync(_product, Arg.Any<CancellationToken>()).Returns(new[] { bucketMain, bucketStore });
+        _txns.ListForProductChronologicalAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { r1, r2, mainSale });
+        _layers.ListAllForProductAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { l1, l2 });
+
+        var result = await Service().TransferBackDatedAsync(
+            _product, _warehouse, _warehouseB, 40m, new DateOnly(2026, 6, 5), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.UnitCost.Should().Be(8000m);                  // oldest layer carried
+
+        mainSale.TotalCost.Should().Be(1_080_000m);                // repriced from 1 000 000
+        l2.RemainingQty.Should().Be(40m);                          // 100 − 60 now consumed by the sale
+        bucketStore.OnHandQty.Should().Be(40m);
+        bucketStore.AvgUnitCost.Should().Be(8000m);
+
+        // One net journal: Dr COGS 80 000 / Cr Inventory 80 000.
+        var call = _gl.ReceivedCalls().Should().ContainSingle().Which;
+        var request = (LedgerPostingRequest)call.GetArguments()[0]!;
+        request.Lines.Should().ContainSingle(l => l.AccountId == CogsAccount && l.Debit == 80_000m && l.Credit == 0m);
+    }
+
+    [Fact]
+    public async Task Transfer_back_dated_across_a_legacy_unlinked_transfer_is_rejected()
+    {
+        // The product's existing stream has an unlinked (legacy) transfer, which the replay cannot thread —
+        // so a new back-dated transfer is rejected rather than miscomputed (ADR-0038 safe degradation).
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun3 = new DateOnly(2026, 6, 3);
+        var thirdWh = Guid.NewGuid();
+
+        var mainReceipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 10000m, 1_000_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 100m, 10000m);
+        var legacyOut = InventoryTransaction.Record(_product, _warehouse, MovementType.TransferOut, 10m, 10000m, 100_000m,
+            "IDR", jun3, MovementSource.Transfer, null, null, 90m, 10000m, transferGroupId: null);
+        var legacyIn = InventoryTransaction.Record(_product, thirdWh, MovementType.TransferIn, 10m, 10000m, 100_000m,
+            "IDR", jun3, MovementSource.Transfer, null, null, 10m, 10000m, transferGroupId: null);
+
+        var bucketMain = StockCostBucket.Create(_product, _warehouse, "IDR");
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucketMain);
+        _txns.ListForProductChronologicalAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { mainReceipt, legacyOut, legacyIn });
+
+        var result = await Service().TransferBackDatedAsync(
+            _product, _warehouse, _warehouseB, 40m, new DateOnly(2026, 6, 2), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("INVENTORY.BACKDATING_CROSSES_TRANSFER");
+        await _gl.DidNotReceiveWithAnyArgs().PostAsync(default!, default);
+    }
+
     [Fact]
     public async Task Issue_fails_when_insufficient_stock_and_negative_disallowed()
     {
