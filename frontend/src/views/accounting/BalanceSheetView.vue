@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
 import { downloadFile } from '@/lib/api'
@@ -12,7 +13,16 @@ import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const asOf = ref(new Date().toISOString().slice(0, 10))
+
+// Balance-sheet balances are cumulative, so drill into the ledger up to the as-of date (no start date).
+function drill(accountCode: string) {
+  router.push({
+    name: 'accountingGeneralLedger',
+    query: { accountCode, ...(asOf.value ? { toDate: asOf.value } : {}) },
+  })
+}
 const report = ref<BalanceSheet | null>(null)
 const loading = ref(true)
 
@@ -53,7 +63,7 @@ function pdf() {
       <AppCard :title="t('accounting.bs.assets')" :padded="false">
         <table class="w-full text-sm">
           <tbody>
-            <tr v-for="l in report.assets" :key="l.accountCode" class="border-b border-border">
+            <tr v-for="l in report.assets" :key="l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)">
               <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
               <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
             </tr>
@@ -72,7 +82,7 @@ function pdf() {
         <table class="w-full text-sm">
           <tbody>
             <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.bs.liabilities') }}</td></tr>
-            <tr v-for="l in report.liabilities" :key="'l' + l.accountCode" class="border-b border-border">
+            <tr v-for="l in report.liabilities" :key="'l' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)">
               <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
               <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
             </tr>
@@ -82,7 +92,7 @@ function pdf() {
             </tr>
 
             <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.bs.equity') }}</td></tr>
-            <tr v-for="l in report.equity" :key="'e' + l.accountCode" class="border-b border-border">
+            <tr v-for="l in report.equity" :key="'e' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)">
               <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
               <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
             </tr>

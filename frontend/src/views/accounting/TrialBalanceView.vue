@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
 import { downloadFile } from '@/lib/api'
@@ -12,10 +13,23 @@ import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const report = ref<TrialBalance | null>(null)
 const loading = ref(true)
 const fromDate = ref('')
 const toDate = ref('')
+
+// Drill into an account's General Ledger for the same date range.
+function drill(accountCode: string) {
+  router.push({
+    name: 'accountingGeneralLedger',
+    query: {
+      accountCode,
+      ...(fromDate.value ? { fromDate: fromDate.value } : {}),
+      ...(toDate.value ? { toDate: toDate.value } : {}),
+    },
+  })
+}
 
 async function load() {
   loading.value = true
@@ -63,7 +77,14 @@ function pdf() {
         <tbody>
           <tr v-if="loading"><td colspan="5" class="px-4 py-8 text-center text-text-muted">{{ t('common.loading') }}</td></tr>
           <tr v-else-if="rows.length === 0"><td colspan="5" class="px-4 py-10 text-center text-text-muted">{{ t('accounting.tb.empty') }}</td></tr>
-          <tr v-for="r in rows" v-else :key="r.accountCode" class="border-b border-border last:border-0">
+          <tr
+            v-for="r in rows"
+            v-else
+            :key="r.accountCode"
+            class="cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-surface-2"
+            :title="t('accounting.drillToLedger')"
+            @click="drill(r.accountCode)"
+          >
             <td class="px-4 py-2.5 text-text-muted tnum">{{ r.accountCode }}</td>
             <td class="px-4 py-2.5 text-text">{{ r.accountName }}</td>
             <td class="px-4 py-2.5 text-text-muted">{{ r.accountType }}</td>

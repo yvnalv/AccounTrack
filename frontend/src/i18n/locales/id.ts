@@ -508,6 +508,7 @@ export default {
   },
   accounting: {
     title: 'Akuntansi',
+    drillToLedger: 'Lihat di Buku Besar',
     tabs: {
       trialBalance: 'Neraca saldo',
       profitLoss: 'Laba rugi',

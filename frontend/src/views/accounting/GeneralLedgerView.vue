@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
 import { accountingApi } from '@/lib/accounting'
@@ -15,6 +16,7 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 
 const { t } = useI18n()
+const route = useRoute()
 
 // Format dates from the LOCAL calendar (never mix local + toISOString/UTC, which can invert the
 // default range near midnight / month boundaries and make the ledger look empty).
@@ -53,12 +55,28 @@ async function load() {
 
 // Apply immediately when the account is changed (dates keep the explicit "Apply" button, so typing a
 // date doesn't fire a request on every keystroke). The watch runs after accountId updates, avoiding
-// the @change/v-model ordering race.
-watch(accountId, () => load())
+// the @change/v-model ordering race. Suppressed while applying query params on mount so the initial
+// drill-down (from a report) loads exactly once.
+let suppressWatch = true
+watch(accountId, () => {
+  if (!suppressWatch) load()
+})
 
 onMounted(async () => {
   accounts.value = await accountingApi.accounts()
+
+  // Drill-down from a report: pre-select the account (by id, or by code resolved against the chart) and
+  // carry the report's date range, so clicking an account row lands on its ledger for the same period.
+  const q = route.query
+  if (typeof q.fromDate === 'string') fromDate.value = q.fromDate
+  if (typeof q.toDate === 'string') toDate.value = q.toDate
+  if (typeof q.accountId === 'string') accountId.value = q.accountId
+  else if (typeof q.accountCode === 'string') {
+    accountId.value = accounts.value.find((a) => a.code === q.accountCode)?.id ?? ''
+  }
+
   await load()
+  suppressWatch = false
 })
 
 function pdf() {

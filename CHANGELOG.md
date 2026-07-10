@@ -1,5 +1,21 @@
 # Accountrack Changelog
 
+## [2026-07-10 13:32:44 UTC]
+
+CHG-0133 — Web: financial-report drill-down to the General Ledger (UI/UX polish 3)
+
+- **Click an account in a report to see its ledger.** Rows in Trial Balance, Profit & Loss, and Balance
+  Sheet are now clickable and navigate to the General Ledger filtered to that account, carrying the
+  report's date range (Balance Sheet, whose balances are cumulative, drills up to the as-of date). Rows
+  show a hover highlight and a "View in General Ledger" tooltip.
+- The General Ledger view now reads `accountId`/`accountCode` + `fromDate`/`toDate` from the URL query
+  and resolves a code against the chart of accounts, pre-selecting the account and period; the initial
+  drill-down loads exactly once (the account-change watch is suppressed during query hydration).
+- Frontend-only (report DTOs carry `accountCode`, resolved to id client-side — no backend/schema change).
+  EN + ID i18n. `vue-tsc` + `vite` build green. Verified in Docker. Third commit in the UI/UX polish PR.
+
+---
+
 ## [2026-07-10 13:23:58 UTC]
 
 CHG-0132 — Web: manual Receive-stock UI (UI/UX polish 2)

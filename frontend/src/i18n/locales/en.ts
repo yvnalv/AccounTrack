@@ -507,6 +507,7 @@ export default {
   },
   accounting: {
     title: 'Accounting',
+    drillToLedger: 'View in General Ledger',
     tabs: {
       trialBalance: 'Trial balance',
       profitLoss: 'Profit & loss',
