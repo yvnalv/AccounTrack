@@ -775,7 +775,7 @@ back-dating stays rejected pending ADR-0038).
 
 ## ADR-0038: Cross-bucket (transfer) back-dated recompute — coordinated multi-bucket replay
 
-- **Status:** Accepted — **Phase 1 (moving average) implemented (CHG-0125)**; Phase 2 (direct transfer back-dating + FIFO cross-bucket) deferred — **Date:** 2026-07-09 · full text: [adr/0038-inventory-crossbucket-backdated-recompute.md](adr/0038-inventory-crossbucket-backdated-recompute.md)
+- **Status:** Accepted — **Phase 1 (moving average) implemented (CHG-0125)**; **Phase 2a (FIFO cross-bucket) implemented (CHG-0129)**; Phase 2b (directly back-dating a transfer document) deferred — **Date:** 2026-07-09 · full text: [adr/0038-inventory-crossbucket-backdated-recompute.md](adr/0038-inventory-crossbucket-backdated-recompute.md)
 
 **Context.** Single-bucket back-dated recompute exists for moving average (ADR-0033) and FIFO
 (ADR-0037), but both **reject** a back-date whose later movements include a **transfer** — the last
@@ -796,9 +796,14 @@ takes this path only when the product has a transfer on/after its date (`HasTran
 else the single-bucket path (ADR-0033) is unchanged. **Refinement over the draft:** the
 global-chronological pass makes topological sorting and cycle handling unnecessary — a transfer-out
 always precedes its transfer-in, so cost cycles cannot occur (the anticipated
-`BackDatingCrossesTransferCycle` was not needed). (3) **Phase 2 deferred:** directly back-dating a
-transfer document (dual-leg insertion) — `TransferStockHandler` still rejects it — and FIFO cross-bucket
-layer reconstruction; both rejected with a clear error meanwhile.
+`BackDatingCrossesTransferCycle` was not needed). **Phase 2a (FIFO cross-bucket, CHG-0129):** a
+`CrossBucketFifoReplay` engine mirrors the moving-average one but keeps a FIFO layer stack per warehouse
+(oldest consumed first) and collapses each transfer's consumed source layers into a single blended
+destination layer at `issuedTotal / qty` — exactly as the forward transfer path does. Because a
+transfer-in layer's cost is derived from the source, a restated source also rebuilds that layer's cost
+(`StockCostLayer.RestateCost`), not just its remainder. (3) **Phase 2b deferred:** directly back-dating a
+transfer document (dual-leg insertion) — `TransferStockHandler` still rejects it — rejected with a clear
+error meanwhile.
 
 **Options.** (A) coordinated multi-bucket replay + `TransferGroupId` ← chosen; (B) reverse-and-repost
 across buckets (ledger/GL noise); (C) keep cross-bucket rejected (real correction gap); (D) reuse
