@@ -60,6 +60,12 @@ public interface IStockCostLayerRepository
     /// consumed, so the whole layer set is replayed. Returns tracked entities so remainders persist.</summary>
     Task<IReadOnlyList<StockCostLayer>> ListAllForBucketAsync(Guid productId, Guid warehouseId, CancellationToken ct);
 
+    /// <summary>All FIFO layers for a product across <em>every</em> warehouse (including fully-consumed
+    /// ones), oldest-first, for cross-bucket back-dated recompute (ADR-0038): a back-date that cascades
+    /// through a transfer replays the layer stacks of every affected bucket. Returns tracked entities so
+    /// remainders persist.</summary>
+    Task<IReadOnlyList<StockCostLayer>> ListAllForProductAsync(Guid productId, CancellationToken ct);
+
     /// <summary>All open layers for the tenant (RemainingQty &gt; 0), for FIFO inventory valuation.</summary>
     Task<IReadOnlyList<StockCostLayer>> ListOpenAsync(CancellationToken ct);
 }

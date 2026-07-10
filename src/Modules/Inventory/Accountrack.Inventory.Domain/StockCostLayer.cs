@@ -68,4 +68,17 @@ public sealed class StockCostLayer : TenantOwnedEntity, IAggregateRoot
     /// </summary>
     public void Restate(decimal remainingQty) =>
         RemainingQty = Math.Round(remainingQty, QtyScale, MidpointRounding.ToEven);
+
+    /// <summary>
+    /// Overwrites both the unit cost and the remaining quantity from a cross-bucket FIFO replay (ADR-0038).
+    /// Used only for a <em>transfer-in</em> layer, whose cost is <em>derived</em> from the source bucket's
+    /// issued cost rather than being an immutable receipt fact — so when a back-dated movement restates the
+    /// source, the destination layer's cost is rebuilt with it. For any other (receipt) layer the unit cost
+    /// stays immutable and only <see cref="Restate(decimal)"/> is used.
+    /// </summary>
+    public void RestateCost(decimal unitCost, decimal remainingQty)
+    {
+        UnitCost = Math.Round(unitCost, CostScale, MidpointRounding.ToEven);
+        RemainingQty = Math.Round(remainingQty, QtyScale, MidpointRounding.ToEven);
+    }
 }

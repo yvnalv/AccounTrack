@@ -335,6 +335,129 @@ public class InventoryLedgerServiceTests
     }
 
     [Fact]
+    public async Task Fifo_back_dated_cheaper_receipt_cascades_through_a_transfer_into_another_warehouses_sale()
+    {
+        // FIFO product. Warehouse A: Jun-1 receipt 100 @ 10 000; Jun-5 transfer-out 40 to B (carried 400 000).
+        // Warehouse B: Jun-5 transfer-in 40 @ 10 000; Jun-10 sales issue of 40 (COGS 400 000).
+        // Insert a back-dated A receipt 100 @ 8 000 on May-28 → FIFO consumes the oldest (8 000) layer on the
+        // transfer-out, so B receives 40 @ 8 000 = 320 000 and its later sale drops to 320 000 (a −80 000 COGS
+        // correction — larger than moving average's −40 000 because FIFO carries the cheap layer, not the mean).
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun5 = new DateOnly(2026, 6, 5);
+        var jun10 = new DateOnly(2026, 6, 10);
+        var group = Guid.NewGuid();
+
+        var aReceipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 10000m, 1_000_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 100m, 10000m);
+        var aTransferOut = InventoryTransaction.Record(_product, _warehouse, MovementType.TransferOut, 40m, 10000m, 400_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 60m, 10000m, group);
+        var bTransferIn = InventoryTransaction.Record(_product, _warehouseB, MovementType.TransferIn, 40m, 10000m, 400_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 40m, 10000m, group);
+        var bSale = InventoryTransaction.Record(_product, _warehouseB, MovementType.Issue, 40m, 10000m, 400_000m,
+            "IDR", jun10, MovementSource.Sales, null, null, 0m, 0m);
+
+        var aLayer = StockCostLayer.Create(_product, _warehouse, "IDR", aReceipt.Id, jun1, 10000m, 100m);
+        aLayer.Consume(40m); // 60 remaining after the original transfer-out
+        var bLayer = StockCostLayer.Create(_product, _warehouseB, "IDR", bTransferIn.Id, jun5, 10000m, 40m);
+        bLayer.Consume(40m); // fully sold
+
+        var bucketA = StockCostBucket.Create(_product, _warehouse, "IDR", CostingMethod.Fifo);
+        var bucketB = StockCostBucket.Create(_product, _warehouseB, "IDR", CostingMethod.Fifo);
+
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucketA);
+        _buckets.ListForProductAsync(_product, Arg.Any<CancellationToken>()).Returns(new[] { bucketA, bucketB });
+        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(jun5);
+        _txns.HasTransferOnOrAfterAsync(_product, Arg.Any<DateOnly>(), Arg.Any<CancellationToken>()).Returns(true);
+        _txns.ListForProductChronologicalAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { aReceipt, aTransferOut, bTransferIn, bSale });
+        _layers.ListAllForProductAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { aLayer, bLayer });
+
+        var result = await Service().ReceiveAsync(
+            _product, _warehouse, "IDR", 100m, 8000m, new DateOnly(2026, 5, 28),
+            MovementType.Receipt, MovementSource.Purchasing, null, "Late purchase", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CostApplied.Should().Be(800_000m);      // the new receipt: 100 @ 8 000
+
+        // The transfer legs are restated value-preservingly at the oldest layer's cost, and B's sale COGS drops.
+        aTransferOut.TotalCost.Should().Be(320_000m);
+        bTransferIn.TotalCost.Should().Be(320_000m);
+        bSale.TotalCost.Should().Be(320_000m);
+
+        // Buckets end: A 160 @ 9 250 (cheap layer 60 left + 100 @ 10 000), B 0.
+        bucketA.OnHandQty.Should().Be(160m);
+        bucketA.AvgUnitCost.Should().Be(9250m);
+        bucketB.OnHandQty.Should().Be(0m);
+
+        // The destination transfer-in layer's derived cost is rebuilt to 8 000 (it is fully consumed).
+        bLayer.UnitCost.Should().Be(8000m);
+        aLayer.RemainingQty.Should().Be(100m); // the expensive layer is now untouched by the transfer
+
+        // One net journal for the −80 000 COGS correction: Dr Inventory 80 000 / Cr COGS 80 000.
+        var call = _gl.ReceivedCalls().Should().ContainSingle().Which;
+        var request = (LedgerPostingRequest)call.GetArguments()[0]!;
+        request.Lines.Should().ContainSingle(l => l.AccountId == CogsAccount && l.Credit == 80_000m && l.Debit == 0m);
+        request.Lines.Should().ContainSingle(l => l.AccountId == InventoryAccount && l.Debit == 80_000m && l.Credit == 0m);
+    }
+
+    [Fact]
+    public async Task Fifo_cross_bucket_rebuilds_a_partially_sold_transfer_in_layers_cost_and_remainder()
+    {
+        // Same shape, but B sells only 25 of the 40 transferred, leaving residual stock — so the transfer-in
+        // layer's derived cost (not just its remainder) must be rebuilt for the destination to value correctly.
+        var jun1 = new DateOnly(2026, 6, 1);
+        var jun5 = new DateOnly(2026, 6, 5);
+        var jun10 = new DateOnly(2026, 6, 10);
+        var group = Guid.NewGuid();
+
+        var aReceipt = InventoryTransaction.Record(_product, _warehouse, MovementType.Receipt, 100m, 10000m, 1_000_000m,
+            "IDR", jun1, MovementSource.Purchasing, null, null, 100m, 10000m);
+        var aTransferOut = InventoryTransaction.Record(_product, _warehouse, MovementType.TransferOut, 40m, 10000m, 400_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 60m, 10000m, group);
+        var bTransferIn = InventoryTransaction.Record(_product, _warehouseB, MovementType.TransferIn, 40m, 10000m, 400_000m,
+            "IDR", jun5, MovementSource.Transfer, null, null, 40m, 10000m, group);
+        var bSale = InventoryTransaction.Record(_product, _warehouseB, MovementType.Issue, 25m, 10000m, 250_000m,
+            "IDR", jun10, MovementSource.Sales, null, null, 15m, 10000m);
+
+        var aLayer = StockCostLayer.Create(_product, _warehouse, "IDR", aReceipt.Id, jun1, 10000m, 100m);
+        aLayer.Consume(40m);
+        var bLayer = StockCostLayer.Create(_product, _warehouseB, "IDR", bTransferIn.Id, jun5, 10000m, 40m);
+        bLayer.Consume(25m); // 15 remaining
+
+        var bucketA = StockCostBucket.Create(_product, _warehouse, "IDR", CostingMethod.Fifo);
+        var bucketB = StockCostBucket.Create(_product, _warehouseB, "IDR", CostingMethod.Fifo);
+
+        _buckets.GetAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(bucketA);
+        _buckets.ListForProductAsync(_product, Arg.Any<CancellationToken>()).Returns(new[] { bucketA, bucketB });
+        _txns.MaxMovementDateAsync(_product, _warehouse, Arg.Any<CancellationToken>()).Returns(jun5);
+        _txns.HasTransferOnOrAfterAsync(_product, Arg.Any<DateOnly>(), Arg.Any<CancellationToken>()).Returns(true);
+        _txns.ListForProductChronologicalAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { aReceipt, aTransferOut, bTransferIn, bSale });
+        _layers.ListAllForProductAsync(_product, Arg.Any<CancellationToken>())
+            .Returns(new[] { aLayer, bLayer });
+
+        var result = await Service().ReceiveAsync(
+            _product, _warehouse, "IDR", 100m, 8000m, new DateOnly(2026, 5, 28),
+            MovementType.Receipt, MovementSource.Purchasing, null, "Late purchase", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        // B sold 25 @ 8 000 now (was 25 @ 10 000): a −50 000 COGS correction.
+        bSale.TotalCost.Should().Be(200_000m);
+
+        // The transfer-in layer is rebuilt to 15 remaining @ 8 000, and B ends 15 @ 8 000.
+        bLayer.UnitCost.Should().Be(8000m);
+        bLayer.RemainingQty.Should().Be(15m);
+        bucketB.OnHandQty.Should().Be(15m);
+        bucketB.AvgUnitCost.Should().Be(8000m);
+
+        var call = _gl.ReceivedCalls().Should().ContainSingle().Which;
+        var request = (LedgerPostingRequest)call.GetArguments()[0]!;
+        request.Lines.Should().ContainSingle(l => l.AccountId == CogsAccount && l.Credit == 50_000m && l.Debit == 0m);
+    }
+
+    [Fact]
     public async Task Issue_fails_when_insufficient_stock_and_negative_disallowed()
     {
         var bucket = StockCostBucket.Create(_product, _warehouse, "IDR");

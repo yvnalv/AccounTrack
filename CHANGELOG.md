@@ -1,5 +1,46 @@
 # Accountrack Changelog
 
+## [2026-07-10 08:52:08 UTC]
+
+CHG-0129 — Inventory: cross-bucket back-dated FIFO recompute (ADR-0038 Phase 2a)
+
+- **FIFO cross-bucket cascade.** A back-dated in-period movement on a **FIFO** product whose later
+  movements include a warehouse **transfer** is now recomputed across buckets instead of being rejected
+  (`INVENTORY.BACKDATING_CROSSES_TRANSFER`). This completes the FIFO analogue of the moving-average
+  cross-bucket recompute shipped in CHG-0125 — the last remaining item was FIFO.
+- **New pure engine `CrossBucketFifoReplay`** (Inventory.Domain): one global-chronological pass over all
+  of a product's movements across every warehouse, maintaining a separate FIFO cost-layer stack per
+  warehouse, consuming oldest layers first, and threading each transfer's cost from its source leg into
+  the **single blended layer** its destination leg opens (`issuedTotal / qty`) — exactly as the forward
+  `TransferStockHandler` does. A transfer-out always precedes its paired transfer-in in global order, so
+  the cost threads in one forward pass and cost-flow cycles are impossible by construction (no topo sort).
+  Rounding matches `StockCostBucket` / `StockCostLayer` / `FifoReplay`, so replaying an unchanged
+  sequence reproduces the stored numbers and yields a zero GL delta for every unaffected movement.
+- **Orchestration** (`InventoryLedgerService.RecomputeAcrossBucketsFifoAsync`): routing now sends a
+  back-dated FIFO movement to the cross-bucket path when the product has a transfer on/after its date
+  (`HasTransferOnOrAfterAsync`), else the single-bucket FIFO path (CHG-0119) — mirroring moving average.
+  It restates every ledger row in place, rebuilds all affected buckets' cost layers, sets each bucket's
+  final state, and posts **one** net adjusting journal (COGS for later Sales, variance for later
+  Adjustments) dated at the back-dated movement. Legacy **unlinked** transfers and production movements
+  are still rejected (cost can't be threaded — safe degradation).
+- **Derived transfer-in layer cost is rebuilt.** A transfer-in cost layer's unit cost is *derived* from
+  the source's issued cost (not an immutable receipt fact), so a restated source now also rebuilds the
+  destination layer's cost, not just its remaining quantity (new `StockCostLayer.RestateCost`). Receipt
+  layers keep their immutable unit cost (`Restate` unchanged).
+- New repo query `IStockCostLayerRepository.ListAllForProductAsync` (all layers across every warehouse
+  for a product, oldest-first) for the cross-bucket layer rebuild.
+- **Tests:** new `CrossBucketFifoReplayTests` (9 — value-preserving transfer, oldest-layer-not-average
+  distinction, cascade through a chain, back-and-forth non-cycle, per-bucket running qty, layer-remainder
+  after later consumption, negative-stock + unlinked rejection) and two `InventoryLedgerService`
+  integration tests (full and partial-sale cascade, asserting the net journal + rebuilt destination
+  layer). Full suite green (**385 passed / 5 skipped**, +11).
+- No schema change (reuses the `TransferGroupId` added in CHG-0125). No API-contract change.
+- **ADR-0038 Phase 2 remaining:** directly back-dating a *transfer document* (dual-leg insertion) is a
+  separate follow-up (`TransferStockHandler` still rejects it). Docs: DECISIONS.md ADR-0038, STATUS.md,
+  MODULES.md updated.
+
+---
+
 ## [2026-07-09 14:24:57 UTC]
 
 CHG-0128 — Hardening: auth rate limiting + SPA security headers (SECURITY.md §5)
