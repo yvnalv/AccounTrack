@@ -15,6 +15,8 @@ export interface ExpenseVoucherSummary {
   grandTotal: number
   journalEntryId: string | null
   status: string
+  categoryIds: string[]
+  categoryNames: string
 }
 
 export interface ExpenseLineInput {

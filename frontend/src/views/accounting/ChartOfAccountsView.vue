@@ -28,6 +28,17 @@ const form = reactive({ code: '', name: '', type: 'Expense', allowPosting: true 
 const types = ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense']
 const typeOptions = computed(() => types.map((ty) => ({ value: ty, label: t(`accounting.coa.types.${ty}`) })))
 
+const statusFilter = ref<'' | 'active' | 'inactive'>('')
+const typeFilter = ref('')
+const visibleRows = computed(() =>
+  rows.value.filter((r) => {
+    if (statusFilter.value === 'active' && !r.isActive) return false
+    if (statusFilter.value === 'inactive' && r.isActive) return false
+    if (typeFilter.value && r.type !== typeFilter.value) return false
+    return true
+  }),
+)
+
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('accounting.coa.code') },
   { key: 'name', label: t('accounting.coa.name') },
@@ -106,7 +117,18 @@ async function toggleActive(row: AccountRef) {
 
     <p v-if="error" class="text-sm text-negative">{{ error }}</p>
 
-    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('accounting.coa.empty')">
+    <DataTable searchable :columns="columns" :rows="visibleRows" :loading="loading" :empty-text="t('accounting.coa.empty')" :filters-active="!!statusFilter || !!typeFilter" @clear="statusFilter = ''; typeFilter = ''">
+      <template #filters>
+        <select v-model="typeFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('accounting.coa.allTypes') }}</option>
+          <option v-for="ty in types" :key="ty" :value="ty">{{ t(`accounting.coa.types.${ty}`) }}</option>
+        </select>
+        <select v-model="statusFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('masterData.filters.allStatuses') }}</option>
+          <option value="active">{{ t('masterData.active') }}</option>
+          <option value="inactive">{{ t('masterData.inactive') }}</option>
+        </select>
+      </template>
       <template #cell-code="{ row }">
         <span class="tnum text-text-muted">{{ (row as unknown as AccountRef).code }}</span>
       </template>

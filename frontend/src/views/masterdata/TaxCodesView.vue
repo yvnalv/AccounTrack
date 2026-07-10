@@ -27,6 +27,11 @@ const editingId = ref<string | null>(null)
 const editRowVersion = ref<string | null>(null)
 const form = reactive({ code: '', name: '', ratePercent: 0 })
 
+const statusFilter = ref<'' | 'active' | 'inactive'>('')
+const visibleRows = computed(() =>
+  rows.value.filter((r) => !statusFilter.value || (statusFilter.value === 'active' ? r.isActive : !r.isActive)),
+)
+
 const columns = computed<Column[]>(() => [
   { key: 'code', label: t('masterData.fields.code') },
   { key: 'name', label: t('masterData.fields.name') },
@@ -88,7 +93,14 @@ async function toggleActive(row: TaxCode) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.taxCodes.new') }}</AppButton>
     </div>
 
-    <DataTable searchable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('masterData.empty')">
+    <DataTable searchable :columns="columns" :rows="visibleRows" :loading="loading" :empty-text="t('masterData.empty')" :filters-active="!!statusFilter" @clear="statusFilter = ''">
+      <template #filters>
+        <select v-model="statusFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('masterData.filters.allStatuses') }}</option>
+          <option value="active">{{ t('masterData.active') }}</option>
+          <option value="inactive">{{ t('masterData.inactive') }}</option>
+        </select>
+      </template>
       <template #cell-rate="{ value }">{{ formatPercent(Number(value) * 100) }}</template>
       <template #cell-isActive="{ value }">
         <StatusBadge :label="value ? t('masterData.active') : t('masterData.inactive')" :tone="value ? 'positive' : 'neutral'" />

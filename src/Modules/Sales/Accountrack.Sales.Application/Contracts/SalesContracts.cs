@@ -75,3 +75,16 @@ public sealed record SalesReturnSummaryDto(
 public sealed record SalesReturnListItemDto(
     Guid Id, string Number, DateOnly ReturnDate, Guid CustomerId, string CustomerName,
     decimal GrandTotal, Guid? JournalEntryId);
+
+// --- Dashboard insights (invoiced sales) ---
+public sealed record MonthlyAmountDto(string Month, decimal Amount);
+public sealed record NamedAmountDto(string Name, decimal Amount);
+
+/// <summary>Actionable sales insights for the dashboard: a 6-month invoiced-sales trend, the top
+/// customers by invoiced value, the best-selling products (by revenue), and sales grouped by product
+/// category. All derived from posted-or-not sales invoices (the order-to-cash revenue document).</summary>
+public sealed record SalesInsightsDto(
+    IReadOnlyList<MonthlyAmountDto> MonthlySales,
+    IReadOnlyList<NamedAmountDto> TopCustomers,
+    IReadOnlyList<NamedAmountDto> TopProducts,
+    IReadOnlyList<NamedAmountDto> SalesByCategory);

@@ -27,10 +27,16 @@ const filteredRows = ref<Record<string, unknown>[]>([])
 const categories = ref<ExpenseCategory[]>([])
 const loading = ref(true)
 const statusFilter = ref('')
+const categoryFilter = ref('')
 const statuses = ['Draft', 'PendingApproval', 'Posted', 'Rejected', 'Reversed', 'Cancelled']
+const categoryOptions = computed(() =>
+  categories.value.filter((c) => c.isActive).map((c) => ({ id: c.id, name: c.name })),
+)
 
 const rows = computed(() =>
-  vouchers.value.filter((v) => !statusFilter.value || v.status === statusFilter.value),
+  vouchers.value
+    .filter((v) => !statusFilter.value || v.status === statusFilter.value)
+    .filter((v) => !categoryFilter.value || v.categoryIds.includes(categoryFilter.value)),
 )
 
 const insights = computed<Insight[]>(() => {
@@ -44,6 +50,7 @@ const insights = computed<Insight[]>(() => {
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('expenses.columns.number') },
   { key: 'expenseDate', label: t('expenses.columns.date'), hideOnMobile: true },
+  { key: 'categoryNames', label: t('expenses.columns.category'), hideOnMobile: true },
   { key: 'payeeName', label: t('expenses.columns.payee'), hideOnMobile: true },
   { key: 'grandTotal', label: t('expenses.columns.total'), align: 'right', numeric: true },
   { key: 'status', label: t('expenses.columns.status'), align: 'right' },
@@ -134,14 +141,21 @@ async function toggleCat(c: ExpenseCategory) {
       :loading="loading"
       :empty-text="t('expenses.empty')"
       clickable
+      :filters-active="!!statusFilter || !!categoryFilter"
       @row-click="openVoucher"
+      @clear="statusFilter = ''; categoryFilter = ''"
     >
       <template #filters>
         <select v-model="statusFilter" class="field-input h-9 text-sm">
           <option value="">{{ t('common.allStatuses') }}</option>
-          <option v-for="s in statuses" :key="s" :value="s">{{ t(`expenses.status.${s}`) }}</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ t(`expenses.statusLabel.${s}`) }}</option>
+        </select>
+        <select v-model="categoryFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('expenses.allCategories') }}</option>
+          <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </template>
+      <template #cell-categoryNames="{ value }">{{ value || '—' }}</template>
       <template #cell-payeeName="{ value }">{{ value || '—' }}</template>
       <template #cell-grandTotal="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-status="{ value, row }">

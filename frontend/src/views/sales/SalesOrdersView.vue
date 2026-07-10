@@ -25,6 +25,10 @@ const customers = ref(new Map<string, string>())
 const loading = ref(true)
 const filteredRows = ref<Record<string, unknown>[]>([])
 const statusFilter = ref('')
+const customerFilter = ref('')
+const customerOptions = computed(() =>
+  [...customers.value.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
+)
 
 const columns = computed<Column[]>(() => [
   { key: 'number', label: t('sales.columns.number') },
@@ -39,6 +43,7 @@ const statuses = ['Draft', 'PendingApproval', 'Approved', 'PartiallyDelivered', 
 const rows = computed(() =>
   orders.value
     .filter((o) => !statusFilter.value || o.status === statusFilter.value)
+    .filter((o) => !customerFilter.value || o.customerId === customerFilter.value)
     .map((o) => ({ ...o, customer: customers.value.get(o.customerId) ?? '—' })),
 )
 
@@ -103,12 +108,18 @@ function openOrder(row: Record<string, unknown>) {
       :loading="loading"
       :empty-text="t('sales.empty')"
       clickable
+      :filters-active="!!statusFilter || !!customerFilter"
       @row-click="openOrder"
+      @clear="statusFilter = ''; customerFilter = ''"
     >
       <template #filters>
         <select v-model="statusFilter" class="field-input h-9 text-sm">
           <option value="">{{ t('common.allStatuses') }}</option>
           <option v-for="s in statuses" :key="s" :value="s">{{ t(`sales.status.${s}`) }}</option>
+        </select>
+        <select v-model="customerFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('sales.allCustomers') }}</option>
+          <option v-for="c in customerOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </template>
       <template #cell-status="{ value }">

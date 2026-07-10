@@ -510,13 +510,29 @@ public sealed record GetExpenseVouchersQuery : IQuery<IReadOnlyList<ExpenseVouch
 public sealed class GetExpenseVouchersHandler : IQueryHandler<GetExpenseVouchersQuery, IReadOnlyList<ExpenseVoucherSummaryDto>>
 {
     private readonly IExpenseVoucherRepository _vouchers;
-    public GetExpenseVouchersHandler(IExpenseVoucherRepository vouchers) => _vouchers = vouchers;
+    private readonly IExpenseCategoryRepository _categories;
+
+    public GetExpenseVouchersHandler(IExpenseVoucherRepository vouchers, IExpenseCategoryRepository categories)
+    {
+        _vouchers = vouchers;
+        _categories = categories;
+    }
 
     public async Task<Result<IReadOnlyList<ExpenseVoucherSummaryDto>>> Handle(GetExpenseVouchersQuery request, CancellationToken ct)
     {
         var items = await _vouchers.ListAsync(ct);
+        var categoryName = (await _categories.ListAsync(ct)).ToDictionary(c => c.Id, c => c.Name);
+
         return Result.Success<IReadOnlyList<ExpenseVoucherSummaryDto>>(items
-            .Select(v => new ExpenseVoucherSummaryDto(v.Id, v.Number, v.ExpenseDate, v.PayeeName, v.SupplierId, v.GrandTotal, v.JournalEntryId, v.Status.ToString()))
+            .Select(v =>
+            {
+                // Distinct categories across the voucher's lines (order preserved) — a voucher may span several.
+                var catIds = v.Lines.Select(l => l.ExpenseCategoryId).Distinct().ToList();
+                var names = string.Join(", ", catIds.Select(id => categoryName.GetValueOrDefault(id, "—")));
+                return new ExpenseVoucherSummaryDto(
+                    v.Id, v.Number, v.ExpenseDate, v.PayeeName, v.SupplierId, v.GrandTotal, v.JournalEntryId,
+                    v.Status.ToString(), catIds, names);
+            })
             .ToList());
     }
 }

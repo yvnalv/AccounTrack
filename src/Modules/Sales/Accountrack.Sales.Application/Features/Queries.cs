@@ -1,3 +1,5 @@
+using System.Globalization;
+using Accountrack.Application.Abstractions.Context;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.Sales.Application.Abstractions;
@@ -282,6 +284,72 @@ public sealed class GetSalesReturnsHandler : IQueryHandler<GetSalesReturnsQuery,
                 r.Id, r.Number, r.ReturnDate, r.CustomerId, names.GetValueOrDefault(r.CustomerId, "—"),
                 r.GrandTotal, r.JournalEntryId))
             .ToList());
+    }
+}
+
+public sealed record GetSalesInsightsQuery : IQuery<SalesInsightsDto>;
+
+public sealed class GetSalesInsightsHandler : IQueryHandler<GetSalesInsightsQuery, SalesInsightsDto>
+{
+    private const int TrendMonths = 6;
+    private const int TopN = 5;
+    private readonly ISalesInvoiceRepository _invoices;
+    private readonly IMasterDataLookup _masterData;
+    private readonly IClock _clock;
+
+    public GetSalesInsightsHandler(ISalesInvoiceRepository invoices, IMasterDataLookup masterData, IClock clock)
+    {
+        _invoices = invoices;
+        _masterData = masterData;
+        _clock = clock;
+    }
+
+    public async Task<Result<SalesInsightsDto>> Handle(GetSalesInsightsQuery request, CancellationToken ct)
+    {
+        var invoices = await _invoices.ListWithLinesAsync(ct);
+
+        // 6-month invoiced-sales trend (oldest → newest), zero-filled so the chart always has 6 points.
+        var today = DateOnly.FromDateTime(_clock.UtcNow);
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var monthly = new List<MonthlyAmountDto>(TrendMonths);
+        for (var i = TrendMonths - 1; i >= 0; i--)
+        {
+            var mStart = monthStart.AddMonths(-i);
+            var mEnd = mStart.AddMonths(1);
+            var total = invoices.Where(inv => inv.InvoiceDate >= mStart && inv.InvoiceDate < mEnd).Sum(inv => inv.GrandTotal);
+            monthly.Add(new MonthlyAmountDto(mStart.ToString("yyyy-MM", CultureInfo.InvariantCulture), total));
+        }
+
+        // Top customers by total invoiced value.
+        var byCustomer = invoices
+            .GroupBy(i => i.CustomerId)
+            .Select(g => (Id: g.Key, Amount: g.Sum(i => i.GrandTotal)))
+            .Where(x => x.Amount > 0).OrderByDescending(x => x.Amount).Take(TopN).ToList();
+
+        // Best-selling products by revenue (line net across all invoice lines).
+        var revenueByProduct = invoices.SelectMany(i => i.Lines)
+            .GroupBy(l => l.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(l => l.LineNet));
+        var byProduct = revenueByProduct
+            .Select(kv => (Id: kv.Key, Amount: kv.Value))
+            .Where(x => x.Amount > 0).OrderByDescending(x => x.Amount).Take(TopN).ToList();
+
+        var custNames = await _masterData.ResolveNamesAsync(byCustomer.Select(x => x.Id).ToList(), ct);
+        var prodNames = await _masterData.ResolveNamesAsync(byProduct.Select(x => x.Id).ToList(), ct);
+
+        // Sales grouped by the product's category (products without a category are omitted).
+        var catNames = await _masterData.ResolveProductCategoryNamesAsync(revenueByProduct.Keys.ToList(), ct);
+        var byCategory = revenueByProduct
+            .Where(kv => catNames.ContainsKey(kv.Key))
+            .GroupBy(kv => catNames[kv.Key])
+            .Select(g => new NamedAmountDto(g.Key, g.Sum(kv => kv.Value)))
+            .Where(x => x.Amount > 0).OrderByDescending(x => x.Amount).Take(TopN).ToList();
+
+        return new SalesInsightsDto(
+            monthly,
+            byCustomer.Select(x => new NamedAmountDto(custNames.GetValueOrDefault(x.Id, "—"), x.Amount)).ToList(),
+            byProduct.Select(x => new NamedAmountDto(prodNames.GetValueOrDefault(x.Id, "—"), x.Amount)).ToList(),
+            byCategory);
     }
 }
 

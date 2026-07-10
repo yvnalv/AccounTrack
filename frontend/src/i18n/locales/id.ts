@@ -33,6 +33,7 @@ export default {
     loading: 'Memuat…',
     back: 'Kembali',
     retry: 'Coba lagi',
+    clear: 'Bersihkan',
     viewAll: 'Lihat semua',
     allStatuses: 'Semua status',
     comingSoon: 'Segera hadir',
@@ -107,6 +108,7 @@ export default {
     title: 'Pesanan penjualan',
     new: 'Pesanan penjualan baru',
     create: 'Buat pesanan penjualan',
+    allCustomers: 'Semua pelanggan',
     receivePayment: 'Terima pembayaran',
     backToList: 'Kembali ke pesanan penjualan',
     payment: {
@@ -222,6 +224,7 @@ export default {
   purchasing: {
     title: 'Pesanan pembelian',
     new: 'Pesanan pembelian baru',
+    allSuppliers: 'Semua pemasok',
     paySupplier: 'Bayar pemasok',
     backToList: 'Kembali ke pesanan pembelian',
     payment: {
@@ -344,6 +347,7 @@ export default {
     active: 'Aktif',
     inactive: 'Nonaktif',
     status: 'Status',
+    filters: { allStatuses: 'Semua status' },
     fields: {
       code: 'Kode',
       name: 'Nama',
@@ -377,6 +381,7 @@ export default {
     },
     products: {
       title: 'Produk', new: 'Produk baru', edit: 'Ubah produk', selectUom: 'Pilih satuan', noCategory: '(tidak ada)',
+      allCategories: 'Semua kategori', allCosting: 'Semua metode biaya',
       costing: {
         label: 'Metode biaya',
         movingAverage: 'Rata-rata bergerak',
@@ -401,8 +406,9 @@ export default {
   },
   inventory: {
     title: 'Stok tersedia',
-    columns: { product: 'Produk', warehouse: 'Gudang', onHand: 'Tersedia', avgCost: 'Biaya rata-rata', value: 'Nilai', actions: '' },
+    columns: { product: 'Produk', category: 'Kategori', warehouse: 'Gudang', onHand: 'Tersedia', avgCost: 'Biaya rata-rata', value: 'Nilai', actions: '' },
     allWarehouses: 'Semua gudang',
+    allCategories: 'Semua kategori',
     empty: 'Belum ada stok.',
     valuation: {
       title: 'Penilaian persediaan',
@@ -422,8 +428,8 @@ export default {
     },
     actionFailed: 'Gagal memposting pergerakan.',
     backdate: {
-      hint: 'Tanggal mundur menghitung ulang biaya rata-rata bergerak untuk pergerakan setelahnya.',
-      warning: 'Tanggal mundur — biaya pergerakan setelah tanggal ini akan dihitung ulang. Transfer stok di antaranya akan ditolak.',
+      hint: 'Tanggal mundur menghitung ulang biaya pergerakan setelahnya (rata-rata bergerak dan FIFO).',
+      warning: 'Tanggal mundur — biaya pergerakan setelahnya dihitung ulang, merambat melalui transfer stok, dengan satu jurnal penyesuaian neto.',
     },
     adjust: {
       action: 'Sesuaikan',
@@ -452,6 +458,36 @@ export default {
       match: 'Hitungan sesuai sistem — tidak ada yang dicatat.',
       variance: 'Selisih {variance} dicatat.',
     },
+    receive: {
+      action: 'Terima stok',
+      title: 'Terima stok',
+      subtitle: 'Penerimaan manual / saldo awal. Menambah stok pada biaya satuan yang diberikan.',
+      product: 'Produk',
+      selectProduct: 'Pilih produk',
+      warehouse: 'Gudang',
+      selectWarehouse: 'Pilih gudang',
+      quantity: 'Jumlah',
+      unitCost: 'Biaya satuan',
+      description: 'Keterangan',
+      date: 'Tanggal',
+      hint: 'Penerimaan manual tidak dapat dimundurkan tanggalnya.',
+      submit: 'Terima',
+      posting: 'Menerima…',
+    },
+    transfer: {
+      action: 'Transfer',
+      title: 'Transfer stok',
+      from: 'Dari gudang',
+      to: 'Ke gudang',
+      selectWarehouse: 'Pilih gudang tujuan',
+      available: 'Tersedia: {qty}',
+      quantity: 'Jumlah',
+      date: 'Tanggal',
+      submit: 'Transfer',
+      posting: 'Mentransfer…',
+      hint: 'Biaya mengikuti barang; transfer bersifat netral terhadap buku besar.',
+      backdateWarning: 'Tanggal mundur — pergerakan setelahnya di kedua gudang dihitung ulang, dengan satu jurnal penyesuaian neto.',
+    },
     card: {
       title: 'Kartu stok',
       back: 'Kembali ke stok',
@@ -478,6 +514,7 @@ export default {
   },
   accounting: {
     title: 'Akuntansi',
+    drillToLedger: 'Lihat di Buku Besar',
     tabs: {
       trialBalance: 'Neraca saldo',
       profitLoss: 'Laba rugi',
@@ -490,6 +527,7 @@ export default {
     },
     coa: {
       title: 'Bagan akun',
+      allTypes: 'Semua tipe',
       new: 'Akun baru',
       edit: 'Ubah akun',
       code: 'Kode',
@@ -680,7 +718,8 @@ export default {
       conflict: 'Voucher ini diubah oleh orang lain. Muat ulang dan coba lagi.',
     },
     failed: 'Tidak dapat memposting beban. Periksa akun kas dan aturan posting kategori.',
-    columns: { number: 'Nomor', date: 'Tanggal', payee: 'Penerima', total: 'Total', status: 'Status' },
+    columns: { number: 'Nomor', date: 'Tanggal', category: 'Kategori', payee: 'Penerima', total: 'Total', status: 'Status' },
+    allCategories: 'Semua kategori',
     fields: {
       date: 'Tanggal',
       payee: 'Penerima (opsional)',
@@ -1038,6 +1077,13 @@ export default {
     payableAging: 'Umur utang',
     topReceivables: 'Pelanggan dengan piutang terbesar',
     topPayables: 'Pemasok dengan utang terbesar',
+    sales: 'Penjualan',
+    purchases: 'Pembelian',
+    salesVsPurchases: 'Penjualan vs pembelian (6 bulan)',
+    salesByCategory: 'Penjualan per kategori (tahun ini)',
+    topCustomers: 'Pelanggan teratas berdasarkan penjualan',
+    topProducts: 'Produk terlaris',
+    topSuppliers: 'Pemasok teratas berdasarkan pembelian',
     noData: 'Belum ada data.',
     vsLastMonth: 'vs bulan lalu',
     aging: { current: 'Lancar', d30: '1–30h', d60: '31–60h', d90: '61–90h', d90plus: '90h+' },

@@ -103,7 +103,7 @@ public sealed class ExpenseVoucherRepository : IExpenseVoucherRepository
         _db.ExpenseVouchers.Include(v => v.Lines).FirstOrDefaultAsync(v => v.Id == id, ct);
 
     public async Task<IReadOnlyList<ExpenseVoucher>> ListAsync(CancellationToken ct) =>
-        await _db.ExpenseVouchers.OrderByDescending(v => v.Number).ToListAsync(ct);
+        await _db.ExpenseVouchers.Include(v => v.Lines).OrderByDescending(v => v.Number).ToListAsync(ct);
 
     public Task<ExpenseVoucherNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
         _db.ExpenseVoucherNumberSequences.FirstOrDefaultAsync(ct);

@@ -59,6 +59,13 @@ const tableRows = computed(() =>
     overdue: overdueByCustomer.value.get(c.id) ?? 0,
   })),
 )
+
+const statusFilter = ref<'' | 'active' | 'inactive'>('')
+const visibleRows = computed(() =>
+  tableRows.value.filter(
+    (r) => !statusFilter.value || (statusFilter.value === 'active' ? r.isActive : !r.isActive),
+  ),
+)
 const loading = ref(true)
 const modalOpen = ref(false)
 const saving = ref(false)
@@ -193,7 +200,14 @@ async function toggleActive(row: Customer) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.customers.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')" @row-click="openDetail">
+    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="visibleRows" :loading="loading" :empty-text="t('masterData.empty')" :filters-active="!!statusFilter" @row-click="openDetail" @clear="statusFilter = ''">
+      <template #filters>
+        <select v-model="statusFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('masterData.filters.allStatuses') }}</option>
+          <option value="active">{{ t('masterData.active') }}</option>
+          <option value="inactive">{{ t('masterData.inactive') }}</option>
+        </select>
+      </template>
       <template #cell-taxId="{ value }">{{ value || '—' }}</template>
       <template #cell-creditLimit="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-receivable="{ value, row }">

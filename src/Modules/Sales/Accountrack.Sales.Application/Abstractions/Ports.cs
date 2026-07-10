@@ -33,6 +33,10 @@ public interface ISalesInvoiceRepository
     Task<SalesInvoice?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<SalesInvoice>> ListBySalesOrderAsync(Guid salesOrderId, CancellationToken ct);
     Task<IReadOnlyList<SalesInvoice>> ListAsync(CancellationToken ct);
+
+    /// <summary>All invoices with their lines eager-loaded — for dashboard insights (top products /
+    /// sales-by-category). Kept separate from <see cref="ListAsync"/> so the plain list stays lean.</summary>
+    Task<IReadOnlyList<SalesInvoice>> ListWithLinesAsync(CancellationToken ct);
     Task<SalesInvoiceNumberSequence?> GetSequenceAsync(CancellationToken ct);
     void AddSequence(SalesInvoiceNumberSequence sequence);
 }

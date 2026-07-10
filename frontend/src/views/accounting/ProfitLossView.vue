@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
 import { downloadFile } from '@/lib/api'
@@ -11,6 +12,18 @@ import AppInput from '@/components/ui/AppInput.vue'
 import FormField from '@/components/ui/FormField.vue'
 
 const { t } = useI18n()
+const router = useRouter()
+
+function drill(accountCode: string) {
+  router.push({
+    name: 'accountingGeneralLedger',
+    query: {
+      accountCode,
+      ...(fromDate.value ? { fromDate: fromDate.value } : {}),
+      ...(toDate.value ? { toDate: toDate.value } : {}),
+    },
+  })
+}
 
 const now = new Date()
 const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
@@ -58,7 +71,7 @@ function pdf() {
         <tbody>
           <!-- Revenue -->
           <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.pl.revenue') }}</td></tr>
-          <tr v-for="l in report.revenue" :key="'r' + l.accountCode" class="border-b border-border">
+          <tr v-for="l in report.revenue" :key="'r' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
             <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
           </tr>
@@ -69,7 +82,7 @@ function pdf() {
 
           <!-- Expenses -->
           <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.pl.expenses') }}</td></tr>
-          <tr v-for="l in report.expenses" :key="'e' + l.accountCode" class="border-b border-border">
+          <tr v-for="l in report.expenses" :key="'e' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
             <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
           </tr>

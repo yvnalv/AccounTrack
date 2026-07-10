@@ -17,9 +17,11 @@ import type {
   PurchaseReturnSummary,
   ReturnLineInput,
 } from '@/types/purchasing'
+import type { PurchasingInsights } from '@/types/insights'
 
 export const purchasingApi = {
   list: () => unwrap<PurchaseOrderSummary[]>(http.get('/purchase-orders')),
+  insights: () => unwrap<PurchasingInsights>(http.get('/purchasing/insights')),
   allInvoices: () => unwrap<PurchaseInvoiceListItem[]>(http.get('/purchase-invoices')),
   supplierPayments: (supplierId: string) =>
     unwrap<SupplierPaymentListItem[]>(http.get('/supplier-payments', { params: { supplierId } })),

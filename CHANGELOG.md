@@ -1,5 +1,134 @@
 # Accountrack Changelog
 
+## [2026-07-10 15:21:45 UTC]
+
+CHG-0136 — Web: full-width Settings + richer business-insight dashboard (UI/UX polish 6)
+
+- **Settings page is now full width** like every other page (dropped the `max-w-4xl` cap).
+- **Dashboard enriched with actionable business insights** (finance view), below the existing KPIs /
+  revenue-expense trend / aging / top debtors-creditors:
+  - **Sales vs Purchases** — 6-month grouped-bar trend.
+  - **Sales by category** — donut.
+  - **Top customers by sales**, **Best-selling products**, **Top suppliers by purchases** — ranked bar
+    lists.
+  - Each insight is loaded best-effort and gated by its module permission (`Sales.View` /
+    `Purchasing.View`); a user lacking one simply doesn't see those cards.
+- **Backend — two new read endpoints** (own-module aggregates, respecting boundaries, ADR-0007):
+  - `GET /api/v1/sales/insights` (`Sales.View`) → `SalesInsightsDto`: 6-month invoiced-sales trend, top
+    customers (by invoiced value), best-selling products (by revenue), sales by product category. New
+    `ISalesInvoiceRepository.ListWithLinesAsync` (eager-loads lines; the lean list is unchanged).
+  - `GET /api/v1/purchasing/insights` (`Purchasing.View`) → `PurchasingInsightsDto`: 6-month billed-
+    purchases trend + top suppliers (by billed value).
+  - `IMasterDataLookup.ResolveProductCategoryNamesAsync` added (product→category names) for the
+    sales-by-category grouping. Additive contract change; no schema/migration.
+- Frontend `salesApi.insights()` / `purchasingApi.insights()` + `types/insights.ts`; EN + ID i18n.
+  Full backend solution builds; frontend `vue-tsc` + `vite` green; endpoints verified in Docker with
+  seed data. Final commit of the UI/UX polish PR.
+
+---
+
+## [2026-07-10 14:57:18 UTC]
+
+CHG-0135 — Web: sortable list columns + consistent list filters + Clear (UI/UX polish 5)
+
+- **Sortable columns on every list** (shared `DataTable`). Click a header to cycle ascending → descending
+  → natural order; sortable headers show a hover ↕ / active arrow and carry `aria-sort`; numeric-aware,
+  case-insensitive compare with blanks sorted last. The active sort also flows into Export. Opt-out via
+  `Column.sortable === false`; custom keys via `Column.sortValue`.
+- **A single Clear control** on the table toolbar resets the search box, the column sort, and (via a
+  `clear` event + `filters-active` prop) the page's own filters. Filter controls now stay on **one row**
+  (auto-width, horizontal-scroll if tight) instead of stacking.
+- **Consistent list filters across the app:**
+  - Master data — Products (Status · Category · Costing), Customers/Suppliers/Warehouses (Status),
+    Categories/Units/Tax codes (Status), Chart of Accounts (Account type · Status).
+  - Sales — Orders (Status · Customer); Invoices/Deliveries/Payments/Returns (Customer).
+  - Purchasing — Orders (Status · Supplier); Invoices/Payments/Returns (Supplier).
+  - Inventory — Warehouse · **new Category column** + Category filter.
+  - Expenses — Status · **new Category column** + Category filter.
+- **Products list trimmed**: hid the Costing-method column (kept as a filter); **row actions are now
+  icon-only with hover tooltips** via the shared `RowActions` (applies to all master-data lists).
+- **Backend:** the expense-voucher list DTO now includes the distinct line categories
+  (`CategoryIds` + joined `CategoryNames`); repo list eager-loads lines (`GetExpenseVouchersHandler`).
+  Additive contract change; no schema/migration. Backend + Expenses tests green.
+- EN + ID i18n throughout. Frontend `vue-tsc` + `vite` green; verified in Docker.
+
+---
+
+## [2026-07-10 13:42:14 UTC]
+
+CHG-0134 — Web: dashboard insight-tile navigation + drill-row accessibility (UI/UX polish 4)
+
+- **Clickable finance KPI tiles.** The five dashboard insight tiles now drill into the most relevant
+  report — Cash & bank → Cash Flow; A/R & A/P → Balance Sheet; Revenue & Net profit → Profit & Loss.
+  `StatTile` gained an optional `to` prop and renders as a keyboard-focusable `RouterLink` (hover +
+  focus-visible ring) when set, else an inert section.
+- **Accessibility on the report drill-down rows** (Trial Balance / P&L / Balance Sheet). The rows added
+  in CHG-0133 were mouse-only; they are now `role="button"` with `tabindex`, operable by Enter/Space,
+  carry a descriptive `aria-label` ("View in General Ledger: <account>"), and show a focus-visible ring.
+- Dashboard remains fully responsive (existing 1→2→3→5-column grids + fixed-height charts). The top
+  receivables/payables rows stay display-only (the summary API returns name + amount, no party id to
+  deep-link — a backend change deferred). Frontend-only; `vue-tsc` + `vite` build green. Verified in
+  Docker. Fourth commit in the UI/UX polish PR.
+
+---
+
+## [2026-07-10 13:32:44 UTC]
+
+CHG-0133 — Web: financial-report drill-down to the General Ledger (UI/UX polish 3)
+
+- **Click an account in a report to see its ledger.** Rows in Trial Balance, Profit & Loss, and Balance
+  Sheet are now clickable and navigate to the General Ledger filtered to that account, carrying the
+  report's date range (Balance Sheet, whose balances are cumulative, drills up to the as-of date). Rows
+  show a hover highlight and a "View in General Ledger" tooltip.
+- The General Ledger view now reads `accountId`/`accountCode` + `fromDate`/`toDate` from the URL query
+  and resolves a code against the chart of accounts, pre-selecting the account and period; the initial
+  drill-down loads exactly once (the account-change watch is suppressed during query hydration).
+- Frontend-only (report DTOs carry `accountCode`, resolved to id client-side — no backend/schema change).
+  EN + ID i18n. `vue-tsc` + `vite` build green. Verified in Docker. Third commit in the UI/UX polish PR.
+
+---
+
+## [2026-07-10 13:23:58 UTC]
+
+CHG-0132 — Web: manual Receive-stock UI (UI/UX polish 2)
+
+- **Receive stock from the SPA.** A new **Receive stock** button in the Inventory toolbar opens a
+  standalone form — product, warehouse, quantity, unit cost, description, date — posting to the existing
+  `POST /api/v1/stock/receipts` for manual goods-in / opening balances. Previously this endpoint had no
+  UI.
+- Deliberately a standalone form (not a per-row action) because a manual receipt can create a brand-new
+  product×warehouse bucket that has no on-hand row yet — which the per-row Adjust/Transfer actions can't
+  reach. Permission-gated on `Inventory.Adjust` (matching the endpoint).
+- Manual receipts cannot be back-dated (the form notes this; the API rejects a past date) — unchanged
+  backend behaviour.
+- New `inventoryApi.receive` + `ReceiveStockPayload`; EN + ID i18n. Frontend-only; `vue-tsc` + `vite`
+  build green. Verified in Docker. Second commit in the UI/UX polish PR.
+
+---
+
+## [2026-07-10 13:06:59 UTC]
+
+CHG-0131 — Web: warehouse-transfer UI (UI/UX polish 1)
+
+- **Transfer stock between warehouses from the SPA.** A new **Transfer** action on the Inventory
+  (stock-on-hand) screen opens a modal — destination warehouse (all warehouses except the source),
+  quantity, and date — posting to the existing `POST /api/v1/stock/transfers`. Previously the transfer
+  feature was backend-only: the SPA displayed transfer movements in stock history but had no way to
+  create one. Permission-gated on `Inventory.Transfer`; the button hides without it.
+- Mirrors the existing Adjust/Opname modal pattern (shared `AppModal`/`FormField`); source warehouse and
+  on-hand quantity are shown read-only, destination is a select, submit is disabled until a destination
+  and a positive quantity are entered.
+- **Back-dating supported end-to-end.** A back-dated transfer date shows a warning and is handled by the
+  cross-bucket recompute (ADR-0038 Phase 2b, CHG-0130). Corrected the now-stale inventory back-date
+  warning copy ("a stock transfer in between is rejected") to reflect that back-dating now cascades
+  through transfers for both moving-average and FIFO with one net adjusting journal.
+- New `inventoryApi.transfer` + `TransferStockPayload`/`TransferStockResult` types; i18n keys added for
+  English and Bahasa Indonesia. Frontend-only (no backend/schema/contract change). `vue-tsc` + `vite`
+  build green.
+- First item in the UI/UX polish thread; next: manual Receive UI, report drill-down, dashboard/mobile.
+
+---
+
 ## [2026-07-10 12:41:59 UTC]
 
 CHG-0130 — Inventory: back-dating a transfer document (ADR-0038 Phase 2b — Phase 2 complete)

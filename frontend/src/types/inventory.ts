@@ -15,6 +15,12 @@ export interface StockOpnameResult {
   costApplied: number
 }
 
+export interface TransferStockResult {
+  outTransactionId: string
+  inTransactionId: string
+  unitCost: number
+}
+
 export interface InventoryValuationRow {
   productId: string
   productName: string

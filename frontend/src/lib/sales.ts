@@ -18,9 +18,11 @@ import type {
   SalesReturnListItem,
   SalesReturnSummary,
 } from '@/types/sales'
+import type { SalesInsights } from '@/types/insights'
 
 export const salesApi = {
   list: () => unwrap<SalesOrderSummary[]>(http.get('/sales-orders')),
+  insights: () => unwrap<SalesInsights>(http.get('/sales/insights')),
   get: (id: string) => unwrap<SalesOrder>(http.get(`/sales-orders/${id}`)),
   create: (body: CreateSalesOrder) => unwrap<string>(http.post('/sales-orders', body)),
   update: (id: string, body: CreateSalesOrder, rowVersion?: string | null) =>

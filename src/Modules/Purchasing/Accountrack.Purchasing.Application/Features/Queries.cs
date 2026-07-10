@@ -1,3 +1,5 @@
+using System.Globalization;
+using Accountrack.Application.Abstractions.Context;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.Modules.Contracts.MasterData;
 using Accountrack.Purchasing.Application.Abstractions;
@@ -258,6 +260,51 @@ public sealed class GetPurchaseReturnsHandler : IQueryHandler<GetPurchaseReturns
                 r.Id, r.Number, r.ReturnDate, r.SupplierId, names.GetValueOrDefault(r.SupplierId, "—"),
                 r.GrandTotal, r.JournalEntryId))
             .ToList());
+    }
+}
+
+public sealed record GetPurchasingInsightsQuery : IQuery<PurchasingInsightsDto>;
+
+public sealed class GetPurchasingInsightsHandler : IQueryHandler<GetPurchasingInsightsQuery, PurchasingInsightsDto>
+{
+    private const int TrendMonths = 6;
+    private const int TopN = 5;
+    private readonly IPurchaseInvoiceRepository _invoices;
+    private readonly IMasterDataLookup _masterData;
+    private readonly IClock _clock;
+
+    public GetPurchasingInsightsHandler(IPurchaseInvoiceRepository invoices, IMasterDataLookup masterData, IClock clock)
+    {
+        _invoices = invoices;
+        _masterData = masterData;
+        _clock = clock;
+    }
+
+    public async Task<Result<PurchasingInsightsDto>> Handle(GetPurchasingInsightsQuery request, CancellationToken ct)
+    {
+        var invoices = await _invoices.ListAsync(ct);
+
+        var today = DateOnly.FromDateTime(_clock.UtcNow);
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var monthly = new List<PurchaseMonthlyAmountDto>(TrendMonths);
+        for (var i = TrendMonths - 1; i >= 0; i--)
+        {
+            var mStart = monthStart.AddMonths(-i);
+            var mEnd = mStart.AddMonths(1);
+            var total = invoices.Where(inv => inv.InvoiceDate >= mStart && inv.InvoiceDate < mEnd).Sum(inv => inv.GrandTotal);
+            monthly.Add(new PurchaseMonthlyAmountDto(mStart.ToString("yyyy-MM", CultureInfo.InvariantCulture), total));
+        }
+
+        var bySupplier = invoices
+            .GroupBy(i => i.SupplierId)
+            .Select(g => (Id: g.Key, Amount: g.Sum(i => i.GrandTotal)))
+            .Where(x => x.Amount > 0).OrderByDescending(x => x.Amount).Take(TopN).ToList();
+
+        var names = await _masterData.ResolveNamesAsync(bySupplier.Select(x => x.Id).ToList(), ct);
+
+        return new PurchasingInsightsDto(
+            monthly,
+            bySupplier.Select(x => new PurchaseNamedAmountDto(names.GetValueOrDefault(x.Id, "—"), x.Amount)).ToList());
     }
 }
 

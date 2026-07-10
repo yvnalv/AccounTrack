@@ -32,6 +32,7 @@ export default {
     loading: 'Loading…',
     back: 'Back',
     retry: 'Retry',
+    clear: 'Clear',
     viewAll: 'View all',
     allStatuses: 'All statuses',
     comingSoon: 'Coming soon',
@@ -106,6 +107,7 @@ export default {
     title: 'Sales orders',
     new: 'New sales order',
     create: 'Create sales order',
+    allCustomers: 'All customers',
     receivePayment: 'Receive payment',
     backToList: 'Back to sales orders',
     payment: {
@@ -221,6 +223,7 @@ export default {
   purchasing: {
     title: 'Purchase orders',
     new: 'New purchase order',
+    allSuppliers: 'All suppliers',
     paySupplier: 'Pay supplier',
     backToList: 'Back to purchase orders',
     payment: {
@@ -343,6 +346,7 @@ export default {
     active: 'Active',
     inactive: 'Inactive',
     status: 'Status',
+    filters: { allStatuses: 'All statuses' },
     fields: {
       code: 'Code',
       name: 'Name',
@@ -376,6 +380,7 @@ export default {
     },
     products: {
       title: 'Products', new: 'New product', edit: 'Edit product', selectUom: 'Select a unit', noCategory: '(none)',
+      allCategories: 'All categories', allCosting: 'All costing',
       costing: {
         label: 'Costing method',
         movingAverage: 'Moving average',
@@ -400,8 +405,9 @@ export default {
   },
   inventory: {
     title: 'Stock on hand',
-    columns: { product: 'Product', warehouse: 'Warehouse', onHand: 'On hand', avgCost: 'Avg cost', value: 'Value', actions: '' },
+    columns: { product: 'Product', category: 'Category', warehouse: 'Warehouse', onHand: 'On hand', avgCost: 'Avg cost', value: 'Value', actions: '' },
     allWarehouses: 'All warehouses',
+    allCategories: 'All categories',
     empty: 'No stock on hand yet.',
     valuation: {
       title: 'Inventory valuation',
@@ -421,8 +427,8 @@ export default {
     },
     actionFailed: 'Could not post the movement.',
     backdate: {
-      hint: 'Back-dating recomputes the moving-average cost of any later movements.',
-      warning: 'Back-dated — the cost of movements after this date will be recomputed. A stock transfer in between is rejected.',
+      hint: 'Back-dating recomputes the cost of any later movements (moving-average and FIFO).',
+      warning: 'Back-dated — the cost of later movements will be recomputed, cascading through any stock transfers, with one net adjusting journal.',
     },
     adjust: {
       action: 'Adjust',
@@ -451,6 +457,36 @@ export default {
       match: 'Count matches the system — nothing to post.',
       variance: 'Variance {variance} posted.',
     },
+    receive: {
+      action: 'Receive stock',
+      title: 'Receive stock',
+      subtitle: 'Manual goods-in / opening balance. Adds stock at the given unit cost.',
+      product: 'Product',
+      selectProduct: 'Select a product',
+      warehouse: 'Warehouse',
+      selectWarehouse: 'Select a warehouse',
+      quantity: 'Quantity',
+      unitCost: 'Unit cost',
+      description: 'Description',
+      date: 'Date',
+      hint: 'Manual receipts cannot be back-dated.',
+      submit: 'Receive',
+      posting: 'Receiving…',
+    },
+    transfer: {
+      action: 'Transfer',
+      title: 'Transfer stock',
+      from: 'From warehouse',
+      to: 'To warehouse',
+      selectWarehouse: 'Select a destination warehouse',
+      available: 'Available: {qty}',
+      quantity: 'Quantity',
+      date: 'Date',
+      submit: 'Transfer',
+      posting: 'Transferring…',
+      hint: 'Cost travels with the goods; a transfer is GL-neutral.',
+      backdateWarning: 'Back-dated — later movements in both warehouses are recomputed, with one net adjusting journal.',
+    },
     card: {
       title: 'Stock card',
       back: 'Back to stock',
@@ -477,6 +513,7 @@ export default {
   },
   accounting: {
     title: 'Accounting',
+    drillToLedger: 'View in General Ledger',
     tabs: {
       trialBalance: 'Trial balance',
       profitLoss: 'Profit & loss',
@@ -489,6 +526,7 @@ export default {
     },
     coa: {
       title: 'Chart of accounts',
+      allTypes: 'All types',
       new: 'New account',
       edit: 'Edit account',
       code: 'Code',
@@ -679,7 +717,8 @@ export default {
       conflict: 'This voucher was changed by someone else. Reload and try again.',
     },
     failed: 'Could not post the expense. Check the cash account and category posting rules.',
-    columns: { number: 'Number', date: 'Date', payee: 'Payee', total: 'Total', status: 'Status' },
+    columns: { number: 'Number', date: 'Date', category: 'Category', payee: 'Payee', total: 'Total', status: 'Status' },
+    allCategories: 'All categories',
     fields: {
       date: 'Date',
       payee: 'Payee (optional)',
@@ -1037,6 +1076,13 @@ export default {
     payableAging: 'Payable aging',
     topReceivables: 'Top customers owing',
     topPayables: 'Top suppliers owed',
+    sales: 'Sales',
+    purchases: 'Purchases',
+    salesVsPurchases: 'Sales vs purchases (6 months)',
+    salesByCategory: 'Sales by category (this year)',
+    topCustomers: 'Top customers by sales',
+    topProducts: 'Best-selling products',
+    topSuppliers: 'Top suppliers by purchases',
     noData: 'No data yet.',
     vsLastMonth: 'vs last month',
     aging: { current: 'Current', d30: '1–30d', d60: '31–60d', d90: '61–90d', d90plus: '90d+' },

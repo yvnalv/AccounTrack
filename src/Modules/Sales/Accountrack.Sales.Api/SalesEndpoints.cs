@@ -19,6 +19,9 @@ public static class SalesEndpoints
         so.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetSalesOrdersQuery(), ct)))
             .RequireAuthorization("Sales.View").WithName("GetSalesOrders");
 
+        app.MapGet("/api/v1/sales/insights", (ISender s, CancellationToken ct) => Send(s.Send(new GetSalesInsightsQuery(), ct)))
+            .WithTags("Sales").RequireAuthorization("Sales.View").WithName("GetSalesInsights");
+
         so.MapGet("/export", (string? format, ISender s, CancellationToken ct) =>
                 TableExport.File(s.Send(new ExportSalesOrdersQuery(), ct), "sales-orders", format))
             .RequireAuthorization("Sales.View").WithName("ExportSalesOrders");

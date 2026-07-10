@@ -70,3 +70,13 @@ public sealed record PurchaseReturnSummaryDto(
 public sealed record PurchaseReturnListItemDto(
     Guid Id, string Number, DateOnly ReturnDate, Guid SupplierId, string SupplierName,
     decimal GrandTotal, Guid? JournalEntryId);
+
+// --- Dashboard insights (billed purchases) ---
+public sealed record PurchaseMonthlyAmountDto(string Month, decimal Amount);
+public sealed record PurchaseNamedAmountDto(string Name, decimal Amount);
+
+/// <summary>Actionable purchasing insights for the dashboard: a 6-month billed-purchases trend and the
+/// top suppliers by billed value, derived from purchase invoices (bills).</summary>
+public sealed record PurchasingInsightsDto(
+    IReadOnlyList<PurchaseMonthlyAmountDto> MonthlyPurchases,
+    IReadOnlyList<PurchaseNamedAmountDto> TopSuppliers);
