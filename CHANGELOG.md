@@ -1,5 +1,28 @@
 # Accountrack Changelog
 
+## [2026-07-10 13:06:59 UTC]
+
+CHG-0131 — Web: warehouse-transfer UI (UI/UX polish 1)
+
+- **Transfer stock between warehouses from the SPA.** A new **Transfer** action on the Inventory
+  (stock-on-hand) screen opens a modal — destination warehouse (all warehouses except the source),
+  quantity, and date — posting to the existing `POST /api/v1/stock/transfers`. Previously the transfer
+  feature was backend-only: the SPA displayed transfer movements in stock history but had no way to
+  create one. Permission-gated on `Inventory.Transfer`; the button hides without it.
+- Mirrors the existing Adjust/Opname modal pattern (shared `AppModal`/`FormField`); source warehouse and
+  on-hand quantity are shown read-only, destination is a select, submit is disabled until a destination
+  and a positive quantity are entered.
+- **Back-dating supported end-to-end.** A back-dated transfer date shows a warning and is handled by the
+  cross-bucket recompute (ADR-0038 Phase 2b, CHG-0130). Corrected the now-stale inventory back-date
+  warning copy ("a stock transfer in between is rejected") to reflect that back-dating now cascades
+  through transfers for both moving-average and FIFO with one net adjusting journal.
+- New `inventoryApi.transfer` + `TransferStockPayload`/`TransferStockResult` types; i18n keys added for
+  English and Bahasa Indonesia. Frontend-only (no backend/schema/contract change). `vue-tsc` + `vite`
+  build green.
+- First item in the UI/UX polish thread; next: manual Receive UI, report drill-down, dashboard/mobile.
+
+---
+
 ## [2026-07-10 12:41:59 UTC]
 
 CHG-0130 — Inventory: back-dating a transfer document (ADR-0038 Phase 2b — Phase 2 complete)

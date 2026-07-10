@@ -421,8 +421,8 @@ export default {
     },
     actionFailed: 'Could not post the movement.',
     backdate: {
-      hint: 'Back-dating recomputes the moving-average cost of any later movements.',
-      warning: 'Back-dated — the cost of movements after this date will be recomputed. A stock transfer in between is rejected.',
+      hint: 'Back-dating recomputes the cost of any later movements (moving-average and FIFO).',
+      warning: 'Back-dated — the cost of later movements will be recomputed, cascading through any stock transfers, with one net adjusting journal.',
     },
     adjust: {
       action: 'Adjust',
@@ -450,6 +450,20 @@ export default {
       posting: 'Reconciling…',
       match: 'Count matches the system — nothing to post.',
       variance: 'Variance {variance} posted.',
+    },
+    transfer: {
+      action: 'Transfer',
+      title: 'Transfer stock',
+      from: 'From warehouse',
+      to: 'To warehouse',
+      selectWarehouse: 'Select a destination warehouse',
+      available: 'Available: {qty}',
+      quantity: 'Quantity',
+      date: 'Date',
+      submit: 'Transfer',
+      posting: 'Transferring…',
+      hint: 'Cost travels with the goods; a transfer is GL-neutral.',
+      backdateWarning: 'Back-dated — later movements in both warehouses are recomputed, with one net adjusting journal.',
     },
     card: {
       title: 'Stock card',

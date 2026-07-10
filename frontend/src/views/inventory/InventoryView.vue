@@ -23,6 +23,7 @@ const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
 const canAdjust = computed(() => auth.has('Inventory.Adjust'))
+const canTransfer = computed(() => auth.has('Inventory.Transfer'))
 
 const stock = ref<StockOnHand[]>([])
 const products = ref(new Map<string, string>())
@@ -83,9 +84,9 @@ function openCard(row: Record<string, unknown>) {
   router.push({ name: 'inventoryStockCard', query: { productId: String(row.productId), warehouseId: String(row.warehouseId) } })
 }
 
-// --- Adjust / opname modal ---
+// --- Adjust / opname / transfer modal ---
 const today = new Date().toISOString().slice(0, 10)
-type Mode = 'adjust' | 'opname'
+type Mode = 'adjust' | 'opname' | 'transfer'
 type Target = StockOnHand & { product: string; warehouse: string }
 const modalOpen = ref(false)
 const mode = ref<Mode>('adjust')
@@ -94,10 +95,37 @@ const saving = ref(false)
 const error = ref('')
 const message = ref('')
 
-const form = ref({ increase: false, quantity: 0, unitCost: null as number | null, reason: '', counted: 0, notes: '', date: today })
+const form = ref({
+  increase: false, quantity: 0, unitCost: null as number | null, reason: '',
+  counted: 0, notes: '', date: today, toWarehouseId: '',
+})
+
+const modalTitle = computed(() => {
+  if (!target.value) return ''
+  const label =
+    mode.value === 'adjust' ? t('inventory.adjust.title')
+    : mode.value === 'opname' ? t('inventory.opname.title')
+    : t('inventory.transfer.title')
+  return `${label} · ${target.value.product}`
+})
+
+// Destination warehouses for a transfer — every warehouse except the source (BR: they must differ).
+const transferDestinations = computed(() =>
+  warehouseOptions.value.filter((w) => w.id !== target.value?.warehouseId),
+)
+
+const transferInvalid = computed(() =>
+  mode.value === 'transfer' && (!form.value.toWarehouseId || Number(form.value.quantity) <= 0),
+)
+
+const submitLabel = computed(() => {
+  if (mode.value === 'adjust') return saving.value ? t('inventory.adjust.posting') : t('inventory.adjust.submit')
+  if (mode.value === 'opname') return saving.value ? t('inventory.opname.posting') : t('inventory.opname.submit')
+  return saving.value ? t('inventory.transfer.posting') : t('inventory.transfer.submit')
+})
 
 // A movement dated before today may sit before existing movements; posting it replays the bucket's
-// moving average and corrects later costs via an adjusting journal (ADR-0033).
+// moving average and corrects later costs via an adjusting journal (ADR-0033/0037/0038).
 const isBackDated = computed(() => form.value.date < today)
 
 function open(mode_: Mode, row: Record<string, unknown>) {
@@ -106,7 +134,10 @@ function open(mode_: Mode, row: Record<string, unknown>) {
   target.value = r
   error.value = ''
   message.value = ''
-  form.value = { increase: false, quantity: 0, unitCost: null, reason: '', counted: Number(r.onHandQty), notes: '', date: today }
+  form.value = {
+    increase: false, quantity: 0, unitCost: null, reason: '',
+    counted: Number(r.onHandQty), notes: '', date: today, toWarehouseId: '',
+  }
   modalOpen.value = true
 }
 
@@ -128,7 +159,7 @@ async function submit() {
       })
       await reload()
       modalOpen.value = false
-    } else {
+    } else if (mode.value === 'opname') {
       const res = await inventoryApi.opname({
         productId: target.value.productId,
         warehouseId: target.value.warehouseId,
@@ -141,6 +172,16 @@ async function submit() {
         ? t('inventory.opname.match')
         : t('inventory.opname.variance', { variance: formatNumber(res.variance, 2) })
       await reload()
+    } else {
+      await inventoryApi.transfer({
+        productId: target.value.productId,
+        fromWarehouseId: target.value.warehouseId,
+        toWarehouseId: form.value.toWarehouseId,
+        quantity: Number(form.value.quantity),
+        date: form.value.date,
+      })
+      await reload()
+      modalOpen.value = false
     }
   } catch (e) {
     error.value = apiErrorMessage(e, t('inventory.actionFailed'))
@@ -197,7 +238,14 @@ async function submit() {
           >
             {{ t('inventory.opname.action') }}
           </button>
-          <span v-if="!canAdjust" class="text-xs text-text-muted">—</span>
+          <button
+            v-if="canTransfer"
+            class="rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+            @click="open('transfer', row)"
+          >
+            {{ t('inventory.transfer.action') }}
+          </button>
+          <span v-if="!canAdjust && !canTransfer" class="text-xs text-text-muted">—</span>
         </div>
       </template>
     </DataTable>
@@ -205,7 +253,7 @@ async function submit() {
     <AppModal
       v-if="target"
       v-model="modalOpen"
-      :title="`${mode === 'adjust' ? t('inventory.adjust.title') : t('inventory.opname.title')} · ${target.product}`"
+      :title="modalTitle"
     >
       <div class="space-y-3">
         <p class="text-sm text-text-muted">{{ target.warehouse }}</p>
@@ -227,7 +275,7 @@ async function submit() {
           </FormField>
         </template>
 
-        <template v-else>
+        <template v-else-if="mode === 'opname'">
           <FormField :label="t('inventory.opname.systemQty')">
             <p class="tnum text-sm text-text">{{ formatNumber(Number(target.onHandQty), 2) }}</p>
           </FormField>
@@ -241,16 +289,33 @@ async function submit() {
           </FormField>
         </template>
 
+        <template v-else>
+          <FormField :label="t('inventory.transfer.from')">
+            <p class="text-sm text-text">{{ target.warehouse }}</p>
+            <p class="mt-1 text-xs text-text-muted">{{ t('inventory.transfer.available', { qty: formatNumber(Number(target.onHandQty), 2) }) }}</p>
+          </FormField>
+          <FormField :label="t('inventory.transfer.to')">
+            <select v-model="form.toWarehouseId" class="field-input">
+              <option value="" disabled>{{ t('inventory.transfer.selectWarehouse') }}</option>
+              <option v-for="w in transferDestinations" :key="w.id" :value="w.id">{{ w.name }}</option>
+            </select>
+          </FormField>
+          <FormField :label="t('inventory.transfer.quantity')"><input v-model.number="form.quantity" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
+          <FormField :label="t('inventory.transfer.date')">
+            <AppInput v-model="form.date" type="date" />
+            <p class="mt-1 text-xs text-text-muted">{{ t('inventory.transfer.hint') }}</p>
+            <p v-if="isBackDated" class="mt-1 text-xs text-warning">{{ t('inventory.transfer.backdateWarning') }}</p>
+          </FormField>
+        </template>
+
         <p v-if="error" class="text-sm text-negative">{{ error }}</p>
         <p v-if="message" class="text-sm text-positive">{{ message }}</p>
       </div>
 
       <template #footer>
         <AppButton variant="ghost" @click="modalOpen = false">{{ t('masterData.cancel') }}</AppButton>
-        <AppButton :disabled="saving" @click="submit">
-          {{ saving
-            ? (mode === 'adjust' ? t('inventory.adjust.posting') : t('inventory.opname.posting'))
-            : (mode === 'adjust' ? t('inventory.adjust.submit') : t('inventory.opname.submit')) }}
+        <AppButton :disabled="saving || transferInvalid" @click="submit">
+          {{ submitLabel }}
         </AppButton>
       </template>
     </AppModal>

@@ -4,6 +4,7 @@ import type {
   StockCardEntry,
   StockOnHand,
   StockOpnameResult,
+  TransferStockResult,
 } from '@/types/inventory'
 
 export interface AdjustStockPayload {
@@ -25,6 +26,14 @@ export interface StockOpnamePayload {
   notes: string | null
 }
 
+export interface TransferStockPayload {
+  productId: string
+  fromWarehouseId: string
+  toWarehouseId: string
+  quantity: number
+  date: string
+}
+
 export const inventoryApi = {
   onHand: () => unwrap<StockOnHand[]>(http.get('/stock/on-hand')),
   stockCard: (productId: string, warehouseId?: string) =>
@@ -34,6 +43,8 @@ export const inventoryApi = {
   adjust: (payload: AdjustStockPayload) => unwrap(http.post('/stock/adjustments', payload)),
   opname: (payload: StockOpnamePayload) =>
     unwrap<StockOpnameResult>(http.post('/stock/opname', payload)),
+  transfer: (payload: TransferStockPayload) =>
+    unwrap<TransferStockResult>(http.post('/stock/transfers', payload)),
   valuation: () => unwrap<InventoryValuation>(http.get('/stock/valuation')),
 }
 

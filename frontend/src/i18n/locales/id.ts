@@ -422,8 +422,8 @@ export default {
     },
     actionFailed: 'Gagal memposting pergerakan.',
     backdate: {
-      hint: 'Tanggal mundur menghitung ulang biaya rata-rata bergerak untuk pergerakan setelahnya.',
-      warning: 'Tanggal mundur — biaya pergerakan setelah tanggal ini akan dihitung ulang. Transfer stok di antaranya akan ditolak.',
+      hint: 'Tanggal mundur menghitung ulang biaya pergerakan setelahnya (rata-rata bergerak dan FIFO).',
+      warning: 'Tanggal mundur — biaya pergerakan setelahnya dihitung ulang, merambat melalui transfer stok, dengan satu jurnal penyesuaian neto.',
     },
     adjust: {
       action: 'Sesuaikan',
@@ -451,6 +451,20 @@ export default {
       posting: 'Merekonsiliasi…',
       match: 'Hitungan sesuai sistem — tidak ada yang dicatat.',
       variance: 'Selisih {variance} dicatat.',
+    },
+    transfer: {
+      action: 'Transfer',
+      title: 'Transfer stok',
+      from: 'Dari gudang',
+      to: 'Ke gudang',
+      selectWarehouse: 'Pilih gudang tujuan',
+      available: 'Tersedia: {qty}',
+      quantity: 'Jumlah',
+      date: 'Tanggal',
+      submit: 'Transfer',
+      posting: 'Mentransfer…',
+      hint: 'Biaya mengikuti barang; transfer bersifat netral terhadap buku besar.',
+      backdateWarning: 'Tanggal mundur — pergerakan setelahnya di kedua gudang dihitung ulang, dengan satu jurnal penyesuaian neto.',
     },
     card: {
       title: 'Kartu stok',
