@@ -51,4 +51,21 @@ public sealed class MasterDataLookup : IMasterDataLookup
         await Add(_db.Set<Warehouse>().Where(e => ids.Contains(e.Id)).Select(e => new KeyValuePair<Guid, string>(e.Id, e.Name)));
         return map;
     }
+
+    public async Task<IReadOnlyDictionary<Guid, string>> ResolveProductCategoryNamesAsync(
+        IReadOnlyCollection<Guid> productIds, CancellationToken ct)
+    {
+        if (productIds.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var pairs = await (
+            from p in _db.Set<Product>()
+            where productIds.Contains(p.Id) && p.CategoryId != null
+            join c in _db.Set<ProductCategory>() on p.CategoryId equals c.Id
+            select new KeyValuePair<Guid, string>(p.Id, c.Name)).ToListAsync(ct);
+
+        return pairs.ToDictionary(kv => kv.Key, kv => kv.Value);
+    }
 }

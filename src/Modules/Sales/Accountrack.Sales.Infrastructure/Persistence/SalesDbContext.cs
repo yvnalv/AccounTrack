@@ -265,6 +265,9 @@ public sealed class SalesInvoiceRepository : ISalesInvoiceRepository
     public async Task<IReadOnlyList<SalesInvoice>> ListAsync(CancellationToken ct) =>
         await _db.SalesInvoices.OrderByDescending(i => i.Number).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<SalesInvoice>> ListWithLinesAsync(CancellationToken ct) =>
+        await _db.SalesInvoices.Include(i => i.Lines).OrderByDescending(i => i.Number).ToListAsync(ct);
+
     public Task<SalesInvoiceNumberSequence?> GetSequenceAsync(CancellationToken ct) =>
         _db.SalesInvoiceNumberSequences.FirstOrDefaultAsync(ct);
 

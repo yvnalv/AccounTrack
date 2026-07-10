@@ -25,6 +25,8 @@ const theme = useThemeStore()
 const auth = useAuthStore()
 
 const summary = ref<DashboardSummary | null>(null)
+const salesInsights = ref<import('@/types/insights').SalesInsights | null>(null)
+const purchasingInsights = ref<import('@/types/insights').PurchasingInsights | null>(null)
 const loading = ref(true)
 const error = ref('')
 
@@ -127,6 +129,13 @@ async function load() {
   try {
     if (canViewFinance.value) {
       summary.value = await unwrap<DashboardSummary>(http.get('/dashboard/summary'))
+      // Cross-module business insights (best-effort; each gated by its own module permission).
+      const [si, pi] = await Promise.all([
+        canSeeSales.value ? salesApi.insights().catch(() => null) : Promise.resolve(null),
+        canSeePurchasing.value ? purchasingApi.insights().catch(() => null) : Promise.resolve(null),
+      ])
+      salesInsights.value = si
+      purchasingInsights.value = pi
     } else if (hasOperational.value) {
       await loadOperational()
     }
@@ -279,6 +288,61 @@ function barWidth(amount: number, list: { amount: number }[]): string {
   const max = Math.max(...list.map((x) => x.amount), 1)
   return `${Math.max(4, (amount / max) * 100)}%`
 }
+
+// Sales vs Purchases — 6-month grouped bars from the Sales/Purchasing insight endpoints.
+const hasSalesVsPurchases = computed(() =>
+  (salesInsights.value?.monthlySales.some((p) => p.amount) ?? false) ||
+  (purchasingInsights.value?.monthlyPurchases.some((p) => p.amount) ?? false),
+)
+const salesVsPurchasesOption = computed<EChartsOption>(() => {
+  void theme.theme
+  const { muted, border } = baseAxis()
+  const accent = cssVar('--accent', '#007E6E')
+  const sales = salesInsights.value?.monthlySales ?? []
+  const purchases = purchasingInsights.value?.monthlyPurchases ?? []
+  const months = (sales.length ? sales : purchases).map((p) => p.month.slice(2))
+  return {
+    grid: { top: 30, right: 16, bottom: 28, left: 52 },
+    legend: { top: 0, textStyle: { color: muted }, itemHeight: 8, itemWidth: 8, icon: 'roundRect' },
+    tooltip: { trigger: 'axis', ...tooltipBox(), valueFormatter: (v) => formatMoney(Number(v), currency.value) },
+    xAxis: { type: 'category', data: months, axisLine: { lineStyle: { color: border } }, axisTick: { show: false }, axisLabel: { color: muted } },
+    yAxis: { type: 'value', splitLine: { lineStyle: { color: border, type: 'dashed' } }, axisLabel: { color: muted, formatter: (v: number) => compact(v) } },
+    series: [
+      { name: t('dashboard.sales'), type: 'bar', barMaxWidth: 22, itemStyle: { color: accent, borderRadius: [4, 4, 0, 0] }, data: sales.map((p) => p.amount) },
+      { name: t('dashboard.purchases'), type: 'bar', barMaxWidth: 22, itemStyle: { color: '#F59E0B', borderRadius: [4, 4, 0, 0] }, data: purchases.map((p) => p.amount) },
+    ],
+  }
+})
+
+const hasSalesByCategory = computed(() => (salesInsights.value?.salesByCategory.length ?? 0) > 0)
+const salesByCategoryOption = computed<EChartsOption>(() => {
+  void theme.theme
+  const { muted } = baseAxis()
+  const data = (salesInsights.value?.salesByCategory ?? []).map((c, i) => ({
+    name: c.name,
+    value: c.amount,
+    itemStyle: { color: PALETTE[i % PALETTE.length] },
+  }))
+  return {
+    tooltip: { trigger: 'item', ...tooltipBox(), valueFormatter: (v) => formatMoney(Number(v), currency.value) },
+    legend: { type: 'scroll', orient: 'vertical', right: 0, top: 'middle', textStyle: { color: muted, fontSize: 11 }, itemHeight: 8, itemWidth: 8, icon: 'circle' },
+    series: [
+      {
+        type: 'pie',
+        radius: ['52%', '74%'],
+        center: ['32%', '50%'],
+        avoidLabelOverlap: true,
+        itemStyle: { borderColor: cssVar('--surface', '#fff'), borderWidth: 2 },
+        label: { show: false },
+        data,
+      },
+    ],
+  }
+})
+
+const topCustomers = computed(() => salesInsights.value?.topCustomers ?? [])
+const topProducts = computed(() => salesInsights.value?.topProducts ?? [])
+const topSuppliers = computed(() => purchasingInsights.value?.topSuppliers ?? [])
 </script>
 
 <template>
@@ -415,6 +479,64 @@ function barWidth(amount: number, list: { amount: number }[]): string {
               </div>
               <div class="mt-1 h-1.5 w-full rounded-full bg-surface-2">
                 <div class="h-1.5 rounded-full" :style="{ width: barWidth(p.amount, summary.topPayables), background: '#EF4444' }" />
+              </div>
+            </li>
+          </ul>
+        </AppCard>
+      </div>
+
+      <!-- ===== Business insights (Sales / Purchasing) ===== -->
+      <!-- Sales vs Purchases trend + Sales by category -->
+      <div v-if="hasSalesVsPurchases || hasSalesByCategory" class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <AppCard v-if="hasSalesVsPurchases" :title="t('dashboard.salesVsPurchases')" class="lg:col-span-2">
+          <div class="h-[300px] w-full"><AppChart :option="salesVsPurchasesOption" /></div>
+        </AppCard>
+        <AppCard :title="t('dashboard.salesByCategory')">
+          <div v-if="hasSalesByCategory" class="h-[300px] w-full"><AppChart :option="salesByCategoryOption" /></div>
+          <p v-else class="grid h-[300px] place-items-center text-sm text-text-muted">{{ t('dashboard.noData') }}</p>
+        </AppCard>
+      </div>
+
+      <!-- Top customers / suppliers / products -->
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <AppCard :title="t('dashboard.topCustomers')">
+          <p v-if="topCustomers.length === 0" class="py-6 text-center text-sm text-text-muted">{{ t('dashboard.noData') }}</p>
+          <ul v-else class="space-y-3">
+            <li v-for="c in topCustomers" :key="c.name">
+              <div class="flex items-center justify-between text-sm">
+                <span class="truncate text-text">{{ c.name }}</span>
+                <span class="tnum text-text-muted">{{ formatMoneyShort(c.amount, currency) }}</span>
+              </div>
+              <div class="mt-1 h-1.5 w-full rounded-full bg-surface-2">
+                <div class="h-1.5 rounded-full bg-accent" :style="{ width: barWidth(c.amount, topCustomers) }" />
+              </div>
+            </li>
+          </ul>
+        </AppCard>
+        <AppCard :title="t('dashboard.topProducts')">
+          <p v-if="topProducts.length === 0" class="py-6 text-center text-sm text-text-muted">{{ t('dashboard.noData') }}</p>
+          <ul v-else class="space-y-3">
+            <li v-for="p in topProducts" :key="p.name">
+              <div class="flex items-center justify-between text-sm">
+                <span class="truncate text-text">{{ p.name }}</span>
+                <span class="tnum text-text-muted">{{ formatMoneyShort(p.amount, currency) }}</span>
+              </div>
+              <div class="mt-1 h-1.5 w-full rounded-full bg-surface-2">
+                <div class="h-1.5 rounded-full" :style="{ width: barWidth(p.amount, topProducts), background: '#3B82F6' }" />
+              </div>
+            </li>
+          </ul>
+        </AppCard>
+        <AppCard :title="t('dashboard.topSuppliers')">
+          <p v-if="topSuppliers.length === 0" class="py-6 text-center text-sm text-text-muted">{{ t('dashboard.noData') }}</p>
+          <ul v-else class="space-y-3">
+            <li v-for="s in topSuppliers" :key="s.name">
+              <div class="flex items-center justify-between text-sm">
+                <span class="truncate text-text">{{ s.name }}</span>
+                <span class="tnum text-text-muted">{{ formatMoneyShort(s.amount, currency) }}</span>
+              </div>
+              <div class="mt-1 h-1.5 w-full rounded-full bg-surface-2">
+                <div class="h-1.5 rounded-full" :style="{ width: barWidth(s.amount, topSuppliers), background: '#F59E0B' }" />
               </div>
             </li>
           </ul>

@@ -21,6 +21,9 @@ public static class PurchasingEndpoints
         po.MapGet("/", (ISender s, CancellationToken ct) => Send(s.Send(new GetPurchaseOrdersQuery(), ct)))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseOrders");
 
+        app.MapGet("/api/v1/purchasing/insights", (ISender s, CancellationToken ct) => Send(s.Send(new GetPurchasingInsightsQuery(), ct)))
+            .WithTags("Purchasing").RequireAuthorization("Purchasing.View").WithName("GetPurchasingInsights");
+
         po.MapGet("/{id:guid}/pdf", (Guid id, ISender s, CancellationToken ct) =>
                 Accountrack.Web.Common.Pdf.PdfRenderer.File(s.Send(new GetPurchaseOrderPdfQuery(id), ct), "purchase-order"))
             .RequireAuthorization("Purchasing.View").WithName("GetPurchaseOrderPdf");

@@ -132,7 +132,7 @@ function setLocale(next: string | undefined) {
 </script>
 
 <template>
-  <div class="max-w-4xl space-y-5">
+  <div class="w-full space-y-5">
     <nav class="flex flex-wrap gap-1 border-b border-border">
       <button
         v-for="tab in tabs"

@@ -20,4 +20,10 @@ public interface IMasterDataLookup
     /// <summary>Resolves master-data ids (customer/supplier/product/warehouse) to display names,
     /// e.g. for exports. Unknown ids are simply absent from the map.</summary>
     Task<IReadOnlyDictionary<Guid, string>> ResolveNamesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
+
+    /// <summary>Maps each given product id to its category name (for products that have a category) —
+    /// used by cross-module dashboard insights that group sales by category. Products without a category,
+    /// or unknown ids, are absent from the map.</summary>
+    Task<IReadOnlyDictionary<Guid, string>> ResolveProductCategoryNamesAsync(
+        IReadOnlyCollection<Guid> productIds, CancellationToken ct);
 }

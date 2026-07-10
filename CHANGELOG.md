@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-07-10 15:21:45 UTC]
+
+CHG-0136 — Web: full-width Settings + richer business-insight dashboard (UI/UX polish 6)
+
+- **Settings page is now full width** like every other page (dropped the `max-w-4xl` cap).
+- **Dashboard enriched with actionable business insights** (finance view), below the existing KPIs /
+  revenue-expense trend / aging / top debtors-creditors:
+  - **Sales vs Purchases** — 6-month grouped-bar trend.
+  - **Sales by category** — donut.
+  - **Top customers by sales**, **Best-selling products**, **Top suppliers by purchases** — ranked bar
+    lists.
+  - Each insight is loaded best-effort and gated by its module permission (`Sales.View` /
+    `Purchasing.View`); a user lacking one simply doesn't see those cards.
+- **Backend — two new read endpoints** (own-module aggregates, respecting boundaries, ADR-0007):
+  - `GET /api/v1/sales/insights` (`Sales.View`) → `SalesInsightsDto`: 6-month invoiced-sales trend, top
+    customers (by invoiced value), best-selling products (by revenue), sales by product category. New
+    `ISalesInvoiceRepository.ListWithLinesAsync` (eager-loads lines; the lean list is unchanged).
+  - `GET /api/v1/purchasing/insights` (`Purchasing.View`) → `PurchasingInsightsDto`: 6-month billed-
+    purchases trend + top suppliers (by billed value).
+  - `IMasterDataLookup.ResolveProductCategoryNamesAsync` added (product→category names) for the
+    sales-by-category grouping. Additive contract change; no schema/migration.
+- Frontend `salesApi.insights()` / `purchasingApi.insights()` + `types/insights.ts`; EN + ID i18n.
+  Full backend solution builds; frontend `vue-tsc` + `vite` green; endpoints verified in Docker with
+  seed data. Final commit of the UI/UX polish PR.
+
+---
+
 ## [2026-07-10 14:57:18 UTC]
 
 CHG-0135 — Web: sortable list columns + consistent list filters + Clear (UI/UX polish 5)
