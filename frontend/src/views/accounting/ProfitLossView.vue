@@ -71,7 +71,7 @@ function pdf() {
         <tbody>
           <!-- Revenue -->
           <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.pl.revenue') }}</td></tr>
-          <tr v-for="l in report.revenue" :key="'r' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)">
+          <tr v-for="l in report.revenue" :key="'r' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
             <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
           </tr>
@@ -82,7 +82,7 @@ function pdf() {
 
           <!-- Expenses -->
           <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.pl.expenses') }}</td></tr>
-          <tr v-for="l in report.expenses" :key="'e' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)">
+          <tr v-for="l in report.expenses" :key="'e' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
             <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
           </tr>

@@ -81,9 +81,14 @@ function pdf() {
             v-for="r in rows"
             v-else
             :key="r.accountCode"
-            class="cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-surface-2"
+            class="cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+            role="button"
+            tabindex="0"
+            :aria-label="t('accounting.drillToLedger') + ': ' + r.accountName"
             :title="t('accounting.drillToLedger')"
             @click="drill(r.accountCode)"
+            @keydown.enter="drill(r.accountCode)"
+            @keydown.space.prevent="drill(r.accountCode)"
           >
             <td class="px-4 py-2.5 text-text-muted tnum">{{ r.accountCode }}</td>
             <td class="px-4 py-2.5 text-text">{{ r.accountName }}</td>

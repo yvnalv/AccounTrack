@@ -351,13 +351,13 @@ function barWidth(amount: number, list: { amount: number }[]): string {
     </div>
 
     <template v-else-if="summary">
-      <!-- Insight tiles -->
+      <!-- Insight tiles — each drills into the most relevant report. -->
       <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-        <StatTile :label="t('dashboard.cashAndBank')" :value="formatMoneyShort(summary.cashAndBank, currency)" />
-        <StatTile :label="t('dashboard.accountsReceivable')" :value="formatMoneyShort(summary.accountsReceivable, currency)" :hint="overdueArHint" hint-tone="negative" />
-        <StatTile :label="t('dashboard.accountsPayable')" :value="formatMoneyShort(summary.accountsPayable, currency)" :hint="overdueApHint" hint-tone="negative" />
-        <StatTile :label="t('dashboard.revenue')" :value="formatMoneyShort(summary.revenueThisMonth, currency)" :delta="revenueDelta" :hint="t('dashboard.vsLastMonth')" />
-        <StatTile :label="t('dashboard.netProfitMonth')" :value="formatMoneyShort(summary.netProfitThisMonth, currency)" :hint-tone="summary.netProfitThisMonth >= 0 ? 'positive' : 'negative'" />
+        <StatTile :label="t('dashboard.cashAndBank')" :value="formatMoneyShort(summary.cashAndBank, currency)" :to="{ name: 'accountingCashFlow' }" />
+        <StatTile :label="t('dashboard.accountsReceivable')" :value="formatMoneyShort(summary.accountsReceivable, currency)" :hint="overdueArHint" hint-tone="negative" :to="{ name: 'accountingBalanceSheet' }" />
+        <StatTile :label="t('dashboard.accountsPayable')" :value="formatMoneyShort(summary.accountsPayable, currency)" :hint="overdueApHint" hint-tone="negative" :to="{ name: 'accountingBalanceSheet' }" />
+        <StatTile :label="t('dashboard.revenue')" :value="formatMoneyShort(summary.revenueThisMonth, currency)" :delta="revenueDelta" :hint="t('dashboard.vsLastMonth')" :to="{ name: 'accountingProfitLoss' }" />
+        <StatTile :label="t('dashboard.netProfitMonth')" :value="formatMoneyShort(summary.netProfitThisMonth, currency)" :hint-tone="summary.netProfitThisMonth >= 0 ? 'positive' : 'negative'" :to="{ name: 'accountingProfitLoss' }" />
       </div>
 
       <!-- Trend + expense breakdown -->

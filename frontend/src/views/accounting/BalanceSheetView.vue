@@ -63,7 +63,7 @@ function pdf() {
       <AppCard :title="t('accounting.bs.assets')" :padded="false">
         <table class="w-full text-sm">
           <tbody>
-            <tr v-for="l in report.assets" :key="l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)">
+            <tr v-for="l in report.assets" :key="l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
               <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
               <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
             </tr>
@@ -82,7 +82,7 @@ function pdf() {
         <table class="w-full text-sm">
           <tbody>
             <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.bs.liabilities') }}</td></tr>
-            <tr v-for="l in report.liabilities" :key="'l' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)">
+            <tr v-for="l in report.liabilities" :key="'l' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
               <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
               <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
             </tr>
@@ -92,7 +92,7 @@ function pdf() {
             </tr>
 
             <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.bs.equity') }}</td></tr>
-            <tr v-for="l in report.equity" :key="'e' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)">
+            <tr v-for="l in report.equity" :key="'e' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
               <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
               <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
             </tr>

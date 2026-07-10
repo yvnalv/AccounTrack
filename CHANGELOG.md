@@ -1,5 +1,23 @@
 # Accountrack Changelog
 
+## [2026-07-10 13:42:14 UTC]
+
+CHG-0134 — Web: dashboard insight-tile navigation + drill-row accessibility (UI/UX polish 4)
+
+- **Clickable finance KPI tiles.** The five dashboard insight tiles now drill into the most relevant
+  report — Cash & bank → Cash Flow; A/R & A/P → Balance Sheet; Revenue & Net profit → Profit & Loss.
+  `StatTile` gained an optional `to` prop and renders as a keyboard-focusable `RouterLink` (hover +
+  focus-visible ring) when set, else an inert section.
+- **Accessibility on the report drill-down rows** (Trial Balance / P&L / Balance Sheet). The rows added
+  in CHG-0133 were mouse-only; they are now `role="button"` with `tabindex`, operable by Enter/Space,
+  carry a descriptive `aria-label` ("View in General Ledger: <account>"), and show a focus-visible ring.
+- Dashboard remains fully responsive (existing 1→2→3→5-column grids + fixed-height charts). The top
+  receivables/payables rows stay display-only (the summary API returns name + amount, no party id to
+  deep-link — a backend change deferred). Frontend-only; `vue-tsc` + `vite` build green. Verified in
+  Docker. Fourth commit in the UI/UX polish PR.
+
+---
+
 ## [2026-07-10 13:32:44 UTC]
 
 CHG-0133 — Web: financial-report drill-down to the General Ledger (UI/UX polish 3)
