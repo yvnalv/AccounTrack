@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Scale } from 'lucide-vue-next'
+import { PackagePlus, Scale } from 'lucide-vue-next'
 import { inventoryApi } from '@/lib/inventory'
 import { apiErrorMessage } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
@@ -189,12 +189,59 @@ async function submit() {
     saving.value = false
   }
 }
+
+// --- Receive stock (opening balances / manual goods-in) — a standalone form, since it can create a
+// brand-new product×warehouse bucket that has no on-hand row yet (unlike the per-row Adjust/Transfer). ---
+const productOptions = computed(() =>
+  [...products.value.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
+)
+const receiveOpen = ref(false)
+const receiveSaving = ref(false)
+const receiveError = ref('')
+const receiveForm = ref({ productId: '', warehouseId: '', quantity: 0, unitCost: 0, description: '', date: today })
+const receiveInvalid = computed(() =>
+  !receiveForm.value.productId || !receiveForm.value.warehouseId || Number(receiveForm.value.quantity) <= 0,
+)
+
+function openReceive() {
+  receiveError.value = ''
+  receiveForm.value = { productId: '', warehouseId: '', quantity: 0, unitCost: 0, description: '', date: today }
+  receiveOpen.value = true
+}
+
+async function submitReceive() {
+  receiveSaving.value = true
+  receiveError.value = ''
+  try {
+    await inventoryApi.receive({
+      productId: receiveForm.value.productId,
+      warehouseId: receiveForm.value.warehouseId,
+      quantity: Number(receiveForm.value.quantity),
+      unitCost: Number(receiveForm.value.unitCost),
+      date: receiveForm.value.date,
+      description: receiveForm.value.description || null,
+    })
+    await reload()
+    receiveOpen.value = false
+  } catch (e) {
+    receiveError.value = apiErrorMessage(e, t('inventory.actionFailed'))
+  } finally {
+    receiveSaving.value = false
+  }
+}
 </script>
 
 <template>
   <div class="space-y-4">
     <InsightCards :items="insights" />
     <div class="flex items-center justify-end gap-2">
+      <button
+        v-if="canAdjust"
+        class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+        @click="openReceive"
+      >
+        <PackagePlus :size="16" /> {{ t('inventory.receive.action') }}
+      </button>
       <RouterLink
         :to="{ name: 'inventoryValuation' }"
         class="inline-flex items-center gap-1.5 rounded-button border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
@@ -316,6 +363,38 @@ async function submit() {
         <AppButton variant="ghost" @click="modalOpen = false">{{ t('masterData.cancel') }}</AppButton>
         <AppButton :disabled="saving || transferInvalid" @click="submit">
           {{ submitLabel }}
+        </AppButton>
+      </template>
+    </AppModal>
+
+    <AppModal v-model="receiveOpen" :title="t('inventory.receive.title')">
+      <div class="space-y-3">
+        <p class="text-sm text-text-muted">{{ t('inventory.receive.subtitle') }}</p>
+        <FormField :label="t('inventory.receive.product')">
+          <select v-model="receiveForm.productId" class="field-input">
+            <option value="" disabled>{{ t('inventory.receive.selectProduct') }}</option>
+            <option v-for="p in productOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+        </FormField>
+        <FormField :label="t('inventory.receive.warehouse')">
+          <select v-model="receiveForm.warehouseId" class="field-input">
+            <option value="" disabled>{{ t('inventory.receive.selectWarehouse') }}</option>
+            <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
+          </select>
+        </FormField>
+        <FormField :label="t('inventory.receive.quantity')"><input v-model.number="receiveForm.quantity" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
+        <FormField :label="t('inventory.receive.unitCost')"><input v-model.number="receiveForm.unitCost" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
+        <FormField :label="t('inventory.receive.description')"><AppInput v-model="receiveForm.description" /></FormField>
+        <FormField :label="t('inventory.receive.date')">
+          <AppInput v-model="receiveForm.date" type="date" />
+          <p class="mt-1 text-xs text-text-muted">{{ t('inventory.receive.hint') }}</p>
+        </FormField>
+        <p v-if="receiveError" class="text-sm text-negative">{{ receiveError }}</p>
+      </div>
+      <template #footer>
+        <AppButton variant="ghost" @click="receiveOpen = false">{{ t('masterData.cancel') }}</AppButton>
+        <AppButton :disabled="receiveSaving || receiveInvalid" @click="submitReceive">
+          {{ receiveSaving ? t('inventory.receive.posting') : t('inventory.receive.submit') }}
         </AppButton>
       </template>
     </AppModal>

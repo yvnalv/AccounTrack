@@ -1,5 +1,23 @@
 # Accountrack Changelog
 
+## [2026-07-10 13:23:58 UTC]
+
+CHG-0132 — Web: manual Receive-stock UI (UI/UX polish 2)
+
+- **Receive stock from the SPA.** A new **Receive stock** button in the Inventory toolbar opens a
+  standalone form — product, warehouse, quantity, unit cost, description, date — posting to the existing
+  `POST /api/v1/stock/receipts` for manual goods-in / opening balances. Previously this endpoint had no
+  UI.
+- Deliberately a standalone form (not a per-row action) because a manual receipt can create a brand-new
+  product×warehouse bucket that has no on-hand row yet — which the per-row Adjust/Transfer actions can't
+  reach. Permission-gated on `Inventory.Adjust` (matching the endpoint).
+- Manual receipts cannot be back-dated (the form notes this; the API rejects a past date) — unchanged
+  backend behaviour.
+- New `inventoryApi.receive` + `ReceiveStockPayload`; EN + ID i18n. Frontend-only; `vue-tsc` + `vite`
+  build green. Verified in Docker. Second commit in the UI/UX polish PR.
+
+---
+
 ## [2026-07-10 13:06:59 UTC]
 
 CHG-0131 — Web: warehouse-transfer UI (UI/UX polish 1)
