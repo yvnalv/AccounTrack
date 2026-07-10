@@ -32,6 +32,7 @@ export default {
     loading: 'Loading…',
     back: 'Back',
     retry: 'Retry',
+    clear: 'Clear',
     viewAll: 'View all',
     allStatuses: 'All statuses',
     comingSoon: 'Coming soon',
@@ -106,6 +107,7 @@ export default {
     title: 'Sales orders',
     new: 'New sales order',
     create: 'Create sales order',
+    allCustomers: 'All customers',
     receivePayment: 'Receive payment',
     backToList: 'Back to sales orders',
     payment: {
@@ -221,6 +223,7 @@ export default {
   purchasing: {
     title: 'Purchase orders',
     new: 'New purchase order',
+    allSuppliers: 'All suppliers',
     paySupplier: 'Pay supplier',
     backToList: 'Back to purchase orders',
     payment: {
@@ -343,6 +346,7 @@ export default {
     active: 'Active',
     inactive: 'Inactive',
     status: 'Status',
+    filters: { allStatuses: 'All statuses' },
     fields: {
       code: 'Code',
       name: 'Name',
@@ -376,6 +380,7 @@ export default {
     },
     products: {
       title: 'Products', new: 'New product', edit: 'Edit product', selectUom: 'Select a unit', noCategory: '(none)',
+      allCategories: 'All categories', allCosting: 'All costing',
       costing: {
         label: 'Costing method',
         movingAverage: 'Moving average',
@@ -400,8 +405,9 @@ export default {
   },
   inventory: {
     title: 'Stock on hand',
-    columns: { product: 'Product', warehouse: 'Warehouse', onHand: 'On hand', avgCost: 'Avg cost', value: 'Value', actions: '' },
+    columns: { product: 'Product', category: 'Category', warehouse: 'Warehouse', onHand: 'On hand', avgCost: 'Avg cost', value: 'Value', actions: '' },
     allWarehouses: 'All warehouses',
+    allCategories: 'All categories',
     empty: 'No stock on hand yet.',
     valuation: {
       title: 'Inventory valuation',
@@ -520,6 +526,7 @@ export default {
     },
     coa: {
       title: 'Chart of accounts',
+      allTypes: 'All types',
       new: 'New account',
       edit: 'Edit account',
       code: 'Code',
@@ -710,7 +717,8 @@ export default {
       conflict: 'This voucher was changed by someone else. Reload and try again.',
     },
     failed: 'Could not post the expense. Check the cash account and category posting rules.',
-    columns: { number: 'Number', date: 'Date', payee: 'Payee', total: 'Total', status: 'Status' },
+    columns: { number: 'Number', date: 'Date', category: 'Category', payee: 'Payee', total: 'Total', status: 'Status' },
+    allCategories: 'All categories',
     fields: {
       date: 'Date',
       payee: 'Payee (optional)',

@@ -15,20 +15,23 @@ const auth = useAuthStore()
     <button
       v-if="auth.has('MasterData.Edit')"
       type="button"
-      class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+      class="grid h-8 w-8 place-items-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      :title="t('masterData.edit')"
+      :aria-label="t('masterData.edit')"
       @click="$emit('edit')"
     >
-      <Pencil :size="14" /> {{ t('masterData.edit') }}
+      <Pencil :size="15" />
     </button>
     <button
       v-if="auth.has('MasterData.Delete')"
       type="button"
-      class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:bg-surface-2"
+      class="grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       :class="props.row.isActive ? 'text-negative' : 'text-positive'"
+      :title="props.row.isActive ? t('masterData.deactivate') : t('masterData.activate')"
+      :aria-label="props.row.isActive ? t('masterData.deactivate') : t('masterData.activate')"
       @click="$emit('toggle')"
     >
-      <component :is="props.row.isActive ? Ban : RotateCcw" :size="14" />
-      {{ props.row.isActive ? t('masterData.deactivate') : t('masterData.activate') }}
+      <component :is="props.row.isActive ? Ban : RotateCcw" :size="15" />
     </button>
     <span v-if="!auth.has('MasterData.Edit') && !auth.has('MasterData.Delete')" class="text-xs text-text-muted">—</span>
   </div>

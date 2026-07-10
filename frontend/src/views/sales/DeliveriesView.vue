@@ -15,6 +15,13 @@ const router = useRouter()
 
 const rows = ref<DeliveryListItem[]>([])
 const loading = ref(true)
+const customerFilter = ref('')
+const customerOptions = computed(() =>
+  [...new Set(rows.value.map((r) => r.customerName).filter(Boolean))].sort() as string[],
+)
+const visibleRows = computed(() =>
+  rows.value.filter((r) => !customerFilter.value || r.customerName === customerFilter.value),
+)
 
 function open(row: Record<string, unknown>) {
   router.push({ name: 'salesDeliveryDetail', params: { id: String(row.id) } })
@@ -49,7 +56,13 @@ onMounted(async () => {
   <div class="space-y-4">
     <InsightCards :items="insights" />
     <p class="text-xs text-text-muted">{{ t('deliveries.hint') }}</p>
-    <DataTable searchable clickable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('deliveries.empty')" @row-click="open">
+    <DataTable searchable clickable :columns="columns" :rows="visibleRows" :loading="loading" :empty-text="t('deliveries.empty')" :filters-active="!!customerFilter" @row-click="open" @clear="customerFilter = ''">
+      <template #filters>
+        <select v-model="customerFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('sales.allCustomers') }}</option>
+          <option v-for="c in customerOptions" :key="c" :value="c">{{ c }}</option>
+        </select>
+      </template>
       <template #cell-totalCost="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-journalEntryId="{ value }">
         <StatusBadge v-if="value" tone="positive" :label="t('deliveries.posted')" />

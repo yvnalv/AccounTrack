@@ -15,6 +15,13 @@ const router = useRouter()
 
 const rows = ref<PurchaseReturnListItem[]>([])
 const loading = ref(true)
+const supplierFilter = ref('')
+const supplierOptions = computed(() =>
+  [...new Set(rows.value.map((r) => r.supplierName).filter(Boolean))].sort() as string[],
+)
+const visibleRows = computed(() =>
+  rows.value.filter((r) => !supplierFilter.value || r.supplierName === supplierFilter.value),
+)
 
 function open(row: Record<string, unknown>) {
   router.push({ name: 'purchaseReturnDetail', params: { id: String(row.id) } })
@@ -48,7 +55,13 @@ onMounted(async () => {
 <template>
   <div class="space-y-4">
     <InsightCards :items="insights" />
-    <DataTable searchable clickable :columns="columns" :rows="rows" :loading="loading" :empty-text="t('returns.purchaseEmpty')" @row-click="open">
+    <DataTable searchable clickable :columns="columns" :rows="visibleRows" :loading="loading" :empty-text="t('returns.purchaseEmpty')" :filters-active="!!supplierFilter" @row-click="open" @clear="supplierFilter = ''">
+      <template #filters>
+        <select v-model="supplierFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('purchasing.allSuppliers') }}</option>
+          <option v-for="s in supplierOptions" :key="s" :value="s">{{ s }}</option>
+        </select>
+      </template>
       <template #cell-grandTotal="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-journalEntryId="{ value }">
         <StatusBadge v-if="value" tone="positive" :label="t('returns.posted')" />

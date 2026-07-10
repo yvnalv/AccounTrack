@@ -90,7 +90,6 @@ const columns = computed<Column[]>(() => [
   { key: 'currentStock', label: t('masterData.products.currentStock'), align: 'right', numeric: true, hideOnMobile: true },
   { key: 'salePrice', label: t('masterData.products.salePrice'), align: 'right', numeric: true },
   { key: 'purchasePrice', label: t('masterData.products.purchasePrice'), align: 'right', numeric: true, hideOnMobile: true },
-  { key: 'costingMethod', label: t('masterData.products.costing.label'), hideOnMobile: true },
   { key: 'isStockTracked', label: t('masterData.fields.stockTracked'), hideOnMobile: true },
   { key: 'isActive', label: t('masterData.status') },
   { key: 'actions', label: t('masterData.actions'), align: 'right' },
@@ -112,6 +111,24 @@ const tableRows = computed(() =>
     uomCode: uomCodeById.value.get(p.baseUomId) ?? '—',
     currentStock: p.isStockTracked ? (stockQtyByProduct.value.get(p.id) ?? 0) : null,
   })),
+)
+
+// List filters (status, category, costing) — applied client-side over the enriched rows.
+const statusFilter = ref<'' | 'active' | 'inactive'>('')
+const categoryFilter = ref('')
+const costingFilter = ref<'' | CostingMethod>('')
+const filterCategoryOptions = computed(() => [
+  { value: '', label: t('masterData.products.allCategories') },
+  ...categories.value.map((c) => ({ value: c.id, label: c.name })),
+])
+const visibleRows = computed(() =>
+  tableRows.value.filter((r) => {
+    if (statusFilter.value === 'active' && !r.isActive) return false
+    if (statusFilter.value === 'inactive' && r.isActive) return false
+    if (categoryFilter.value && r.categoryId !== categoryFilter.value) return false
+    if (costingFilter.value && r.costingMethod !== costingFilter.value) return false
+    return true
+  }),
 )
 
 async function load() {
@@ -240,7 +257,22 @@ async function toggleActive(row: Product) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.products.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')" @row-click="openDetail">
+    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="visibleRows" :loading="loading" :empty-text="t('masterData.empty')" :filters-active="!!statusFilter || !!categoryFilter || !!costingFilter" @row-click="openDetail" @clear="statusFilter = ''; categoryFilter = ''; costingFilter = ''">
+      <template #filters>
+        <select v-model="statusFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('masterData.filters.allStatuses') }}</option>
+          <option value="active">{{ t('masterData.active') }}</option>
+          <option value="inactive">{{ t('masterData.inactive') }}</option>
+        </select>
+        <select v-model="categoryFilter" class="field-input h-9 text-sm">
+          <option v-for="o in filterCategoryOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+        </select>
+        <select v-model="costingFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('masterData.products.allCosting') }}</option>
+          <option value="MovingAverage">{{ t('masterData.products.costing.movingAverage') }}</option>
+          <option value="Fifo">{{ t('masterData.products.costing.fifo') }}</option>
+        </select>
+      </template>
       <template #cell-currentStock="{ value, row }">
         <span v-if="value == null" class="text-text-muted">—</span>
         <span v-else :class="Number(value) <= 0 ? 'text-negative' : 'text-text'">

@@ -33,6 +33,7 @@ export default {
     loading: 'Memuat…',
     back: 'Kembali',
     retry: 'Coba lagi',
+    clear: 'Bersihkan',
     viewAll: 'Lihat semua',
     allStatuses: 'Semua status',
     comingSoon: 'Segera hadir',
@@ -107,6 +108,7 @@ export default {
     title: 'Pesanan penjualan',
     new: 'Pesanan penjualan baru',
     create: 'Buat pesanan penjualan',
+    allCustomers: 'Semua pelanggan',
     receivePayment: 'Terima pembayaran',
     backToList: 'Kembali ke pesanan penjualan',
     payment: {
@@ -222,6 +224,7 @@ export default {
   purchasing: {
     title: 'Pesanan pembelian',
     new: 'Pesanan pembelian baru',
+    allSuppliers: 'Semua pemasok',
     paySupplier: 'Bayar pemasok',
     backToList: 'Kembali ke pesanan pembelian',
     payment: {
@@ -344,6 +347,7 @@ export default {
     active: 'Aktif',
     inactive: 'Nonaktif',
     status: 'Status',
+    filters: { allStatuses: 'Semua status' },
     fields: {
       code: 'Kode',
       name: 'Nama',
@@ -377,6 +381,7 @@ export default {
     },
     products: {
       title: 'Produk', new: 'Produk baru', edit: 'Ubah produk', selectUom: 'Pilih satuan', noCategory: '(tidak ada)',
+      allCategories: 'Semua kategori', allCosting: 'Semua metode biaya',
       costing: {
         label: 'Metode biaya',
         movingAverage: 'Rata-rata bergerak',
@@ -401,8 +406,9 @@ export default {
   },
   inventory: {
     title: 'Stok tersedia',
-    columns: { product: 'Produk', warehouse: 'Gudang', onHand: 'Tersedia', avgCost: 'Biaya rata-rata', value: 'Nilai', actions: '' },
+    columns: { product: 'Produk', category: 'Kategori', warehouse: 'Gudang', onHand: 'Tersedia', avgCost: 'Biaya rata-rata', value: 'Nilai', actions: '' },
     allWarehouses: 'Semua gudang',
+    allCategories: 'Semua kategori',
     empty: 'Belum ada stok.',
     valuation: {
       title: 'Penilaian persediaan',
@@ -521,6 +527,7 @@ export default {
     },
     coa: {
       title: 'Bagan akun',
+      allTypes: 'Semua tipe',
       new: 'Akun baru',
       edit: 'Ubah akun',
       code: 'Kode',
@@ -711,7 +718,8 @@ export default {
       conflict: 'Voucher ini diubah oleh orang lain. Muat ulang dan coba lagi.',
     },
     failed: 'Tidak dapat memposting beban. Periksa akun kas dan aturan posting kategori.',
-    columns: { number: 'Nomor', date: 'Tanggal', payee: 'Penerima', total: 'Total', status: 'Status' },
+    columns: { number: 'Nomor', date: 'Tanggal', category: 'Kategori', payee: 'Penerima', total: 'Total', status: 'Status' },
+    allCategories: 'Semua kategori',
     fields: {
       date: 'Tanggal',
       payee: 'Penerima (opsional)',

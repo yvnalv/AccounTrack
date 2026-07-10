@@ -14,4 +14,6 @@ public sealed record ExpenseVoucherDto(
 
 public sealed record ExpenseVoucherSummaryDto(
     Guid Id, string Number, DateOnly ExpenseDate, string? PayeeName, Guid? SupplierId, decimal GrandTotal,
-    Guid? JournalEntryId, string Status);
+    Guid? JournalEntryId, string Status,
+    // The distinct expense categories the voucher's lines post to — for the list Category column/filter.
+    IReadOnlyList<Guid> CategoryIds, string CategoryNames);

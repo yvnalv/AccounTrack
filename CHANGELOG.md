@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-07-10 14:57:18 UTC]
+
+CHG-0135 — Web: sortable list columns + consistent list filters + Clear (UI/UX polish 5)
+
+- **Sortable columns on every list** (shared `DataTable`). Click a header to cycle ascending → descending
+  → natural order; sortable headers show a hover ↕ / active arrow and carry `aria-sort`; numeric-aware,
+  case-insensitive compare with blanks sorted last. The active sort also flows into Export. Opt-out via
+  `Column.sortable === false`; custom keys via `Column.sortValue`.
+- **A single Clear control** on the table toolbar resets the search box, the column sort, and (via a
+  `clear` event + `filters-active` prop) the page's own filters. Filter controls now stay on **one row**
+  (auto-width, horizontal-scroll if tight) instead of stacking.
+- **Consistent list filters across the app:**
+  - Master data — Products (Status · Category · Costing), Customers/Suppliers/Warehouses (Status),
+    Categories/Units/Tax codes (Status), Chart of Accounts (Account type · Status).
+  - Sales — Orders (Status · Customer); Invoices/Deliveries/Payments/Returns (Customer).
+  - Purchasing — Orders (Status · Supplier); Invoices/Payments/Returns (Supplier).
+  - Inventory — Warehouse · **new Category column** + Category filter.
+  - Expenses — Status · **new Category column** + Category filter.
+- **Products list trimmed**: hid the Costing-method column (kept as a filter); **row actions are now
+  icon-only with hover tooltips** via the shared `RowActions` (applies to all master-data lists).
+- **Backend:** the expense-voucher list DTO now includes the distinct line categories
+  (`CategoryIds` + joined `CategoryNames`); repo list eager-loads lines (`GetExpenseVouchersHandler`).
+  Additive contract change; no schema/migration. Backend + Expenses tests green.
+- EN + ID i18n throughout. Frontend `vue-tsc` + `vite` green; verified in Docker.
+
+---
+
 ## [2026-07-10 13:42:14 UTC]
 
 CHG-0134 — Web: dashboard insight-tile navigation + drill-row accessibility (UI/UX polish 4)

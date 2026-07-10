@@ -28,13 +28,20 @@ const canTransfer = computed(() => auth.has('Inventory.Transfer'))
 const stock = ref<StockOnHand[]>([])
 const products = ref(new Map<string, string>())
 const warehouses = ref(new Map<string, string>())
+const categoryIdByProduct = ref(new Map<string, string | null>())
+const categoryNameById = ref(new Map<string, string>())
 const loading = ref(true)
 const filteredRows = ref<Record<string, unknown>[]>([])
 const warehouseFilter = ref('')
+const categoryFilter = ref('')
 const warehouseOptions = computed(() => [...warehouses.value.entries()].map(([id, name]) => ({ id, name })))
+const categoryOptions = computed(() =>
+  [...categoryNameById.value.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
+)
 
 const columns = computed<Column[]>(() => [
   { key: 'product', label: t('inventory.columns.product') },
+  { key: 'category', label: t('inventory.columns.category'), hideOnMobile: true },
   { key: 'warehouse', label: t('inventory.columns.warehouse'), hideOnMobile: true },
   { key: 'onHandQty', label: t('inventory.columns.onHand'), align: 'right', numeric: true },
   { key: 'avgUnitCost', label: t('inventory.columns.avgCost'), align: 'right', numeric: true, hideOnMobile: true },
@@ -45,11 +52,16 @@ const columns = computed<Column[]>(() => [
 const rows = computed(() =>
   stock.value
     .filter((s) => !warehouseFilter.value || s.warehouseId === warehouseFilter.value)
-    .map((s) => ({
-      ...s,
-      product: products.value.get(s.productId) ?? '—',
-      warehouse: warehouses.value.get(s.warehouseId) ?? '—',
-    })),
+    .filter((s) => !categoryFilter.value || (categoryIdByProduct.value.get(s.productId) ?? '') === categoryFilter.value)
+    .map((s) => {
+      const catId = categoryIdByProduct.value.get(s.productId)
+      return {
+        ...s,
+        product: products.value.get(s.productId) ?? '—',
+        warehouse: warehouses.value.get(s.warehouseId) ?? '—',
+        category: (catId && categoryNameById.value.get(catId)) || '—',
+      }
+    }),
 )
 
 const insights = computed<Insight[]>(() => {
@@ -67,14 +79,17 @@ async function reload() {
 
 onMounted(async () => {
   try {
-    const [oh, prods, whs] = await Promise.all([
+    const [oh, prods, whs, cats] = await Promise.all([
       inventoryApi.onHand(),
       masterData.products(),
       masterData.warehouses(),
+      masterData.productCategories(),
     ])
     stock.value = oh
     products.value = nameMap(prods)
     warehouses.value = nameMap(whs)
+    categoryIdByProduct.value = new Map(prods.map((p) => [p.id, p.categoryId ?? null]))
+    categoryNameById.value = new Map(cats.map((c) => [c.id, c.name]))
   } finally {
     loading.value = false
   }
@@ -258,12 +273,18 @@ async function submitReceive() {
       :loading="loading"
       :empty-text="t('inventory.empty')"
       clickable
+      :filters-active="!!warehouseFilter || !!categoryFilter"
       @row-click="openCard"
+      @clear="warehouseFilter = ''; categoryFilter = ''"
     >
       <template #filters>
         <select v-model="warehouseFilter" class="field-input h-9 text-sm">
           <option value="">{{ t('inventory.allWarehouses') }}</option>
           <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
+        </select>
+        <select v-model="categoryFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('inventory.allCategories') }}</option>
+          <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </template>
       <template #cell-onHandQty="{ value }">{{ formatNumber(Number(value), 2) }}</template>

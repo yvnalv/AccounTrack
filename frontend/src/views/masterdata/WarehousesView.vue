@@ -58,6 +58,13 @@ const tableRows = computed(() =>
   })),
 )
 
+const statusFilter = ref<'' | 'active' | 'inactive'>('')
+const visibleRows = computed(() =>
+  tableRows.value.filter(
+    (r) => !statusFilter.value || (statusFilter.value === 'active' ? r.isActive : !r.isActive),
+  ),
+)
+
 const io = masterData.warehouseImport
 const { fileInput, open: importOpen, preview: importPreview, busy: importBusy, error: importError, canCommit, pick, onFileChosen, commit: commitImport } =
   useCsvImport(io, () => load())
@@ -158,7 +165,14 @@ async function toggleActive(row: Warehouse) {
       <AppButton v-if="auth.has('MasterData.Create')" @click="openNew"><Plus :size="16" /> {{ t('masterData.warehouses.new') }}</AppButton>
     </div>
 
-    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="tableRows" :loading="loading" :empty-text="t('masterData.empty')" @row-click="openDetail">
+    <DataTable v-model:filtered="filteredRows" searchable clickable :columns="columns" :rows="visibleRows" :loading="loading" :empty-text="t('masterData.empty')" :filters-active="!!statusFilter" @row-click="openDetail" @clear="statusFilter = ''">
+      <template #filters>
+        <select v-model="statusFilter" class="field-input h-9 text-sm">
+          <option value="">{{ t('masterData.filters.allStatuses') }}</option>
+          <option value="active">{{ t('masterData.active') }}</option>
+          <option value="inactive">{{ t('masterData.inactive') }}</option>
+        </select>
+      </template>
       <template #cell-address="{ value }">{{ value || '—' }}</template>
       <template #cell-skus="{ value }">{{ formatNumber(Number(value)) }}</template>
       <template #cell-stockValue="{ value }">
