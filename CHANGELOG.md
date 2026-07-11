@@ -1,5 +1,31 @@
 # Accountrack Changelog
 
+## [2026-07-11 13:20:36 UTC]
+
+CHG-0137 — Subscription billing: design ratified + Xendit onboarding/integration recorded (ADR-0039)
+
+- Ratified the subscription-billing design (docs/SUBSCRIPTION_BILLING.md moves from "draft for
+  discussion" to "design ratified"). Three gating decisions resolved in discussion:
+  - **Gateway = Xendit** (primary, behind an `IPaymentGateway` port; Midtrans kept viable via the port,
+    no second provider at launch) — recorded as **ADR-0039**.
+  - **Tax = not PKP yet** → no PPN / no e-Faktur on subscriptions for now; `BillingInvoice.TaxMinor` +
+    reserved tax fields retained so PPN switches on later without a migration.
+  - **Grace = read-only + banner** while `past_due`; hard lock at `expired`; **90-day** data retention
+    before purge.
+- Researched and recorded concrete **Xendit onboarding & integration mechanics** (new §3.4), verified
+  2026-07-11 (re-verify at build): instant pre-funded sandbox (IDR 1,000,000,000) buildable **before**
+  business registration vs. **Live Mode activation** by legal-document review (PT: NIB / Akta /
+  SK Menkumham / NPWP / director KTP / bank account; PKP is a separate registration); API keys
+  (Settings → Developers, per-mode `xnd_development_`/`xnd_production_` prefixes, shown once, HTTP Basic
+  = secret key as username / blank password); webhooks (`x-callback-token` per-account verification,
+  6× exponential-backoff retries → idempotent handling via `platform.InboxState`).
+- **ADR-0039** added to docs/DECISIONS.md (index + full section). Also backfilled the missing
+  **ADR-0038** row in the ADR index table.
+- Docs only — no code or schema change. The Billing module (Phase 1, SUBSCRIPTION_BILLING.md §12)
+  remains to be built.
+
+---
+
 ## [2026-07-10 15:21:45 UTC]
 
 CHG-0136 — Web: full-width Settings + richer business-insight dashboard (UI/UX polish 6)

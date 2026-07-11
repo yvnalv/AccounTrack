@@ -1,10 +1,12 @@
 # SUBSCRIPTION_BILLING.md — Monetization & subscription billing
 
-> **Status:** Draft for discussion (2026-07-10). This documents *how Accountrack charges its own
-> tenants* — a commercial/platform concern, distinct from the ERP's Sales/AR features that tenants use to
-> bill *their* customers. Nothing here is built yet. Figures marked *(illustrative)* are placeholders;
-> figures marked *(verify)* must be re-checked against the provider's current pricing/features at
-> implementation time (research current as of the 2026-01 knowledge cutoff).
+> **Status:** Design ratified (2026-07-11) — gateway, tax posture, and grace behavior decided (see §3,
+> §10, §6); **ADR-0039** records the gateway pick. Not yet implemented (no code/schema). This documents
+> *how Accountrack charges its own tenants* — a commercial/platform concern, distinct from the ERP's
+> Sales/AR features that tenants use to bill *their* customers. Figures marked *(illustrative)* are
+> placeholders; figures marked *(verify)* must be re-checked against the provider's current
+> pricing/features at implementation time (research current as of the 2026-01 knowledge cutoff;
+> onboarding facts in §3.4 re-verified 2026-07-11).
 
 Related: [ARCHITECTURE.md](ARCHITECTURE.md), [MULTI_TENANCY.md](MULTI_TENANCY.md),
 [SECURITY.md](SECURITY.md), [ACCOUNTING_DESIGN.md](ACCOUNTING_DESIGN.md) (PPN/e-Faktur),
@@ -88,15 +90,57 @@ matter for a **subscription** product:
 | Fees *(verify — typical ranges)* | QRIS ~0.7%, VA ~Rp4–5k flat, e-wallet ~1.5–2%, card ~2.9%+ | similar order of magnitude |
 | Payout | IDR to local bank, T+ settlement | IDR to local bank, T+ settlement |
 
-**Recommendation: adopt Xendit as the primary gateway**, because our model leans on **invoice-based
-per-cycle billing** (VA/QRIS) *and* tokenized auto-charge, and Xendit's first-class **Invoices** +
-**Recurring** APIs map most directly onto that (least custom glue). **Midtrans is a fully acceptable
-alternative** (choose it if GoPay/Snap reach or existing GoTo relationship dominates). Design the Billing
-module behind a **provider-abstraction port** (`IPaymentGateway`) so switching or running a second
-provider later is mechanical. Record the final pick as **ADR-0039** once accepted.
+**Decision (2026-07-11 — ADR-0039): adopt Xendit as the primary gateway**, because our model leans on
+**invoice-based per-cycle billing** (VA/QRIS) *and* tokenized auto-charge, and Xendit's first-class
+**Invoices** + **Recurring** APIs map most directly onto that (least custom glue). **Midtrans remains a
+fully acceptable alternative** kept viable by the port (choose it if GoPay/Snap reach or an existing GoTo
+relationship dominates). The Billing module is built behind a **provider-abstraction port**
+(`IPaymentGateway`) so switching or running a second provider later is mechanical. Cost: **free to start,
+pay-per-transaction only** (no setup/monthly fee).
 
-> Action before build: open sandbox accounts on **both**, run a QRIS + VA + card + recurring test, confirm
-> current fees/settlement/e-Faktur support, then ratify ADR-0039.
+> Action before first live charge: open a sandbox account, run a QRIS + VA + card + recurring test, and
+> **re-verify current fees/settlement** and the auth detail in §3.4 against Xendit's live docs.
+
+### 3.4 Xendit onboarding & integration mechanics (verified 2026-07-11 — re-verify at build)
+
+Concrete facts that drive the Phase 0/1 plan. **Two decoupled gates — sandbox is instant; live needs
+document activation:**
+
+- **Sign-up → instant Test Mode, no approval, no documents.** Creating an account immediately grants a
+  sandbox pre-funded with a **IDR 1,000,000,000** fake balance. The *entire* integration (hosted checkout,
+  QRIS/VA/e-wallet/card, recurring, webhooks) is buildable and testable here. **Consequence: Phase 0 and
+  most of Phase 1 can be built before the operating business is even registered.**
+- **Live Mode → requires account activation** via legal-document review in the Dashboard; Xendit reviews
+  and emails when activated. Only then do real charges/payouts (IDR → local bank, T+ settlement) work.
+  - **PT / CV / PMA (company):** **NIB** (Nomor Induk Berusaha — replaces old TDP/SIUP), latest deed /
+    director-appointment **Akta**, **SK Menkumham** (Ministry of Law & Human Rights decree), company
+    **NPWP**, director **KTP**, settlement **bank account**; some industries need extra licenses. Docs
+    must be complete, legible, uncensored, all pages.
+  - **Individual / Perorangan:** lighter — KTP + NPWP + bank account (feature set may be narrower).
+  - **PKP (VAT) status is a *separate* registration** — not required to onboard to Xendit (aligns with
+    our "Not PKP yet" posture, §10).
+
+**API keys & authentication.**
+- Dashboard → **Settings → Developers → API Keys** → **Generate Secret Key**; set per-product
+  permissions (None / Read / **Write** — we need **Write on Money-in**), confirm with password.
+- **Separate key pairs for Test and Live** (dashboard mode toggle, top-right). Secret keys are prefixed
+  **`xnd_development_…`** (test) / **`xnd_production_…`** (live). A **secret key is shown once** at
+  creation — capture it straight into config/secrets (never source — CLAUDE.md Non-Negotiables).
+- Auth is **HTTP Basic**: the **secret key as the username, blank password** *(verify)*. The **public
+  key** only tokenizes cards client-side (keeps us at PCI SAQ-A, §8). Optional **IP whitelisting** for
+  API calls.
+- Keep both test and live keys behind the `IPaymentGateway` config; rotate periodically; restrict to
+  least permission.
+
+**Webhooks (source of truth for "paid", §5).**
+- Configure the callback URL in **Dashboard → Settings → Developers → Callbacks/Webhooks** (per event
+  type). Test and live have their own configuration.
+- Every webhook carries an **`x-callback-token`** header — a **per-account shared secret** read from the
+  dashboard. **Verify it on every request and reject mismatches** (this is the anti-spoofing mechanism;
+  it is a shared token, not a per-body HMAC signature).
+- **Retries: up to 6× with exponential backoff** on any non-2xx response → handlers **must be idempotent**
+  (reuse `platform.InboxState`, §5). Respond **2xx fast**, do work async. Webhooks can be manually
+  re-triggered from the dashboard.
 
 ---
 
@@ -154,9 +198,12 @@ work async.
 - **trialing** — full access, no charge, until `trialEnd`.
 - **active** — paid; `currentPeriodEnd` in the future.
 - **past_due** — a charge/invoice failed or lapsed; **grace period** (e.g. 7 days) with in-app banner +
-  emails; access continues (or is read-only) during grace.
+  emails. **Decided (2026-07-11): access is READ-ONLY during grace** — the tenant may view/export its
+  data but business *writes* are blocked (`SUBSCRIPTION_REQUIRED`), applying real payment pressure while
+  avoiding data-loss complaints.
 - **canceled** — user canceled; access until `currentPeriodEnd` (`cancelAtPeriodEnd = true`), then
-  **expired** (locked out, data retained for a retention window, e.g. 60–90 days, then purge per policy).
+  **expired** (locked out; data retained for a **90-day** retention window (decided 2026-07-11), then
+  purge per policy).
 
 ### 6.2 Self-serve happy path
 1. **Sign up** — reuse the existing `/register` (tenant + company + admin already provisioned, CHG-0078).
@@ -247,9 +294,14 @@ consistent. Reuse the SharedKernel `Money` where possible.
 
 ## 10. Tax & compliance (Indonesia)
 
-- If the operating entity is a **PKP**, a SaaS subscription is generally subject to **PPN 11%**, and you
-  may be required to issue **e-Faktur**. Decide **tax-inclusive vs. price + PPN** and show it clearly at
-  checkout and on the billing invoice. (It is worth Accountrack itself modelling this correctly.)
+- **Decided (2026-07-11): the operating entity is NOT PKP yet** → **no PPN is charged on subscriptions
+  for now**, and **no e-Faktur** is issued. Phase 1 checkout shows a flat price (simplifies the build —
+  no tax computation). The data model still keeps `BillingInvoice.TaxMinor` and reserved tax fields so
+  PPN can be switched on **without a migration** once/if the entity registers as PKP.
+- **When the entity becomes PKP** (future): a SaaS subscription is generally subject to **PPN 11%** and
+  you may be required to issue **e-Faktur**. At that point decide **tax-inclusive vs. price + PPN**
+  (recommended: **price + PPN shown explicitly**, matching the ERP's own VAT model) and show it clearly
+  at checkout and on the billing invoice. (It is worth Accountrack itself modelling this correctly.)
 - **B2B withholding (PPh 23)** may apply when the customer is a company that withholds — the billing
   invoice/receipt should be structured to accommodate it.
 - Keep **billing invoices sequential + immutable** with a proper numbering series (like the ERP's document
@@ -279,13 +331,22 @@ the platform back-office (cross-tenant), not in any tenant's dashboard.
 - **Phase 3 — Growth:** coupons/promos, referrals, tax/e-Faktur automation, multi-gateway, back-office MRR
   analytics, PayLater, win-back/pause.
 
-## 13. Open decisions (to resolve before/with ADR-0039)
-1. Final gateway (Xendit recommended) + whether to run a second later.
-2. Trial: card-required vs. not; length (14 days assumed).
-3. Tax: inclusive vs. +PPN; e-Faktur automation timing.
-4. Grace-period behavior: read-only vs. full access while `past_due`; retention window before purge.
-5. Exact plan names, prices, seat inclusions, and feature-to-tier mapping.
-6. Legal: Terms of Service, Privacy Policy, refund/cancellation policy owner.
+## 13. Decisions & open items
+
+**Resolved (2026-07-11):**
+1. ✅ **Gateway = Xendit** (primary, behind `IPaymentGateway`); Midtrans kept viable via the port, no
+   second provider at launch — **ADR-0039**.
+3. ✅ **Tax = not PKP yet** → no PPN / no e-Faktur on subscriptions for now; tax fields reserved so it
+   switches on without migration (§10).
+4. ✅ **Grace = read-only + banner** while `past_due`; hard lock at `expired`; **90-day** retention before
+   purge (§6, §7).
+
+**Still open (non-blocking for Phase 1 build):**
+2. Trial: card-required vs. not (default assumed **no-card, 14 days** — a config toggle, §6.2).
+5. Exact plan names, prices, seat inclusions, and feature-to-tier mapping (a pricing exercise; the schema
+   treats plans as data, so this is seedable without code changes).
+6. Legal: Terms of Service, Privacy Policy, refund/cancellation policy — **owner + local tax/legal
+   advisor to be assigned** (a launch prerequisite, parallel track).
 
 ## 14. References
 Provider docs to verify at build time: Xendit (Invoices, Recurring, Payment Tokens, Webhooks); Midtrans
