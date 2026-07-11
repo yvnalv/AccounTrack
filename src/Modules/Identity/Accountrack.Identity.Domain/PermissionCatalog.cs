@@ -54,6 +54,14 @@ public static class PermissionCatalog
 
     public const string ApprovalManage = "Approval.Manage";
 
+    // Billing — how the tenant manages its own Accountrack subscription (SUBSCRIPTION_BILLING.md, ADR-0039).
+    // These are tenant-scoped (a tenant admin sees/manages its own subscription). The cross-tenant
+    // back-office permission (Platform.Billing) is intentionally NOT in this catalog — it must not be
+    // granted to tenant admins (it would breach the tenant/platform wall, Rule 33); it lands with the
+    // back-office slice.
+    public const string BillingView = "Billing.View";
+    public const string BillingManage = "Billing.Manage";
+
     /// <summary>All permission codes with display names, for seeding.</summary>
     public static IReadOnlyList<(string Code, string Name)> All { get; } = new[]
     {
@@ -96,6 +104,8 @@ public static class PermissionCatalog
         (AdminCompanies, "Manage Companies"),
         (AuditView, "View Audit Log"),
         (ApprovalManage, "Manage Approval Workflows"),
+        (BillingView, "View Billing & Subscription"),
+        (BillingManage, "Manage Billing & Subscription"),
     };
 }
 

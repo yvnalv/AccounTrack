@@ -25,6 +25,8 @@ using Accountrack.Sales.Api;
 using Accountrack.Sales.Infrastructure;
 using Accountrack.Expenses.Api;
 using Accountrack.Expenses.Infrastructure;
+using Accountrack.Billing.Api;
+using Accountrack.Billing.Infrastructure;
 using Accountrack.Identity.Api;
 using Accountrack.Identity.Infrastructure;
 using Accountrack.Identity.Infrastructure.Authentication;
@@ -98,6 +100,7 @@ builder.Services.AddNotificationModule(builder.Configuration);
 builder.Services.AddPurchasingModule(builder.Configuration);
 builder.Services.AddSalesModule(builder.Configuration);
 builder.Services.AddExpensesModule(builder.Configuration);
+builder.Services.AddBillingModule(builder.Configuration);
 
 // Accept/emit enums as strings in JSON (nicer API ergonomics).
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -181,6 +184,7 @@ app.MapNotificationEndpoints();
 app.MapPurchasingEndpoints();
 app.MapSalesEndpoints();
 app.MapExpensesEndpoints();
+app.MapBillingEndpoints();
 
 // Generic tabular export (ADR-0031): the client posts exactly the rows it is displaying — already
 // filtered/searched client-side — and the server renders them to CSV/XLSX. This makes "Export" honor
@@ -213,6 +217,7 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     await app.Services.InitializePurchasingModuleAsync(migrate);
     await app.Services.InitializeSalesModuleAsync(migrate);
     await app.Services.InitializeExpensesModuleAsync(migrate, seedDev);
+    await app.Services.InitializeBillingModuleAsync(migrate, seedDev);
 
     // Platform-level idempotency key store (ADR-0021), independent of any module schema. Created
     // after the modules so the database exists (the audit migration creates it on a first run).

@@ -55,6 +55,9 @@
     <ProjectReference Include="..\..\src\Modules\Sales\Accountrack.Sales.Domain\Accountrack.Sales.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Sales\Accountrack.Sales.Application\Accountrack.Sales.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Sales\Accountrack.Sales.Infrastructure\Accountrack.Sales.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Billing\Accountrack.Billing.Domain\Accountrack.Billing.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Billing\Accountrack.Billing.Application\Accountrack.Billing.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Billing\Accountrack.Billing.Infrastructure\Accountrack.Billing.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

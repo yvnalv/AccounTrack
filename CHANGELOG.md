@@ -174,6 +174,39 @@ Two bugs found from a report that receiving against a purchase order failed with
 
 ---
 
+## [2026-07-11 15:59:04 UTC]
+
+CHG-0138 — Billing module — Phase 1 foundation (schema + plan catalog + subscription read model)
+
+- New **Billing** bounded context (`Modules/Billing/`, clean-architecture Domain/Application/
+  Infrastructure/Api), implementing SUBSCRIPTION_BILLING.md §12 Phase 1 Slice 1 (ADR-0039). This is
+  Accountrack's **commercial ledger** — how we charge our own tenants — and by design it **never posts
+  into a tenant's GL** (§5).
+- **Domain:** `Plan` (global catalog — a plain `Entity`, no tenant filter, readable by all tenants for
+  the public pricing page), `Subscription` and `BillingInvoice` (both `TenantScopedEntity` — billing is
+  per-Tenant, not per-Company, so tenant-filtered with no CompanyId), plus lifecycle enums
+  (`SubscriptionStatus` with read-only `PastDue` grace + `Expired` lock, `BillingInterval`, `PaymentMode`,
+  `BillingInvoiceStatus`). Money stored as integer IDR **minor units** + currency; `BillingInvoice.TaxMinor`
+  present but zero while the entity is not PKP (§10) — flips on later without a migration.
+- **Infrastructure:** standalone `BillingDbContext` on its own connection (own `billing.` schema; does
+  **not** enlist in the cross-module GL transaction, §5), repositories, design-time factory, DI, and a
+  seeder for 6 **illustrative** placeholder plans (Starter/Business/Enterprise × Monthly/Annual; real
+  prices remain a pre-launch pricing exercise, §13). EF migration `InitialBilling` creates `billing.Plans`
+  / `Subscriptions` / `BillingInvoices` (audit table excluded per ADR-0026).
+- **Api (read-only this slice):** `GET /api/v1/billing/plans` (anonymous — public pricing) and
+  `GET /api/v1/billing/subscription` (`Billing.View` — the caller tenant's own subscription). Checkout /
+  plan-change / webhooks are later slices.
+- **RBAC:** added `Billing.View` + `Billing.Manage` to the permission catalog (granted to the tenant
+  Administrator). The cross-tenant `Platform.Billing` back-office permission is intentionally **deferred**
+  (must not be granted to tenant admins — tenant/platform wall, Rule 33).
+- **Tests:** new `BillingModuleTests` arch-fitness suite (4 tests) — the standard layer-boundary rules
+  plus a guard that Billing depends on **no** ERP business module (Accounting/Sales/Purchasing/Inventory/
+  Expenses/MasterData). Full solution green: build clean, 39 arch tests, all module unit suites pass.
+- Verified via build + migration generation + the test suite; live endpoint exercise needs the dev
+  PostgreSQL (`Database__Initialize=true`) and is deferred with the Slice-2/3 work.
+
+---
+
 ## [2026-07-11 13:20:36 UTC]
 
 CHG-0137 — Subscription billing: design ratified + Xendit onboarding/integration recorded (ADR-0039)

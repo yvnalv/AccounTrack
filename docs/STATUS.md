@@ -21,6 +21,17 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
   default CoA gains equity (owner + PT) and loan accounts, seeded idempotently so existing companies
   backfill. Accounting unit tests 53 passing; frontend vue-tsc clean.
 - **Build (pre-existing):** backend `net8.0` (388 tests before this change).
+  Latest: **Billing module — Phase 1 foundation (CHG-0138, ADR-0039)** — a new `Modules/Billing/` bounded
+  context (how Accountrack charges its own tenants; SUBSCRIPTION_BILLING.md §12 Slice 1). Global `Plan`
+  catalog + tenant-scoped `Subscription`/`BillingInvoice`; standalone `billing.` schema that **never posts
+  into a tenant's GL** (§5); IDR minor-units money with PPN reserved-but-zero (not PKP, §10); read-only
+  API (`GET /billing/plans` public, `GET /billing/subscription`); `Billing.View`/`Billing.Manage` RBAC
+  (`Platform.Billing` deferred). Seeded 6 illustrative plans; `InitialBilling` migration; 4 arch tests
+  (incl. "Billing depends on no ERP business module"). Next: Slice 2 (entitlement guard) then Slice 3
+  (Xendit adapter — needs a free sandbox signup, no PT/bank).
+  Latest: **subscription-billing design ratified + Xendit onboarding recorded (CHG-0137, ADR-0039)** —
+  gateway = Xendit behind `IPaymentGateway`; not-PKP (no PPN yet, fields reserved); read-only past-due
+  grace + 90-day retention; §3.4 onboarding mechanics (sandbox-before-registration, API keys, webhooks).
   Latest: **back-dating a transfer document (CHG-0130, ADR-0038 Phase 2b — Phase 2 complete)** — directly
   back-dating a warehouse transfer now inserts both legs and recomputes across buckets in one atomic pass
   (new `IInventoryLedger.TransferBackDatedAsync`; the two cross-bucket recompute methods were refactored
