@@ -48,6 +48,8 @@ the old one and update the old one's status to `Superseded by ADR-XXXX`.
 | 0035 | Price lists (Sales/Purchase) with company default + party overrides | Superseded by ADR-0036 | 2026-07-07 |
 | 0036 | Product base price + shared discount lists (supersedes ADR-0035) | Accepted | 2026-07-07 |
 | 0037 | FIFO back-dated in-period recompute (layer reconstruction + delta journals) | Accepted | 2026-07-08 |
+| 0038 | Cross-bucket (transfer) back-dated recompute — coordinated multi-bucket replay | Accepted | 2026-07-09 |
+| 0039 | Xendit as primary payment gateway for subscription billing (behind `IPaymentGateway`) | Accepted | 2026-07-11 |
 
 ---
 
@@ -875,3 +877,57 @@ special = one override row. Maintenance N×M → N + a few rules. (−) Migratio
 adds the three price columns (dev data only); resolution reads all products to apply a percentage
 (fine at SMB scale). **Follow-ups:** quantity breaks, date-effective versioning, discounts,
 multi-currency lists, price columns in product import.
+
+---
+
+## ADR-0039: Xendit as primary payment gateway for subscription billing (behind `IPaymentGateway`)
+
+- **Status:** Accepted — **Date:** 2026-07-11 · design: [SUBSCRIPTION_BILLING.md](SUBSCRIPTION_BILLING.md)
+
+**Context.** Accountrack will charge its own tenants (self-serve, recurring, Indonesia-first / IDR — see
+[SUBSCRIPTION_BILLING.md](SUBSCRIPTION_BILLING.md)). This needs a payment gateway that collects the local
+methods Indonesian SMBs actually use (QRIS, Virtual Account, e-wallets, cards), supports recurring
+(tokenized auto-charge *and* per-cycle hosted invoices), pays out IDR to a local bank, and exposes signed
+webhooks. Stripe/global-only processors don't onboard ID-domiciled businesses for IDR payout; a
+Merchant-of-Record (Paddle/Lemon Squeezy) lacks local rails and costs ~5%+. The realistic choice is a
+local gateway — **Xendit vs Midtrans**.
+
+**Decision.** We will **adopt Xendit as the primary gateway**, integrated **behind an `IPaymentGateway`
+port** in the new Billing module so a second provider (or a switch) is mechanical. Rationale: our model
+leans on **invoice-based per-cycle billing** (VA/QRIS) plus tokenized auto-charge, and Xendit's
+first-class **Invoices** + **Recurring / Payment Tokens** APIs map onto that with the least custom glue.
+The **gateway webhook is the source of truth** for "paid" (never the browser redirect); webhook handling
+is idempotent via `platform.InboxState` (Xendit retries up to 6× with exponential backoff on non-2xx).
+Confirmed onboarding/integration facts (verify current values at build time): sign-up gives an **instant
+sandbox** pre-funded with a IDR 1,000,000,000 test balance — **the full integration is buildable before
+the business is registered**; **Live Mode requires account activation** via legal-document review (PT:
+NIB, Akta, SK Menkumham, company NPWP, director KTP, settlement bank account — PKP/VAT status is a
+separate registration, not required to onboard). API auth is **HTTP Basic with the secret key as username**
+(keys are per-mode, prefixed `xnd_development_` / `xnd_production_`, shown once at creation); webhooks are
+authenticated by a per-account **`x-callback-token`** header that must be verified on every request.
+
+**Options Considered.**
+1. **Xendit (local gateway)** ← chosen — first-class Invoices + Recurring, clean SaaS-oriented API,
+   full local rails, PCI-DSS L1. Con: ID-only reach (fine for an IDR-first product).
+2. **Midtrans (GoTo/Gojek)** — fully acceptable alternative; strong GoPay/Snap. Con: invoice UX more DIY;
+   more transaction- than subscription-oriented. Kept viable via the port.
+3. **Merchant-of-Record (Paddle / Lemon Squeezy / FastSpring)** — zero tax/e-Faktur burden, global cards.
+   Con: no QRIS/VA/e-wallet, ~5%+ effective fees, foreign payout/FX. Reconsider only if the market goes
+   international.
+4. **Stripe / global-only** — best DX but doesn't onboard an ID entity for IDR payout; card-centric. Out.
+
+**Consequences.**
+- **Positive:** free to start (pay-per-transaction only, no monthly/setup fee); sandbox lets Phase 0/1 be
+  built before company registration; least-glue fit for invoice + auto-charge; the port keeps a
+  second-gateway or MoR pivot mechanical.
+- **Negative / accept:** per-transaction fees (~QRIS 0.7% / VA flat Rp ~4–5k / e-wallet ~1.5–2% / card
+  ~2.9%+ — verify) are a meaningful haircut on the smallest plan → steer small plans to QRIS; live
+  activation depends on Xendit's document review timeline; we own webhook-signature verification and
+  idempotency.
+- **Follow-ups:** open sandbox accounts, run QRIS+VA+card+recurring tests, and **re-verify current fees,
+  settlement, and the Basic-auth detail** before first live charge; build the Billing module Phase 1
+  (SUBSCRIPTION_BILLING.md §12).
+
+**References.** [SUBSCRIPTION_BILLING.md](SUBSCRIPTION_BILLING.md); Xendit docs (Invoices, Recurring,
+Payment Tokens, API Keys, Handling Webhooks, Integration Security); [INTEGRATION_EVENTS.md](INTEGRATION_EVENTS.md)
+(inbox/outbox); [SECURITY.md](SECURITY.md).
