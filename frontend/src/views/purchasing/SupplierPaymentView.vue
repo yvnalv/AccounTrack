@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft } from 'lucide-vue-next'
+import { apiErrorMessage } from '@/lib/api'
 import { purchasingApi } from '@/lib/purchasing'
 import { masterData } from '@/lib/masterData'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
@@ -104,8 +105,8 @@ async function submit() {
     })
     success.value = t('purchasing.payment.success')
     await loadOpenItems(form.value.supplierId)
-  } catch {
-    error.value = t('purchasing.payment.failed')
+  } catch (e) {
+    error.value = apiErrorMessage(e, t('purchasing.payment.failed'))
   } finally {
     submitting.value = false
   }

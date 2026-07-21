@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Pencil, Undo2 } from 'lucide-vue-next'
+import { apiErrorMessage } from '@/lib/api'
 import { expensesApi } from '@/lib/expenses'
 import { accountingApi } from '@/lib/accounting'
 import { masterData, nameMap } from '@/lib/masterData'
@@ -72,8 +73,8 @@ async function run(kind: 'submit' | 'cancel' | 'reverse', fn: () => Promise<unkn
   try {
     await fn()
     await load()
-  } catch {
-    error.value = t('expenses.detail.actionFailed')
+  } catch (e) {
+    error.value = apiErrorMessage(e, t('expenses.detail.actionFailed'))
   } finally {
     busy.value = ''
   }

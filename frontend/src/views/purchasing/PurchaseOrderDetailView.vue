@@ -6,7 +6,7 @@ import { ArrowLeft, Undo2, FileText, Pencil } from 'lucide-vue-next'
 import { purchasingApi } from '@/lib/purchasing'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
 import { useAuthStore } from '@/stores/auth'
-import { downloadFile } from '@/lib/api'
+import { apiErrorMessage, downloadFile } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import type {
@@ -148,8 +148,10 @@ async function run(kind: 'submit' | 'receive' | 'invoice' | 'cancel', fn: () => 
   try {
     await fn()
     await load()
-  } catch {
-    error.value = t('purchasing.detail.actionFailed')
+  } catch (e) {
+    // Surface the server's business-rule message (e.g. a missing posting rule or closed period);
+    // the generic text is only a last resort. Swallowing it made failures undiagnosable.
+    error.value = apiErrorMessage(e, t('purchasing.detail.actionFailed'))
   } finally {
     busy.value = ''
   }

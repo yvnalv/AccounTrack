@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, X } from 'lucide-vue-next'
+import { apiErrorMessage } from '@/lib/api'
 import { approvalApi } from '@/lib/approval'
 import type { ApprovalRequest } from '@/types/approval'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -69,8 +70,8 @@ async function confirm() {
     await fn(target.value.id, comment.value || null)
     modalOpen.value = false
     await load()
-  } catch {
-    error.value = t('approvals.failed')
+  } catch (e) {
+    error.value = apiErrorMessage(e, t('approvals.failed'))
   } finally {
     submitting.value = false
   }

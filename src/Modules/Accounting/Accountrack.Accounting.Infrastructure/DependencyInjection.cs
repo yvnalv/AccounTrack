@@ -35,6 +35,11 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IAccountingUnitOfWork>(sp => sp.GetRequiredService<AccountingDbContext>());
+
+        // Gives every newly provisioned company its chart of accounts, fiscal periods and posting
+        // rules (BR-CMP-1) — without these no GL posting can succeed.
+        services.AddScoped<Accountrack.Modules.Contracts.Company.ICompanyFoundationSeeder,
+            Provisioning.AccountingCompanyFoundationSeeder>();
         services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<AccountingDbContext>());
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IFiscalPeriodRepository, FiscalPeriodRepository>();

@@ -14,6 +14,8 @@ public class RegisterOrganizationTests
     private static readonly DateTime Now = new(2026, 6, 21, 0, 0, 0, DateTimeKind.Utc);
 
     private readonly ICompanyProvisioning _provisioning = Substitute.For<ICompanyProvisioning>();
+    private readonly RecordingFoundationSeeder _accountingSeeder = new(order: 100);
+    private readonly RecordingFoundationSeeder _masterDataSeeder = new(order: 200);
     private readonly IRoleRepository _roles = Substitute.For<IRoleRepository>();
     private readonly IUserRepository _users = Substitute.For<IUserRepository>();
     private readonly IRefreshTokenRepository _refreshTokens = Substitute.For<IRefreshTokenRepository>();
@@ -36,7 +38,9 @@ public class RegisterOrganizationTests
     }
 
     private RegisterOrganizationHandler Handler() =>
-        new(_provisioning, _roles, _users, _refreshTokens, _passwordHasher, _tokenService, _uow, _clock);
+        // Deliberately registered out of order to prove the handler runs them by Order.
+        new(_provisioning, new[] { _masterDataSeeder, _accountingSeeder }, _roles, _users, _refreshTokens,
+            _passwordHasher, _tokenService, _uow, _clock);
 
     private RegisterOrganizationCommand Command() =>
         new("Acme Group", "Acme Trading", "IDR", "Jane Founder", "jane@acme.test", "ChangeMe!123");
@@ -89,5 +93,62 @@ public class RegisterOrganizationTests
         await _provisioning.DidNotReceive().ProvisionTenantAsync(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<string>(), Arg.Any<int>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        _accountingSeeder.Calls.Should().BeEmpty();
+        _masterDataSeeder.Calls.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Regression (BR-CMP-1): sign-up used to create only a tenant + company row, leaving the new
+    /// organization with no chart of accounts, posting rules or fiscal periods — so every GL-posting
+    /// action (goods receipt, invoicing, payments, expenses) failed. Every module's foundation seeder
+    /// must run, in Order, for the new company.
+    /// </summary>
+    [Fact]
+    public async Task Register_seeds_every_module_company_foundation_in_order()
+    {
+        var companyId = Guid.NewGuid();
+        _users.EmailExistsAsync("jane@acme.test", Arg.Any<CancellationToken>()).Returns(false);
+        _provisioning.ProvisionTenantAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<string>(), Arg.Any<int>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(companyId);
+
+        var result = await Handler().Handle(Command(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        // Both seeders ran exactly once, for the new company, with the registered currency and
+        // the current fiscal year.
+        _accountingSeeder.Calls.Should().ContainSingle();
+        _masterDataSeeder.Calls.Should().ContainSingle();
+
+        var seeded = _accountingSeeder.Calls.Single();
+        seeded.CompanyId.Should().Be(companyId);
+        seeded.TenantId.Should().NotBeEmpty();
+        seeded.FunctionalCurrency.Should().Be("IDR");
+        seeded.Year.Should().Be(Now.Year);
+        seeded.FiscalYearStartMonth.Should().Be(1);
+
+        // Accounting (100) must precede Master Data (200) — later modules reference its rule keys.
+        _accountingSeeder.SequenceStamp.Should().BeLessThan(_masterDataSeeder.SequenceStamp);
+    }
+
+    /// <summary>Records what it was asked to seed, and when, so ordering can be asserted.</summary>
+    private sealed class RecordingFoundationSeeder : ICompanyFoundationSeeder
+    {
+        private static int _counter;
+
+        public RecordingFoundationSeeder(int order) => Order = order;
+
+        public int Order { get; }
+        public List<CompanyFoundation> Calls { get; } = new();
+        public int SequenceStamp { get; private set; }
+
+        public Task SeedAsync(CompanyFoundation company, CancellationToken ct)
+        {
+            Calls.Add(company);
+            SequenceStamp = Interlocked.Increment(ref _counter);
+            return Task.CompletedTask;
+        }
     }
 }
