@@ -1,5 +1,27 @@
 # Accountrack Changelog
 
+## [2026-07-21 16:15:43 UTC]
+
+CHG-0141 — Docs: dedicated PostgreSQL access guide (psql + pgAdmin over SSH tunnel)
+
+- New **docs/DATABASE_ACCESS.md** — how to reach the database safely, written for someone who has not
+  used SSH tunnelling before:
+  - **Why the database is never published publicly** (a Postgres port on a public IP is scanned and
+    credential-stuffed within hours), with a comparison of the access options.
+  - **Option A — `psql` in the container** (`docker exec`), no setup; note that identifiers are
+    PascalCase and must be quoted (`identity."Users"`).
+  - **Option B — pgAdmin over an SSH tunnel:** what a tunnel is (with a diagram), the one-time
+    **loopback-only** publish (`127.0.0.1:5432:5432`, with exact YAML placement and indentation),
+    optional SSH-key hardening (verify keys work *before* disabling password auth), opening the tunnel
+    from the local PC, and registering the server in pgAdmin.
+  - Reference table of what actually runs (stack dir `/root/app` vs repo clone, container/role/database
+    names, the 14 schemas), local-dev connection, a troubleshooting table, and do/don't rules.
+- Captures two operational traps hit in practice: running Compose from the **repo clone** instead of
+  `/root/app` (fails with `required variable POSTGRES_USER is missing a value`), and the warning that
+  **`docker compose down` in `/root/app` would stop n8n and Postgres** too.
+- Linked from the docs index and cross-referenced from VPS_DEPLOYMENT_GUIDE.md §12 (which keeps the
+  condensed version).
+- Docs only — no code, schema or configuration change.
 ## [2026-07-21 15:10:32 UTC]
 
 CHG-0139 — Fix: new organizations had no accounting foundation (every posting action failed) + surface server errors in the UI

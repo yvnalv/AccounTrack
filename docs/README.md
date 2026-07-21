@@ -59,6 +59,9 @@ Decisions confirmed 2026-06-13 are recorded in [DECISIONS.md](DECISIONS.md).
 - [DEPLOYMENT.md](DEPLOYMENT.md) — environments, CI/CD, migrations, secrets.
 - [VPS_DEPLOYMENT_GUIDE.md](VPS_DEPLOYMENT_GUIDE.md) — step-by-step runbook for deploying onto a VPS
   that already runs a Docker stack (reuse existing PostgreSQL + Nginx, expand SAN cert, pgAdmin tunnel).
+- [DATABASE_ACCESS.md](DATABASE_ACCESS.md) — connecting to PostgreSQL safely: `psql` in the container,
+  and pgAdmin over an **SSH tunnel** (loopback-only publish, keys, troubleshooting). Why the database is
+  never exposed publicly.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — workflow for human and AI contributors.
 
 ## Maintenance rule

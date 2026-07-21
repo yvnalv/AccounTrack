@@ -448,6 +448,9 @@ New EF migrations apply on boot. No `down` needed; your other services are untou
 
 ## 12. Inspecting the VPS database from local pgAdmin (SSH tunnel)
 
+> Full walkthrough — including what an SSH tunnel is, SSH-key setup, and a troubleshooting table —
+> lives in [DATABASE_ACCESS.md](DATABASE_ACCESS.md). The condensed version follows.
+
 Never expose PostgreSQL publicly. Reach it over SSH.
 
 **a) Publish Postgres on the VPS loopback only** — add to the `postgres` service and re-create it:
