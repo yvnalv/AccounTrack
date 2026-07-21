@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Sun, Moon, Check } from 'lucide-vue-next'
+import { apiErrorMessage } from '@/lib/api'
 import { companyApi } from '@/lib/company'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
@@ -108,8 +109,8 @@ async function saveCompany() {
     await loadCompanies()
     await companyStore.refresh() // keep the app-wide VAT/PKP flag in sync for the create forms
     message.value = { kind: 'ok', text: t('settings.company.saved') }
-  } catch {
-    message.value = { kind: 'err', text: t('settings.company.failed') }
+  } catch (e) {
+    message.value = { kind: 'err', text: apiErrorMessage(e, t('settings.company.failed')) }
   } finally {
     saving.value = false
   }

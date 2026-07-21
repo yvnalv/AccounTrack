@@ -5,26 +5,42 @@ using Microsoft.EntityFrameworkCore;
 namespace Accountrack.Accounting.Infrastructure.Seed;
 
 /// <summary>
-/// Seeds a default Indonesian-SMB chart of accounts and the current fiscal year for the dev
-/// company, so manual journals can be posted out of the box. Account codes match the defaults in
-/// docs/POSTING_RULES.md §2. Ids match the Company/Identity dev seed.
+/// Seeds the accounting foundation a company cannot operate without: a default Indonesian-SMB chart of
+/// accounts, a fiscal year with its periods, and the default posting rules. Account codes match the
+/// defaults in docs/POSTING_RULES.md §2.
+/// <para>
+/// This runs for <b>every</b> company — the dev seed and every self-registered organization alike
+/// (BR-CMP-1). Without it no GL-posting action can succeed (goods receipt, invoicing, payments,
+/// expenses, stock adjustments), because posting-rule resolution and the open-period check both fail.
+/// Every step is idempotent, so it is safe to re-run as a backfill over existing companies.
+/// </para>
 /// </summary>
 public static class AccountingDataSeeder
 {
     private static readonly Guid DevTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private static readonly Guid DevCompanyId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
-    public static async Task SeedAsync(AccountingDbContext db, int currentYear, CancellationToken ct = default)
+    /// <summary>Seeds the dev company (startup dev seed).</summary>
+    public static Task SeedAsync(AccountingDbContext db, int currentYear, CancellationToken ct = default) =>
+        SeedForCompanyAsync(db, DevTenantId, DevCompanyId, currentYear, fiscalYearStartMonth: 1, ct);
+
+    /// <summary>
+    /// Seeds the foundation for an arbitrary company. Used when a new organization/company is
+    /// provisioned and by the startup backfill. Idempotent per step.
+    /// </summary>
+    public static async Task SeedForCompanyAsync(
+        AccountingDbContext db, Guid tenantId, Guid companyId, int year, int fiscalYearStartMonth = 1,
+        CancellationToken ct = default)
     {
-        await SeedChartAsync(db, ct);
-        await SeedFiscalYearAsync(db, currentYear, ct);
-        await SeedPostingRulesAsync(db, ct);
+        await SeedChartAsync(db, tenantId, companyId, ct);
+        await SeedFiscalYearAsync(db, tenantId, companyId, year, fiscalYearStartMonth, ct);
+        await SeedPostingRulesAsync(db, tenantId, companyId, ct);
     }
 
-    private static async Task SeedChartAsync(AccountingDbContext db, CancellationToken ct)
+    private static async Task SeedChartAsync(AccountingDbContext db, Guid tenantId, Guid companyId, CancellationToken ct)
     {
         var hasAccounts = await db.Accounts.IgnoreQueryFilters()
-            .AnyAsync(a => a.CompanyId == DevCompanyId && !a.IsDeleted, ct);
+            .AnyAsync(a => a.CompanyId == companyId && !a.IsDeleted, ct);
         if (hasAccounts)
         {
             return;
@@ -58,8 +74,8 @@ public static class AccountingDataSeeder
         foreach (var a in chart)
         {
             var account = Account.Create(a.Code, a.Name, a.Type, isControlAccount: a.Control, controlType: a.Ct, isSystem: true);
-            account.TenantId = DevTenantId;
-            account.CompanyId = DevCompanyId;
+            account.TenantId = tenantId;
+            account.CompanyId = companyId;
             db.Accounts.Add(account);
         }
 
@@ -71,10 +87,10 @@ public static class AccountingDataSeeder
     /// <see cref="PostingRuleKeys"/> maps to its default seeded account. CashBank is intentionally
     /// not seeded as a single default — it is resolved per chosen bank/cash account via a selector.
     /// </summary>
-    private static async Task SeedPostingRulesAsync(AccountingDbContext db, CancellationToken ct)
+    private static async Task SeedPostingRulesAsync(AccountingDbContext db, Guid tenantId, Guid companyId, CancellationToken ct)
     {
         var hasRules = await db.PostingRules.IgnoreQueryFilters()
-            .AnyAsync(r => r.CompanyId == DevCompanyId && !r.IsDeleted, ct);
+            .AnyAsync(r => r.CompanyId == companyId && !r.IsDeleted, ct);
         if (hasRules)
         {
             return;
@@ -105,7 +121,7 @@ public static class AccountingDataSeeder
         };
 
         var accountsByCode = await db.Accounts.IgnoreQueryFilters()
-            .Where(a => a.CompanyId == DevCompanyId && !a.IsDeleted)
+            .Where(a => a.CompanyId == companyId && !a.IsDeleted)
             .ToDictionaryAsync(a => a.Code, a => a.Id, ct);
 
         foreach (var (key, code) in defaults)
@@ -116,30 +132,31 @@ public static class AccountingDataSeeder
             }
 
             var rule = PostingRule.CreateDefault(key, accountId);
-            rule.TenantId = DevTenantId;
-            rule.CompanyId = DevCompanyId;
+            rule.TenantId = tenantId;
+            rule.CompanyId = companyId;
             db.PostingRules.Add(rule);
         }
 
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task SeedFiscalYearAsync(AccountingDbContext db, int year, CancellationToken ct)
+    private static async Task SeedFiscalYearAsync(
+        AccountingDbContext db, Guid tenantId, Guid companyId, int year, int startMonth, CancellationToken ct)
     {
         var hasYear = await db.FiscalYears.IgnoreQueryFilters()
-            .AnyAsync(fy => fy.CompanyId == DevCompanyId && fy.Year == year && !fy.IsDeleted, ct);
+            .AnyAsync(fy => fy.CompanyId == companyId && fy.Year == year && !fy.IsDeleted, ct);
         if (hasYear)
         {
             return;
         }
 
-        var fiscalYear = FiscalYear.Create(year, startMonth: 1);
-        fiscalYear.TenantId = DevTenantId;
-        fiscalYear.CompanyId = DevCompanyId;
+        var fiscalYear = FiscalYear.Create(year, startMonth);
+        fiscalYear.TenantId = tenantId;
+        fiscalYear.CompanyId = companyId;
         foreach (var period in fiscalYear.Periods)
         {
-            period.TenantId = DevTenantId;
-            period.CompanyId = DevCompanyId;
+            period.TenantId = tenantId;
+            period.CompanyId = companyId;
         }
 
         db.FiscalYears.Add(fiscalYear);

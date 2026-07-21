@@ -2,6 +2,7 @@ using Accountrack.Application.Abstractions.Context;
 using Accountrack.Application.Abstractions.Messaging;
 using Accountrack.CompanyManagement.Application.Abstractions;
 using Accountrack.CompanyManagement.Domain;
+using Accountrack.Modules.Contracts.Company;
 using Accountrack.SharedKernel.Results;
 using FluentValidation;
 
@@ -31,13 +32,18 @@ public sealed class CreateCompanyCommandHandler : ICommandHandler<CreateCompanyC
     private readonly ICompanyRepository _companies;
     private readonly ITenantContext _tenant;
     private readonly ICompanyUnitOfWork _uow;
+    private readonly IEnumerable<ICompanyFoundationSeeder> _foundationSeeders;
+    private readonly IClock _clock;
 
     public CreateCompanyCommandHandler(
-        ICompanyRepository companies, ITenantContext tenant, ICompanyUnitOfWork uow)
+        ICompanyRepository companies, ITenantContext tenant, ICompanyUnitOfWork uow,
+        IEnumerable<ICompanyFoundationSeeder> foundationSeeders, IClock clock)
     {
         _companies = companies;
         _tenant = tenant;
         _uow = uow;
+        _foundationSeeders = foundationSeeders;
+        _clock = clock;
     }
 
     public async Task<Result<Guid>> Handle(CreateCompanyCommand request, CancellationToken cancellationToken)
@@ -57,6 +63,17 @@ public sealed class CreateCompanyCommandHandler : ICommandHandler<CreateCompanyC
 
         _companies.Add(company);
         await _uow.SaveChangesAsync(cancellationToken);
+
+        // An additional company needs the same operating foundation as the first one (BR-CMP-1):
+        // chart of accounts, fiscal periods, posting rules, baseline master data. Without it every
+        // GL-posting action in that company fails. Seeders are idempotent.
+        var foundation = new CompanyFoundation(
+            company.TenantId, company.Id, company.FunctionalCurrency, _clock.UtcNow.Year,
+            company.FiscalYearStartMonth);
+        foreach (var seeder in _foundationSeeders.OrderBy(s => s.Order))
+        {
+            await seeder.SeedAsync(foundation, cancellationToken);
+        }
 
         return company.Id;
     }

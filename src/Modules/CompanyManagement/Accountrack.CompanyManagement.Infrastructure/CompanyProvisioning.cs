@@ -1,6 +1,7 @@
 using Accountrack.CompanyManagement.Domain;
 using Accountrack.CompanyManagement.Infrastructure.Persistence;
 using Accountrack.Modules.Contracts.Company;
+using Microsoft.EntityFrameworkCore;
 
 namespace Accountrack.CompanyManagement.Infrastructure;
 
@@ -29,4 +30,13 @@ public sealed class CompanyProvisioning : ICompanyProvisioning
         await _db.SaveChangesAsync(ct);
         return company.Id;
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<CompanyProvisioningInfo>> ListAllCompaniesAsync(CancellationToken ct) =>
+        await _db.Companies
+            .IgnoreQueryFilters() // startup backfill only — deliberate cross-tenant admin read (Rule 33)
+            .Where(c => !c.IsDeleted)
+            .Select(c => new CompanyProvisioningInfo(
+                c.TenantId, c.Id, c.FunctionalCurrency, c.FiscalYearStartMonth))
+            .ToListAsync(ct);
 }

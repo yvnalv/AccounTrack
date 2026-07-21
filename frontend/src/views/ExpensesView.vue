@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Plus, Tags } from 'lucide-vue-next'
+import { apiErrorMessage } from '@/lib/api'
 import { expensesApi } from '@/lib/expenses'
 import { exportTable } from '@/lib/exportTable'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
@@ -107,8 +108,8 @@ async function saveCat() {
     }
     categories.value = await expensesApi.categories()
     resetCatForm()
-  } catch {
-    catError.value = t('expenses.categories.saveFailed')
+  } catch (e) {
+    catError.value = apiErrorMessage(e, t('expenses.categories.saveFailed'))
   } finally {
     catSaving.value = false
   }
@@ -118,8 +119,8 @@ async function toggleCat(c: ExpenseCategory) {
   try {
     await expensesApi.setCategoryActive(c.id, !c.isActive)
     categories.value = await expensesApi.categories()
-  } catch {
-    catError.value = t('expenses.categories.saveFailed')
+  } catch (e) {
+    catError.value = apiErrorMessage(e, t('expenses.categories.saveFailed'))
   }
 }
 </script>

@@ -32,6 +32,10 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IMasterDataUnitOfWork>(sp => sp.GetRequiredService<MasterDataDbContext>());
+
+        // Baseline master data (unit, category, warehouse, tax code) for every new company (BR-CMP-1).
+        services.AddScoped<Accountrack.Modules.Contracts.Company.ICompanyFoundationSeeder,
+            Provisioning.MasterDataCompanyFoundationSeeder>();
         services.AddScoped(typeof(ICodedRepository<>), typeof(CodedRepository<>));
         services.AddScoped<IPriceListRepository, PriceListRepository>();
         services.AddScoped<Modules.Contracts.MasterData.IMasterDataLookup, MasterDataLookup>();

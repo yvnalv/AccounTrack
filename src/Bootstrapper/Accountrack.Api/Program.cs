@@ -222,6 +222,11 @@ if (builder.Configuration.GetValue("Database:Initialize", false))
     // Platform-level outbox inbox/de-dup store (ADR-0007), independent of any module schema.
     await Accountrack.Infrastructure.Common.Outbox.InboxStore.EnsureTableAsync(
         builder.Configuration.GetConnectionString("Default")!);
+
+    // Repair companies provisioned before company-foundation seeding existed (BR-CMP-1): give them a
+    // chart of accounts, fiscal periods, posting rules and baseline master data. Idempotent — existing
+    // companies are untouched — so it is safe on every boot. Runs last, after every module's schema.
+    await app.Services.BackfillCompanyFoundationsAsync();
 }
 
 app.Run();
