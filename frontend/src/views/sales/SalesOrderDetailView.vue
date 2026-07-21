@@ -6,7 +6,7 @@ import { ArrowLeft, Undo2, FileText, Pencil } from 'lucide-vue-next'
 import { salesApi } from '@/lib/sales'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
 import { useAuthStore } from '@/stores/auth'
-import { downloadFile } from '@/lib/api'
+import { apiErrorMessage, downloadFile } from '@/lib/api'
 import { masterData, nameMap } from '@/lib/masterData'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import type {
@@ -149,8 +149,9 @@ async function run(kind: 'submit' | 'deliver' | 'invoice' | 'cancel', fn: () => 
   try {
     await fn()
     await load()
-  } catch {
-    error.value = t('sales.detail.actionFailed')
+  } catch (e) {
+    // Surface the server's business-rule message rather than a generic string (see PO detail).
+    error.value = apiErrorMessage(e, t('sales.detail.actionFailed'))
   } finally {
     busy.value = ''
   }

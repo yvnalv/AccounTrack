@@ -10,9 +10,11 @@ using FluentValidation;
 namespace Accountrack.Identity.Application.Features;
 
 /// <summary>
-/// Public organization sign-up: provisions a brand-new tenant + first company, seeds the standard
-/// roles for it, creates the registrant as the tenant's Administrator, and returns an auth token pair
-/// (auto sign-in). Anonymous endpoint — the only write path that creates a tenant.
+/// Public organization sign-up: provisions a brand-new tenant + first company, gives that company its
+/// operating foundation (chart of accounts, fiscal periods, posting rules, baseline master data,
+/// expense categories — BR-CMP-1), seeds the standard roles, creates the registrant as the tenant's
+/// Administrator, and returns an auth token pair (auto sign-in). Anonymous endpoint — the only write
+/// path that creates a tenant.
 /// </summary>
 public sealed record RegisterOrganizationCommand(
     string OrganizationName, string CompanyName, string FunctionalCurrency,
@@ -34,6 +36,7 @@ public sealed class RegisterOrganizationValidator : AbstractValidator<RegisterOr
 public sealed class RegisterOrganizationHandler : ICommandHandler<RegisterOrganizationCommand, AuthResponse>
 {
     private readonly ICompanyProvisioning _provisioning;
+    private readonly IEnumerable<ICompanyFoundationSeeder> _foundationSeeders;
     private readonly IRoleRepository _roles;
     private readonly IUserRepository _users;
     private readonly IRefreshTokenRepository _refreshTokens;
@@ -44,6 +47,7 @@ public sealed class RegisterOrganizationHandler : ICommandHandler<RegisterOrgani
 
     public RegisterOrganizationHandler(
         ICompanyProvisioning provisioning,
+        IEnumerable<ICompanyFoundationSeeder> foundationSeeders,
         IRoleRepository roles,
         IUserRepository users,
         IRefreshTokenRepository refreshTokens,
@@ -53,6 +57,7 @@ public sealed class RegisterOrganizationHandler : ICommandHandler<RegisterOrgani
         IClock clock)
     {
         _provisioning = provisioning;
+        _foundationSeeders = foundationSeeders;
         _roles = roles;
         _users = users;
         _refreshTokens = refreshTokens;
@@ -73,10 +78,24 @@ public sealed class RegisterOrganizationHandler : ICommandHandler<RegisterOrgani
         }
 
         var tenantId = Guid.NewGuid();
+        const int fiscalYearStartMonth = 1;
+        var currency = request.FunctionalCurrency.Trim().ToUpperInvariant();
+
         var companyId = await _provisioning.ProvisionTenantAsync(
             tenantId, request.OrganizationName.Trim(), companyCode: "MAIN", request.CompanyName.Trim(),
-            request.FunctionalCurrency.Trim().ToUpperInvariant(), fiscalYearStartMonth: 1,
-            timeZone: "Asia/Jakarta", ct);
+            currency, fiscalYearStartMonth, timeZone: "Asia/Jakarta", ct);
+
+        // Give the new company its operating foundation (BR-CMP-1): chart of accounts + fiscal periods
+        // + posting rules, baseline master data, expense categories. Without this the tenant can sign in
+        // but every GL-posting action (receive, invoice, pay, expense, stock adjustment) fails. Each
+        // module contributes its own seeder, so boundaries stay intact (ADR-0007); all are idempotent,
+        // and the startup backfill re-runs them for companies provisioned before this existed.
+        var foundation = new CompanyFoundation(
+            tenantId, companyId, currency, _clock.UtcNow.Year, fiscalYearStartMonth);
+        foreach (var seeder in _foundationSeeders.OrderBy(s => s.Order))
+        {
+            await seeder.SeedAsync(foundation, ct);
+        }
 
         // Seed the standard roles for the new tenant and make the registrant its Administrator.
         var permissionIdByCode = await _roles.GetPermissionIdByCodeAsync(ct);

@@ -22,6 +22,44 @@ CHG-0141 — Docs: dedicated PostgreSQL access guide (psql + pgAdmin over SSH tu
 - Linked from the docs index and cross-referenced from VPS_DEPLOYMENT_GUIDE.md §12 (which keeps the
   condensed version).
 - Docs only — no code, schema or configuration change.
+## [2026-07-21 15:10:32 UTC]
+
+CHG-0139 — Fix: new organizations had no accounting foundation (every posting action failed) + surface server errors in the UI
+
+Two bugs found from a report that receiving against a purchase order failed with only
+"The action could not be completed."
+
+- **Root cause — self-registered organizations were unusable (BR-CMP-1).** Public sign-up
+  (`/register`) provisioned only a tenant + company row; **all five seeders were hardcoded to the dev
+  company**, so a new organization had **no chart of accounts, no posting rules, no fiscal year/periods,
+  no units/warehouse/tax code, no expense categories**. Every GL-posting action therefore failed —
+  goods receipt, purchase/sales invoicing, payments, expense vouchers, stock adjustments — because
+  posting-rule resolution found nothing and the open-period check rejected the journal. Adding a
+  **second company** (`Admin.Companies`) had the same gap.
+  - New **`ICompanyFoundationSeeder`** contract (+ `CompanyFoundation` record) in Modules.Contracts.
+    Each module registers its own implementation — Accounting (order 100: CoA + fiscal year + posting
+    rules), Master Data (200: unit, category, warehouse, PPN tax code), Expenses (300: categories) —
+    so provisioning stays inside module boundaries (ADR-0007, Rule 27) and new modules can join by
+    registering one.
+  - The Accounting/MasterData/Expenses seeders were **parameterized by (tenant, company)** rather than
+    hardcoding the dev ids; the dev seed now calls the same code path. All steps are **idempotent**.
+  - **`RegisterOrganization`** and **`CreateCompany`** now run every seeder in `Order` for the new
+    company, so both paths yield a fully operable company.
+  - **Startup backfill** (`BackfillCompanyFoundationsAsync`) runs the seeders over every existing
+    company, repairing organizations provisioned before this existed. Idempotent and per-company
+    fault-isolated (one failure is logged, never blocks startup or the other companies). Uses a
+    deliberate cross-tenant admin read (`ICompanyProvisioning.ListAllCompaniesAsync`), startup-only.
+- **UI was hiding every server error.** Action handlers used a bare `catch {}` and always showed a
+  generic string, discarding the server's `{success:false, message}` business-rule message — which is
+  why the real cause was invisible. Routed **9 user-action paths** through the existing
+  `apiErrorMessage()` helper: Purchase Order detail (receive/invoice/submit/cancel), Sales Order
+  detail (deliver/invoice/submit/cancel), Expense Voucher detail, Supplier Payment, Receive Payment,
+  Expenses (×2), Price Lists, Approvals, Settings. `DashboardView` (best-effort background loads) and
+  `LoginView` (deliberate auth vagueness) intentionally keep their generic handling.
+- **Tests:** new regression test that sign-up seeds every module's foundation in `Order` for the new
+  company (and seeds nothing when registration is rejected); `CreateCompany` asserts the same. Full
+  suite green — build clean, 393 passing (Identity 32→33), 39 arch tests.
+- Docs: **BR-CMP-1** added to BUSINESS_RULES.md.
 
 ---
 

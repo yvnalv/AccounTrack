@@ -28,6 +28,24 @@ configurable per company with the stated default.
   Implemented for **Sales/Purchase Order cancel** (Draft or PendingApproval only — CHG-0061) and
   **draft line-edit** (still-Draft header + lines — CHG-0070). CoA edit remains.
 
+## Company Provisioning
+
+- **BR-CMP-1 (invariant)** Every company — the first one created at organization sign-up, and every
+  company added afterwards — must be provisioned with the **operating foundation** it cannot function
+  without, at the moment it is created:
+  - a **chart of accounts**, a **fiscal year with open periods**, and the **default posting rules**
+    (Accounting);
+  - a base **unit of measure**, a default **product category**, a **main warehouse** and the **PPN
+    tax code** (Master Data);
+  - the default **expense categories** (Expenses).
+
+  Rationale: without these, a tenant can sign in but **every GL-posting action fails** — goods
+  receipt, invoicing, payments, expense vouchers and stock movements all resolve accounts through the
+  posting-rule engine and require an open period. Each module contributes its own
+  `ICompanyFoundationSeeder`, keeping provisioning inside module boundaries (ADR-0007, Rule 27).
+  Seeders are **idempotent**, and a startup backfill re-runs them over existing companies so
+  organizations provisioned before this rule existed are repaired (CHG-0139).
+
 ## Accounting
 
 - **BR-ACC-1 (invariant)** Every journal entry is balanced: Σ debits = Σ credits.

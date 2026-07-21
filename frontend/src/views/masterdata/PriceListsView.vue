@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Pencil, Tags, Trash2 } from 'lucide-vue-next'
 import { masterData, nameMap } from '@/lib/masterData'
 import { pricingApi } from '@/lib/pricing'
-import { isConflict } from '@/lib/api'
+import { apiErrorMessage, isConflict } from '@/lib/api'
 import { formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import type { NamedRef, PriceList, PriceListItem, PriceListType } from '@/types/masterdata'
 import { useAuthStore } from '@/stores/auth'
@@ -126,8 +126,8 @@ async function addItem() {
     await pricingApi.upsertItem(itemsList.value.id, itemForm.productId, itemForm.unitPrice)
     Object.assign(itemForm, { productId: '', unitPrice: 0 })
     await loadItems()
-  } catch {
-    itemError.value = t('masterData.failed')
+  } catch (e) {
+    itemError.value = apiErrorMessage(e, t('masterData.failed'))
   } finally {
     itemSaving.value = false
   }

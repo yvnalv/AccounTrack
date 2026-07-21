@@ -13,4 +13,15 @@ public interface ICompanyProvisioning
     Task<Guid> ProvisionTenantAsync(
         Guid tenantId, string organizationName, string companyCode, string companyName,
         string functionalCurrency, int fiscalYearStartMonth, string timeZone, CancellationToken ct);
+
+    /// <summary>
+    /// Every company across every tenant, for the startup foundation backfill (BR-CMP-1). This is a
+    /// deliberate cross-tenant admin read (Rule 33) used only by the host's startup routine — never by
+    /// a request path. Returns what <see cref="ICompanyFoundationSeeder"/> needs to provision each one.
+    /// </summary>
+    Task<IReadOnlyList<CompanyProvisioningInfo>> ListAllCompaniesAsync(CancellationToken ct);
 }
+
+/// <summary>Identity of an existing company, for the foundation backfill.</summary>
+public sealed record CompanyProvisioningInfo(
+    Guid TenantId, Guid CompanyId, string FunctionalCurrency, int FiscalYearStartMonth);

@@ -26,10 +26,19 @@ public static class ExpensesSeeder
         ("OTHER", "Other Operating Expense", "EXPENSE.OTHER"),
     };
 
-    public static async Task SeedAsync(ExpensesDbContext db, CancellationToken ct = default)
+    /// <summary>Seeds the dev company (startup dev seed).</summary>
+    public static Task SeedAsync(ExpensesDbContext db, CancellationToken ct = default) =>
+        SeedForCompanyAsync(db, DevTenantId, DevCompanyId, ct);
+
+    /// <summary>
+    /// Seeds the default categories for an arbitrary company. Used when a new organization/company is
+    /// provisioned and by the startup backfill (BR-CMP-1). Idempotent.
+    /// </summary>
+    public static async Task SeedForCompanyAsync(
+        ExpensesDbContext db, Guid tenantId, Guid companyId, CancellationToken ct = default)
     {
         var seeded = await db.ExpenseCategories.IgnoreQueryFilters()
-            .AnyAsync(c => c.CompanyId == DevCompanyId && !c.IsDeleted, ct);
+            .AnyAsync(c => c.CompanyId == companyId && !c.IsDeleted, ct);
         if (seeded)
         {
             return;
@@ -38,16 +47,11 @@ public static class ExpensesSeeder
         foreach (var (code, name, ruleKey) in DefaultCategories)
         {
             var category = ExpenseCategory.Create(code, name, ruleKey);
-            Stamp(category);
+            category.TenantId = tenantId;
+            category.CompanyId = companyId;
             db.ExpenseCategories.Add(category);
         }
 
         await db.SaveChangesAsync(ct);
-    }
-
-    private static void Stamp(TenantOwnedEntity e)
-    {
-        e.TenantId = DevTenantId;
-        e.CompanyId = DevCompanyId;
     }
 }

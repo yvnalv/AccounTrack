@@ -36,6 +36,10 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IExpensesUnitOfWork>(sp => sp.GetRequiredService<ExpensesDbContext>());
+
+        // Default expense categories for every new company (BR-CMP-1).
+        services.AddScoped<Accountrack.Modules.Contracts.Company.ICompanyFoundationSeeder,
+            Provisioning.ExpensesCompanyFoundationSeeder>();
         services.AddScoped<ITransactionalDbContext>(sp => sp.GetRequiredService<ExpensesDbContext>());
         services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository>();
         services.AddScoped<IExpenseVoucherRepository, ExpenseVoucherRepository>();
