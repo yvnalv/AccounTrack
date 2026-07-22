@@ -7,7 +7,9 @@ import { apiErrorMessage } from '@/lib/api'
 import { purchasingApi } from '@/lib/purchasing'
 import { masterData } from '@/lib/masterData'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
+import { localizedAccountName } from '@/lib/coa'
 import { formatMoney } from '@/lib/format'
+import type { Locale } from '@/i18n'
 import type { NamedRef } from '@/types/masterdata'
 import type { AccountRef, SubledgerOpenItem } from '@/types/accounting'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -25,7 +27,8 @@ interface AllocRow {
   amount: number
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const loc = computed(() => locale.value as Locale)
 const router = useRouter()
 const route = useRoute()
 
@@ -50,7 +53,7 @@ onMounted(async () => {
 })
 
 const supplierOptions = computed(() => suppliers.value.map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` })))
-const accountOptions = computed(() => accounts.value.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` })))
+const accountOptions = computed(() => accounts.value.map((a) => ({ value: a.id, label: `${a.code} — ${localizedAccountName(a, loc.value)}` })))
 
 async function loadOpenItems(supplierId: string) {
   rows.value = []

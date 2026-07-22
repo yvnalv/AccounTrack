@@ -66,6 +66,12 @@ public static class AccountingErrors
     public static readonly Error OpenItemSettled =
         Error.Conflict("ACCOUNTING.OPEN_ITEM_SETTLED", "This open item is already settled.");
 
+    public static readonly Error TransferSameAccount =
+        Error.BusinessRule("BR-ACC-15", "A transfer must be between two different cash/bank accounts.", "ACCOUNTING.TRANSFER_SAME_ACCOUNT");
+
+    public static readonly Error CompanyNotFound =
+        Error.NotFound("ACCOUNTING.COMPANY_NOT_FOUND", "Active company not found.");
+
     public static Error PostingRuleUnresolved(string eventType, string ruleKey) =>
         Error.BusinessRule(
             "BR-ACC-6",

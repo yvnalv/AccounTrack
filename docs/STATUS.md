@@ -8,8 +8,19 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-10 (last change **CHG-0130**)
-- **Build:** green — backend `net8.0` (388 tests); **frontend** `frontend/` builds (vue-tsc + vite).
+- **As of:** 2026-07-22 (last change **CHG-0143**)
+- **Build:** green — backend `net8.0`; **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **General Journal + guided Cash & Bank flows + equity/loan chart of accounts (CHG-0143,
+  ADR-0040)** — two new tabs under Accounting (i18n-named "Journals"/"Jurnal Umum" and "Cash &
+  Bank"/"Kas & Bank"). A manual balanced-journal register + form + reverse, and seven guided flows
+  (capital contribution, owner drawing, cash/bank transfer, receive/spend money, loan receipt/
+  repayment) that assemble journals via the posting-rule engine. All routed through the Approval
+  Workflow (auto-post when no rule matches, else held `PendingApproval` and posted by a new Accounting
+  approval consumer; submitter can't self-approve). `JournalEntry` gains `PendingApproval`/`Rejected`
+  statuses + nullable `EntryNo`; read-store balance queries now include only `{Posted, Reversed}`. The
+  default CoA gains equity (owner + PT) and loan accounts, seeded idempotently so existing companies
+  backfill. Accounting unit tests 53 passing; frontend vue-tsc clean.
+- **Build (pre-existing):** backend `net8.0` (388 tests before this change).
   Latest: **back-dating a transfer document (CHG-0130, ADR-0038 Phase 2b — Phase 2 complete)** — directly
   back-dating a warehouse transfer now inserts both legs and recomputes across buckets in one atomic pass
   (new `IInventoryLedger.TransferBackDatedAsync`; the two cross-bucket recompute methods were refactored

@@ -24,6 +24,14 @@ public static class PostingRuleKeys
     public const string SupplierAdvance = "SupplierAdvance";
     public const string RetainedEarnings = "RetainedEarnings";
 
+    // Equity & financing (ADR-0040) — resolved by the guided Cash & Bank flows. Not in Required:
+    // a company that never records capital/loans does not need them, and they backfill idempotently.
+    public const string OwnerCapital = "OwnerCapital";
+    public const string OwnerDrawings = "OwnerDrawings";
+    public const string ShareCapital = "ShareCapital";
+    public const string LoanPayable = "LoanPayable";
+    public const string OpeningBalanceEquity = "OpeningBalanceEquity";
+
     /// <summary>Keys that must resolve to a control account, with the required control type.</summary>
     public static readonly IReadOnlyDictionary<string, ControlType> ControlKeys =
         new Dictionary<string, ControlType>

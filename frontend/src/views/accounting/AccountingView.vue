@@ -3,9 +3,11 @@ import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useCompanyStore } from '@/stores/company'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 const company = useCompanyStore()
+const auth = useAuthStore()
 
 onMounted(() => company.ensure())
 
@@ -16,6 +18,9 @@ const tabs = computed(() => {
     { to: { name: 'accountingBalanceSheet' }, label: t('accounting.tabs.balanceSheet') },
     { to: { name: 'accountingCashFlow' }, label: t('accounting.tabs.cashFlow') },
     { to: { name: 'accountingGeneralLedger' }, label: t('accounting.tabs.generalLedger') },
+    { to: { name: 'accountingJournals' }, label: t('accounting.tabs.journals') },
+    // Guided Cash & Bank flows create journals — only for users who may post (ADR-0040).
+    ...(auth.has('Accounting.Post') ? [{ to: { name: 'accountingCashBank' }, label: t('accounting.tabs.cashBank') }] : []),
     // VAT report only matters for a VAT-registered (PKP) company.
     ...(company.vatRegistered ? [{ to: { name: 'accountingVat' }, label: t('accounting.tabs.vat') }] : []),
     { to: { name: 'accountingAccounts' }, label: t('accounting.tabs.accounts') },

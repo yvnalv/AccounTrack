@@ -54,7 +54,12 @@ public interface IAccountingUnitOfWork
 /// </summary>
 public interface IJournalPoster
 {
+    /// <summary>Posts a fresh draft: validates, assigns the entry number, and adds it to the unit of work.</summary>
     Task<Result<Guid>> PostAsync(JournalEntry draft, CancellationToken ct);
+
+    /// <summary>Posts a journal that is already persisted (was awaiting approval): validates and assigns
+    /// the entry number, without adding it again. Used by the approval consumer (ADR-0040).</summary>
+    Task<Result<Guid>> PostHeldAsync(JournalEntry entry, CancellationToken ct);
 }
 
 public sealed record TrialBalanceRow(
@@ -69,9 +74,18 @@ public sealed record GeneralLedgerLineRow(
     DateOnly Date, string EntryNo, string Source, Guid? SourceDocumentId, string? Description,
     decimal Debit, decimal Credit);
 
+/// <summary>A journal-register row (the general-journal list — ADR-0040). EntryNo is null while a
+/// manual journal is awaiting approval; Amount is the entry's total debit (= total credit).</summary>
+public sealed record JournalRegisterRow(
+    Guid Id, string? EntryNo, DateOnly Date, string Source, string Status, string Description, decimal Amount);
+
 public interface IAccountingReadStore
 {
     Task<IReadOnlyList<TrialBalanceRow>> GetTrialBalanceAsync(DateOnly? fromDate, DateOnly? toDate, CancellationToken ct);
+
+    /// <summary>The general-journal register (all non-draft entries) over an optional date range, newest first.</summary>
+    Task<IReadOnlyList<JournalRegisterRow>> GetJournalRegisterAsync(
+        DateOnly? fromDate, DateOnly? toDate, CancellationToken ct);
 
     /// <summary>Summed debit/credit per account over the period for the given accounts (posted lines only).</summary>
     Task<IReadOnlyList<AccountMovementRow>> GetAccountMovementsAsync(

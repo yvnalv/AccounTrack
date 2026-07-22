@@ -70,7 +70,7 @@ onMounted(async () => {
           <tr v-for="e in entries" v-else :key="e.transactionId" class="border-b border-border last:border-0">
             <td class="px-4 py-2.5 text-text-muted">{{ e.date }}</td>
             <td class="px-4 py-2.5 text-text">{{ typeLabel(e.type) }}</td>
-            <td class="px-4 py-2.5 text-text-muted">{{ e.source }}</td>
+            <td class="px-4 py-2.5 text-text-muted">{{ t(`inventory.sources.${e.source}`) }}</td>
             <td class="px-4 py-2.5 text-right tnum" :class="isInbound(e.type) ? 'text-positive' : 'text-negative'">
               {{ isInbound(e.type) ? '+' : '−' }}{{ formatNumber(e.quantity, 2) }}
             </td>

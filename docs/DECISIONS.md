@@ -880,6 +880,48 @@ multi-currency lists, price columns in product import.
 
 ---
 
+## ADR-0040: General Journal, Cash & Bank flows, and equity/loan chart of accounts
+
+- **Status:** Accepted — **Date:** 2026-07-22 · full text: [adr/0040-general-journal-cash-bank.md](adr/0040-general-journal-cash-bank.md)
+
+**Context.** Accountrack automates journals for Sales/Purchasing/Inventory/Expenses but had no way to
+record financial events that are none of those — paid-in **capital**, owner **drawings**, **bank/cash
+transfers**, **loans**, **opening balances**, and period-end accruals/depreciation. The manual-journal
+engine existed in the backend but was unsurfaced, had no register, and posted with no approval; the default
+chart of accounts seeded only `3900 Retained Earnings` in the equity range (no capital/drawings/share
+capital/loan accounts), and the seeder did not backfill existing companies.
+
+**Decision.** We will add a **General Journal** and guided **Cash & Bank** flows (Capital Contribution,
+Owner Drawing, Bank/Cash Transfer, Money Received/Spent, Loan Receipt/Repayment) as two i18n-named tabs
+under Accounting. Manual journals **route through the Approval Workflow from the start** (same pattern as
+Expense vouchers — ADR-0030; document type `ManualJournal`, auto-approve when no definition matches, held
+otherwise and posted by an Accounting approval consumer). `JournalEntry` gains `PendingApproval`/`Rejected`
+statuses; **all read-store balance queries change from `Status != Draft` to `Status ∈ {Posted, Reversed}`**
+so held/rejected journals never touch the GL. Guided flows are thin posting-rule-driven wrappers (accounts
+never hardcoded — Rule 27), each with its own `JournalSource`. The default CoA is extended with equity
+(3000/3100/3200/3300/3400/3950) and loan (2500/2600) accounts covering **both** sole-proprietor and PT, and
+the seeder is made **per-item idempotent** so the accounts + posting rules backfill onto existing companies.
+Loan/equity accounts classify into the cash-flow **Financing** section.
+
+**Options.** (1) Dedicated `ManualJournal` aggregate — cleanest but over-built for a transient state
+`JournalEntry` can hold. (2) **Reuse `JournalEntry` with an approval lifecycle** ← chosen — minimal surface,
+register/detail already exist; needs the explicit `∈ {Posted, Reversed}` read filter. (3) Surface immediate
+posting with no approval — rejected against SoD (Rule 32). (4) Equity model sole-prop/PT/both — chose
+**both** so no customer scenario is stuck.
+
+**Consequences.** Capital/drawings/transfers/loans/opening-balances/adjustments become first-class,
+approvable, audited; GL stays the single source of truth; existing companies backfilled. Trade-off: the
+read-store status filter change is correctness-critical (covered by trial-balance/reversal tests), and a
+single `ManualJournal` document type means per-flow approval thresholds are amount-based only for now.
+Follow-ups: per-flow document types, capital-in-kind, optional default "require approval for all manual
+journals" definition.
+
+**References.** [adr/0040-general-journal-cash-bank.md](adr/0040-general-journal-cash-bank.md);
+[ADR-0030](#) (Expenses/approval pattern); [ACCOUNTING_DESIGN.md](ACCOUNTING_DESIGN.md);
+[POSTING_RULES.md](POSTING_RULES.md); [WORKFLOW_APPROVAL.md](WORKFLOW_APPROVAL.md).
+
+---
+
 ## ADR-0039: Xendit as primary payment gateway for subscription billing (behind `IPaymentGateway`)
 
 - **Status:** Accepted — **Date:** 2026-07-11 · design: [SUBSCRIPTION_BILLING.md](SUBSCRIPTION_BILLING.md)

@@ -49,7 +49,20 @@ Coding standards for Accountrack. Extends `CLAUDE.md` (Coding Standards, Code Qu
 - State in **Pinia** stores per domain; routing via Vue Router; styling via **Tailwind**.
 - API access through a typed client layer (generated from OpenAPI where possible); no `fetch`
   scattered in components.
-- **i18n**: no hardcoded UI strings — all text via translation keys (EN default + ID).
+- **i18n (bilingual, mandatory)**: **every** user-facing word exists in **both** `en.ts` and `id.ts`
+  — menus, titles, tabs, labels, buttons, table headers, placeholders, tooltips, empty states,
+  toasts, validation/error messages, and status/enum labels. No hardcoded UI strings; all text via
+  `t('…')`. The two locale files must stay structurally identical (same keys, none missing on either
+  side — CI/`i18n-diff` guard). Exceptions only for proper nouns, codes, formats, and universal
+  loan-words/terms (PPN, Transfer, PDF, Email, Status, Total, Debit).
+  - **Backend enums** shown in the UI are translated via an i18n map keyed by the enum value (e.g.
+    `accounting.sources.*`, `inventory.sources.*`), never rendered raw.
+  - **Seeded reference data** shown in the UI (chart of accounts, expense categories) is localized by
+    a code→{en,id} map that overrides a name only while it is still the seeded default, so a user
+    rename is shown verbatim (`frontend/src/lib/coa.ts`, `expenseCategories.ts`). New standard/system
+    seed data must be added to the matching map.
+  - Localized text must react to a live locale switch (prefer `computed`/inline `t()` over values
+    captured once at load).
 - Money/dates formatted via shared utilities respecting locale; never format in templates ad hoc.
 - Components small and presentational where possible; business/data logic in composables/stores.
 

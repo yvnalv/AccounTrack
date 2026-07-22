@@ -29,19 +29,25 @@ public sealed class JournalPostingService : IJournalPoster
         _clock = clock;
     }
 
-    public async Task<Result<Guid>> PostAsync(JournalEntry draft, CancellationToken ct)
+    public async Task<Result<Guid>> PostAsync(JournalEntry draft, CancellationToken ct) =>
+        await PostCoreAsync(draft, add: true, ct);
+
+    public async Task<Result<Guid>> PostHeldAsync(JournalEntry entry, CancellationToken ct) =>
+        await PostCoreAsync(entry, add: false, ct);
+
+    private async Task<Result<Guid>> PostCoreAsync(JournalEntry entry, bool add, CancellationToken ct)
     {
-        if (draft.Lines.Count < 2)
+        if (entry.Lines.Count < 2)
         {
             return AccountingErrors.TooFewLines;
         }
 
-        if (!draft.IsBalanced)
+        if (!entry.IsBalanced)
         {
             return AccountingErrors.Unbalanced;
         }
 
-        var period = await _periods.GetPeriodForDateAsync(draft.Date, ct);
+        var period = await _periods.GetPeriodForDateAsync(entry.Date, ct);
         if (period is null)
         {
             return AccountingErrors.NoOpenPeriod;
@@ -52,7 +58,7 @@ public sealed class JournalPostingService : IJournalPoster
             return AccountingErrors.PeriodClosed;
         }
 
-        var accountIds = draft.Lines.Select(l => l.AccountId).Distinct().ToArray();
+        var accountIds = entry.Lines.Select(l => l.AccountId).Distinct().ToArray();
         var accounts = await _accounts.GetByIdsAsync(accountIds, ct);
         foreach (var id in accountIds)
         {
@@ -74,10 +80,15 @@ public sealed class JournalPostingService : IJournalPoster
             _journals.AddSequence(sequence);
         }
 
-        var entryNo = sequence.Take(draft.Date);
-        draft.Post(entryNo, period.Id, _clock.UtcNow);
-        _journals.Add(draft);
+        var entryNo = sequence.Take(entry.Date);
+        entry.Post(entryNo, period.Id, _clock.UtcNow);
 
-        return draft.Id;
+        // A held entry (awaiting approval) is already tracked — only a fresh draft is added.
+        if (add)
+        {
+            _journals.Add(entry);
+        }
+
+        return entry.Id;
     }
 }

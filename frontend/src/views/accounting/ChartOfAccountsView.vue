@@ -3,7 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Check, Minus, Pencil, Ban, RotateCcw } from 'lucide-vue-next'
 import { accountingApi } from '@/lib/accounting'
+import { localizedAccountName } from '@/lib/coa'
 import { isConflict } from '@/lib/api'
+import type { Locale } from '@/i18n'
 import type { AccountRef } from '@/types/accounting'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -15,7 +17,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { Column } from '@/components/ui/types'
 import { useAuthStore } from '@/stores/auth'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const auth = useAuthStore()
 const rows = ref<AccountRef[]>([])
 const loading = ref(true)
@@ -133,7 +135,7 @@ async function toggleActive(row: AccountRef) {
         <span class="tnum text-text-muted">{{ (row as unknown as AccountRef).code }}</span>
       </template>
       <template #cell-name="{ row }">
-        <span class="text-text">{{ (row as unknown as AccountRef).name }}</span>
+        <span class="text-text">{{ localizedAccountName(row as unknown as AccountRef, locale as unknown as Locale) }}</span>
         <span v-if="(row as unknown as AccountRef).isControlAccount" class="ml-2 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] uppercase text-text-muted">{{ t('accounting.coa.control') }}</span>
         <span v-if="(row as unknown as AccountRef).isSystem" class="ml-1 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] uppercase text-text-muted">{{ t('accounting.coa.system') }}</span>
       </template>

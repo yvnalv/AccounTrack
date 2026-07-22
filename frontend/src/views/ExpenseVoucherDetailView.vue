@@ -6,9 +6,12 @@ import { ArrowLeft, Pencil, Undo2 } from 'lucide-vue-next'
 import { apiErrorMessage } from '@/lib/api'
 import { expensesApi } from '@/lib/expenses'
 import { accountingApi } from '@/lib/accounting'
+import { localizedAccountName } from '@/lib/coa'
+import { localizedCategoryName } from '@/lib/expenseCategories'
 import { masterData, nameMap } from '@/lib/masterData'
 import { useAuthStore } from '@/stores/auth'
 import { formatMoney, formatPercent } from '@/lib/format'
+import type { Locale } from '@/i18n'
 import type { ExpenseCategory, ExpenseVoucher } from '@/types/expenses'
 import type { AccountRef } from '@/types/accounting'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -19,7 +22,8 @@ import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import DocumentTimeline from '@/components/DocumentTimeline.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const loc = computed(() => locale.value as Locale)
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -52,9 +56,9 @@ async function load() {
       accountingApi.accounts(),
     ])
     voucher.value = v
-    categories.value = new Map(cats.map((c: ExpenseCategory) => [c.id, `${c.code} — ${c.name}`]))
+    categories.value = new Map(cats.map((c: ExpenseCategory) => [c.id, `${c.code} — ${localizedCategoryName(c, loc.value)}`]))
     suppliers.value = nameMap(sups)
-    accounts.value = new Map(accs.map((a: AccountRef) => [a.id, `${a.code} — ${a.name}`]))
+    accounts.value = new Map(accs.map((a: AccountRef) => [a.id, `${a.code} — ${localizedAccountName(a, loc.value)}`]))
   } finally {
     loading.value = false
   }

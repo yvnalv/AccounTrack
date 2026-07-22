@@ -1,5 +1,92 @@
 # Accountrack Changelog
 
+## [2026-07-22 13:41:23 UTC]
+
+CHG-0144 — Full bilingual pass: localize the chart of accounts + seeded data; document the both-languages policy
+
+- **Chart-of-accounts names now follow the selected language.** Account names live in the database
+  (editable master data), so the **standard/seeded chart** is localized on the client via a
+  code→{en,id} map (`frontend/src/lib/coa.ts`) that translates a name **only while it is still the
+  seeded English default** — a user's own rename is always shown verbatim. Applied everywhere accounts
+  appear: Chart of Accounts, Trial Balance, General Ledger (filter + account header), Profit & Loss,
+  Balance Sheet, fiscal-period closing balances, and every account dropdown (New Journal, Cash & Bank
+  flows, customer/supplier payments, expense voucher).
+- **Seeded expense categories** localized the same way (`expenseCategories.ts`): the category filter,
+  the joined category column on the Expenses list, the voucher form and detail.
+- **Policy documented (as requested):** every user-facing word must exist in both English and Bahasa
+  Indonesia — menus, titles, tabs, labels, buttons, headers, placeholders, tooltips, empty states,
+  toasts, validation/error messages, and status/enum labels — with the only exceptions being proper
+  nouns, codes, formats, and universal loan-words/terms. Backend enums are translated via i18n maps;
+  seeded reference data via code→{en,id} maps. Written into **CLAUDE.md** (Internationalization) and
+  **docs/CODING_STANDARDS.md** (§4). The two locale files stay structurally identical (verified: 0
+  missing keys either way).
+- **Live locale-switch reactivity fixed.** The sidebar navigation and the dashboard operational KPI
+  tiles resolved their labels with `t(...)` **once** (a plain const / a value stored in a ref at load),
+  so switching language did not update them until a page refresh. Both now keep static i18n **keys** and
+  resolve labels inside a `computed`, so they re-translate instantly on a locale change. Swept for the
+  same pattern across the app — the chart options, tabs, table columns, and command palette were already
+  computed (reactive); remaining `t(...)`-in-refs are only transient toast/error messages.
+- **Audit:** swept every `.vue` template for hardcoded text nodes and literal attributes — none found;
+  all UI text already routes through `t(...)`. This closes the remaining gaps after CHG-0142 (which
+  fixed the raw enum columns). Frontend `vue-tsc` clean. Frontend-only — no API/schema change.
+
+---
+
+## [2026-07-22 10:27:35 UTC]
+
+CHG-0143 — General Journal + guided Cash & Bank flows + equity/loan chart of accounts (ADR-0040)
+
+- Adds the missing home for financial events that are not a sale, purchase, inventory move, or
+  expense: **paid-in capital, owner drawings, cash/bank transfers, loans, opening balances, and
+  period-end adjustments**. Two new tabs under Accounting (i18n-named — EN "Journals" / "Cash & Bank";
+  ID "Jurnal Umum" / "Kas & Bank").
+- **General Journal** (`GET /api/v1/journal-entries` register + `POST` create + reverse): a manual,
+  balanced double-entry form with a live in-balance check, a register list, a detail modal, and
+  reversal (posted journals stay immutable — corrections are reversal-only, BR-ACC-3).
+- **Guided Cash & Bank flows** (`/api/v1/cash-bank/*`): Capital contribution, Owner drawing,
+  Cash/bank transfer, Receive money, Spend money, Loan receipt, Loan repayment — opinionated wrappers
+  that assemble a balanced journal via the posting-rule engine (accounts never hardcoded, Rule 27),
+  each with its own `JournalSource` for a clear register/audit trail.
+- **Routed through the Approval Workflow from the start** (same pattern as Expense vouchers, ADR-0030):
+  a manual journal / flow submits to the approval engine — auto-approved and posted immediately when no
+  definition matches, otherwise held as **PendingApproval** and posted by a new Accounting approval
+  consumer once approved (rejection marks it **Rejected**; it never reaches the ledger). Segregation of
+  duties: the submitter cannot self-approve (BR-APR-2).
+- **Domain:** `JournalEntry` gains `PendingApproval`/`Rejected` statuses, an `ApprovalRequestId`, and a
+  **nullable `EntryNo`** (a held journal has no gapless number until posted). All read-store balance
+  queries changed from `Status != Draft` to **`Status ∈ {Posted, Reversed}`** so held/rejected journals
+  never affect the GL (Reversed stays included — its posted lines are offset by the reversal).
+- **Chart of accounts** extended to cover **both** sole-proprietor and PT structures — Owner's Capital
+  (3000), Additional Paid-in (3100), Owner's Drawings (3200), Share Capital (3300), Dividends Declared
+  (3400), Opening Balance Equity (3950), Bank Loan Payable (2500), Dividends Payable (2600) — with new
+  posting-rule keys (`OwnerCapital`, `OwnerDrawings`, `ShareCapital`, `LoanPayable`,
+  `OpeningBalanceEquity`). The chart + posting-rule seeders are now **per-item idempotent**, so these
+  backfill onto existing companies at startup (BR-CMP-1) without disturbing customizations.
+- **i18n:** fixed the remaining untranslated dynamic enums by adding the 7 new `JournalSource` labels
+  and a journal-status block in both locales, and labelled the new `ManualJournal` approval document type.
+- EF migration `ManualJournalApproval` (nullable `EntryNo` + `ApprovalRequestId`). Backend build clean,
+  **frontend `vue-tsc` clean**; accounting unit tests **53 passing** (+5 for the new journal lifecycle).
+
+---
+
+## [2026-07-22 04:02:33 UTC]
+
+CHG-0142 — Fix: untranslated accounting/inventory enum values in the Indonesian UI
+
+- The static i18n dictionaries were already complete (a key-by-key diff of `en.ts` vs `id.ts`
+  showed 0 missing keys). The untranslated text users saw in Bahasa Indonesia came from **backend
+  enum values rendered raw** in tables, never routed through i18n:
+  - **General Ledger** — the account type (`Asset`/`Liability`/…) and the journal **source**
+    (`SalesInvoice`/`GoodsReceipt`/`StockAdjustment`/…) columns.
+  - **Trial Balance** — the account type column.
+  - **Stock Card** and **Product history** — the movement **source** (`Purchasing`/`Sales`/…).
+- Added two new translation blocks in both locales: `accounting.sources.*` (11 `JournalSource`
+  values) and `inventory.sources.*` (6 `MovementSource` values), and routed the five call sites
+  through `t(...)`. Account types reuse the existing `accounting.coa.types.*` block.
+- Frontend only; no API, schema, or posting change. `vue-tsc --noEmit` clean.
+
+---
+
 ## [2026-07-21 16:15:43 UTC]
 
 CHG-0141 — Docs: dedicated PostgreSQL access guide (psql + pgAdmin over SSH tunnel)

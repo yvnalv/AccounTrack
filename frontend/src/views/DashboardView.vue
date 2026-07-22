@@ -39,11 +39,19 @@ const canSeePurchasing = computed(() => auth.has('Purchasing.View'))
 const canSeeInventory = computed(() => auth.has('Inventory.View'))
 const hasOperational = computed(() => canSeeSales.value || canSeePurchasing.value || canSeeInventory.value)
 
-interface Kpi { label: string; value: string; hint?: string; tone?: 'positive' | 'negative' }
-const salesKpis = ref<Kpi[] | null>(null)
-const purchasingKpis = ref<Kpi[] | null>(null)
-const inventoryKpis = ref<Kpi[] | null>(null)
+// Stored with a label KEY (not resolved text) so the tiles re-translate on a locale switch — values are
+// captured at load, labels resolved reactively in the computeds below.
+interface KpiData { labelKey: string; value: string; hint?: string; tone?: 'positive' | 'negative' }
+const salesKpisRaw = ref<KpiData[] | null>(null)
+const purchasingKpisRaw = ref<KpiData[] | null>(null)
+const inventoryKpisRaw = ref<KpiData[] | null>(null)
 const opsCurrency = ref('IDR')
+
+const toKpis = (raw: KpiData[] | null) =>
+  raw?.map((k) => ({ label: t(k.labelKey), value: k.value, hint: k.hint, tone: k.tone })) ?? null
+const salesKpis = computed(() => toKpis(salesKpisRaw.value))
+const purchasingKpis = computed(() => toKpis(purchasingKpisRaw.value))
+const inventoryKpis = computed(() => toKpis(inventoryKpisRaw.value))
 
 interface QuickLink { to: { name: string }; label: string; icon: Component; permission?: string }
 const quickLinks = computed<QuickLink[]>(() =>
@@ -71,14 +79,14 @@ async function loadSalesSection() {
     const open = new Set(['Draft', 'PendingApproval', 'Approved', 'PartiallyDelivered'])
     const toDeliver = new Set(['Approved', 'PartiallyDelivered'])
     const monthly = orders.filter((o) => inThisMonth(o.orderDate))
-    salesKpis.value = [
-      { label: t('dashboard.ops.openOrders'), value: String(orders.filter((o) => open.has(o.status)).length) },
-      { label: t('dashboard.ops.ordersThisMonth'), value: String(monthly.length) },
-      { label: t('dashboard.ops.salesThisMonth'), value: formatMoneyShort(monthly.reduce((s, o) => s + o.grandTotal, 0), opsCurrency.value) },
-      { label: t('dashboard.ops.toDeliver'), value: String(orders.filter((o) => toDeliver.has(o.status)).length), tone: 'negative' },
+    salesKpisRaw.value = [
+      { labelKey: 'dashboard.ops.openOrders', value: String(orders.filter((o) => open.has(o.status)).length) },
+      { labelKey: 'dashboard.ops.ordersThisMonth', value: String(monthly.length) },
+      { labelKey: 'dashboard.ops.salesThisMonth', value: formatMoneyShort(monthly.reduce((s, o) => s + o.grandTotal, 0), opsCurrency.value) },
+      { labelKey: 'dashboard.ops.toDeliver', value: String(orders.filter((o) => toDeliver.has(o.status)).length), tone: 'negative' },
     ]
   } catch {
-    salesKpis.value = []
+    salesKpisRaw.value = []
   }
 }
 
@@ -88,14 +96,14 @@ async function loadPurchasingSection() {
     const open = new Set(['Draft', 'PendingApproval', 'Approved', 'PartiallyReceived'])
     const toReceive = new Set(['Approved', 'PartiallyReceived'])
     const monthly = orders.filter((o) => inThisMonth(o.orderDate))
-    purchasingKpis.value = [
-      { label: t('dashboard.ops.openPos'), value: String(orders.filter((o) => open.has(o.status)).length) },
-      { label: t('dashboard.ops.posThisMonth'), value: String(monthly.length) },
-      { label: t('dashboard.ops.purchasesThisMonth'), value: formatMoneyShort(monthly.reduce((s, o) => s + o.grandTotal, 0), opsCurrency.value) },
-      { label: t('dashboard.ops.toReceive'), value: String(orders.filter((o) => toReceive.has(o.status)).length), tone: 'negative' },
+    purchasingKpisRaw.value = [
+      { labelKey: 'dashboard.ops.openPos', value: String(orders.filter((o) => open.has(o.status)).length) },
+      { labelKey: 'dashboard.ops.posThisMonth', value: String(monthly.length) },
+      { labelKey: 'dashboard.ops.purchasesThisMonth', value: formatMoneyShort(monthly.reduce((s, o) => s + o.grandTotal, 0), opsCurrency.value) },
+      { labelKey: 'dashboard.ops.toReceive', value: String(orders.filter((o) => toReceive.has(o.status)).length), tone: 'negative' },
     ]
   } catch {
-    purchasingKpis.value = []
+    purchasingKpisRaw.value = []
   }
 }
 
@@ -104,13 +112,13 @@ async function loadInventorySection() {
     const [valuation, onHand] = await Promise.all([inventoryApi.valuation(), inventoryApi.onHand()])
     opsCurrency.value = valuation.currency || opsCurrency.value
     const outOfStock = onHand.filter((r) => r.onHandQty <= 0).length
-    inventoryKpis.value = [
-      { label: t('dashboard.ops.stockValue'), value: formatMoneyShort(valuation.totalValue, valuation.currency) },
-      { label: t('dashboard.ops.skus'), value: String(valuation.rows.length) },
-      { label: t('dashboard.ops.outOfStock'), value: String(outOfStock), tone: outOfStock > 0 ? 'negative' : undefined },
+    inventoryKpisRaw.value = [
+      { labelKey: 'dashboard.ops.stockValue', value: formatMoneyShort(valuation.totalValue, valuation.currency) },
+      { labelKey: 'dashboard.ops.skus', value: String(valuation.rows.length) },
+      { labelKey: 'dashboard.ops.outOfStock', value: String(outOfStock), tone: outOfStock > 0 ? 'negative' : undefined },
     ]
   } catch {
-    inventoryKpis.value = []
+    inventoryKpisRaw.value = []
   }
 }
 

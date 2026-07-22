@@ -5,8 +5,10 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Tags } from 'lucide-vue-next'
 import { apiErrorMessage } from '@/lib/api'
 import { expensesApi } from '@/lib/expenses'
+import { localizedCategoryName } from '@/lib/expenseCategories'
 import { exportTable } from '@/lib/exportTable'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
+import type { Locale } from '@/i18n'
 import type { ExpenseCategory, ExpenseVoucherSummary } from '@/types/expenses'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -19,7 +21,8 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import type { Column } from '@/components/ui/types'
 import { useAuthStore } from '@/stores/auth'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const loc = computed(() => locale.value as Locale)
 const router = useRouter()
 const auth = useAuthStore()
 
@@ -31,8 +34,19 @@ const statusFilter = ref('')
 const categoryFilter = ref('')
 const statuses = ['Draft', 'PendingApproval', 'Posted', 'Rejected', 'Reversed', 'Cancelled']
 const categoryOptions = computed(() =>
-  categories.value.filter((c) => c.isActive).map((c) => ({ id: c.id, name: c.name })),
+  categories.value.filter((c) => c.isActive).map((c) => ({ id: c.id, name: localizedCategoryName(c, loc.value) })),
 )
+// id → localized name, so the joined category column follows the active language too.
+const catNameById = computed(() => {
+  const m: Record<string, string> = {}
+  for (const c of categories.value) m[c.id] = localizedCategoryName(c, loc.value)
+  return m
+})
+function localizedCategoryNames(row: Record<string, unknown>): string {
+  const ids = (row as unknown as ExpenseVoucherSummary).categoryIds ?? []
+  const names = ids.map((id) => catNameById.value[id]).filter(Boolean)
+  return names.length ? names.join(', ') : '—'
+}
 
 const rows = computed(() =>
   vouchers.value
@@ -156,7 +170,7 @@ async function toggleCat(c: ExpenseCategory) {
           <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </template>
-      <template #cell-categoryNames="{ value }">{{ value || '—' }}</template>
+      <template #cell-categoryNames="{ row }">{{ localizedCategoryNames(row) }}</template>
       <template #cell-payeeName="{ value }">{{ value || '—' }}</template>
       <template #cell-grandTotal="{ value }">{{ formatMoney(Number(value)) }}</template>
       <template #cell-status="{ value, row }">

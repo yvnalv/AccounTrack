@@ -29,7 +29,11 @@ Ledger is the single source of truth (ADR-0008). Account determination is in
 A **default CoA template** (Indonesian SMB-friendly) is seeded per company and editable. System
 accounts required by posting rules (AR control, AP control, Inventory, GR/IR, VAT Output, VAT
 Input, COGS, Sales Revenue, Cash/Bank, Rounding, Inventory Variance, Retained Earnings) are
-seeded and flagged `IsSystem`.
+seeded and flagged `IsSystem`. The template also seeds **equity and financing** accounts covering
+both sole-proprietor and PT structures — Owner's Capital, Additional Paid-in Capital, Owner's
+Drawings, Share Capital, Dividends Declared, Opening Balance Equity, Bank Loan Payable, Dividends
+Payable (ADR-0040). The chart and posting-rule seeders are **per-item idempotent**, so new default
+accounts backfill onto companies provisioned before they existed.
 
 Posting is to **postable (leaf) accounts**; parent/rollup accounts are not posted to directly.
 
@@ -37,14 +41,17 @@ Posting is to **postable (leaf) accounts**; parent/rollup accounts are not poste
 
 ```
 JournalEntry
-├── EntryNo            (unique per company, gapless sequence)
+├── EntryNo            (unique per company, gapless sequence; NULL until posted — a manual journal
+│                       awaiting approval has no number yet, ADR-0040)
 ├── Date               (must fall in an Open period)
 ├── PeriodId
 ├── Source             (SalesInvoice | PurchaseInvoice | Payment | Shipment | GoodsReceipt |
-│                       StockAdjustment | Manual | …)
+│                       StockAdjustment | Manual | CapitalContribution | OwnerDrawing | BankTransfer |
+│                       MoneyReceipt | MoneyPayment | LoanReceipt | LoanRepayment | …)
 ├── SourceDocumentId   (drill-down link)
 ├── Description
-├── Status             (Draft | Posted | Reversed)
+├── Status             (Draft | PendingApproval | Posted | Reversed | Rejected)
+├── ApprovalRequestId? (set while a manual journal is routed through approval — ADR-0040)
 ├── ReversesEntryId?   / ReversedByEntryId?
 └── Lines[]            (≥ 2)
        ├── AccountId   (postable)
@@ -164,4 +171,41 @@ All reports are **company-scoped** and permission-gated; consolidated multi-comp
 ## 12. Test Coverage (high priority — TESTING.md)
 Balanced-journal invariant; each posting rule produces the expected lines; reversal restores
 balances; period-close snapshot equals recomputed GL; AR/AP allocation and aging; VAT totals;
-idempotent re-posting; rounding edge cases.
+idempotent re-posting; rounding edge cases; the journal approval lifecycle (submit → approve/reject)
+and that held/rejected journals stay out of the GL.
+
+## 13. Manual Journals & Cash & Bank flows — ADR-0040
+
+For financial events that are **not** a sale, purchase, inventory move, or expense — capital, owner
+drawings, cash/bank transfers, loans, opening balances, accruals/depreciation:
+
+- **General Journal.** A manual, balanced double-entry (`Source = Manual`), created via the general
+  journal form and exposed in a **register** (`GET /journal-entries`). Corrections are reversal-only.
+- **Guided Cash & Bank flows.** Opinionated wrappers (Capital contribution, Owner drawing, Bank/cash
+  transfer, Receive money, Spend money, Loan receipt, Loan repayment) that assemble a balanced journal
+  through the **posting-rule engine** (accounts never hardcoded) so a non-accountant never sees debits
+  and credits. Each carries its own `Source` for a clear register/audit trail.
+- **Approval lifecycle.** Every manual journal / flow is **submitted to the Approval Workflow** exactly
+  like an Expense voucher (ADR-0030). No matching definition → auto-approved and posted now; a matching
+  definition → held as `PendingApproval` (persisted, but **excluded from the GL**) and posted by the
+  Accounting approval consumer on approval, or marked `Rejected` on rejection. The submitter cannot
+  self-approve (segregation of duties, BR-APR-2). Admins enforce approval by configuring a threshold
+  definition for the `ManualJournal` document type.
+- **GL isolation.** A held journal has no gapless `EntryNo` (assigned only at posting), and every
+  balance/report query includes only `Status ∈ {Posted, Reversed}` — so `PendingApproval` and
+  `Rejected` entries never affect the trial balance, GL, or financial statements. `Reversed` stays
+  included because its posted lines are offset by the reversal.
+
+### Standard postings (guided flows)
+
+| Flow | Debit | Credit |
+|---|---|---|
+| Capital contribution | Cash/Bank | Owner's Capital / Share Capital |
+| Owner drawing | Owner's Drawings | Cash/Bank |
+| Cash/bank transfer | Destination Cash/Bank | Source Cash/Bank |
+| Receive money | Cash/Bank | chosen income/source |
+| Spend money | chosen expense/asset | Cash/Bank |
+| Loan receipt | Cash/Bank | Loan Payable |
+| Loan repayment | Loan Payable (+ Interest Expense) | Cash/Bank |
+
+Equity and loan movements classify into the **Financing** section of the cash-flow statement.

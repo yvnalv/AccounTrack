@@ -144,7 +144,7 @@ public sealed class AccountingReadStore : IAccountingReadStore
             from line in _db.JournalLines
             join entry in _db.JournalEntries on line.JournalEntryId equals entry.Id
             join account in _db.Accounts on line.AccountId equals account.Id
-            where entry.Status != JournalStatus.Draft
+            where (entry.Status == JournalStatus.Posted || entry.Status == JournalStatus.Reversed)
                 && (fromDate == null || entry.Date >= fromDate)
                 && (toDate == null || entry.Date <= toDate)
             group new { line, account } by new { account.Code, account.Name, account.Type } into g
@@ -160,6 +160,23 @@ public sealed class AccountingReadStore : IAccountingReadStore
         return await query.ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<JournalRegisterRow>> GetJournalRegisterAsync(
+        DateOnly? fromDate, DateOnly? toDate, CancellationToken ct)
+    {
+        // All non-draft journals (posted, reversed, pending-approval, rejected — ADR-0040), newest first.
+        var query =
+            from entry in _db.JournalEntries
+            where entry.Status != JournalStatus.Draft
+                && (fromDate == null || entry.Date >= fromDate)
+                && (toDate == null || entry.Date <= toDate)
+            orderby entry.Date descending, entry.EntryNo descending
+            select new JournalRegisterRow(
+                entry.Id, entry.EntryNo, entry.Date, entry.Source.ToString(), entry.Status.ToString(),
+                entry.Description, entry.Lines.Sum(l => l.Debit.Amount));
+
+        return await query.ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<AccountMovementRow>> GetAccountMovementsAsync(
         IReadOnlyCollection<Guid> accountIds, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct)
     {
@@ -167,7 +184,7 @@ public sealed class AccountingReadStore : IAccountingReadStore
             from line in _db.JournalLines
             join entry in _db.JournalEntries on line.JournalEntryId equals entry.Id
             where accountIds.Contains(line.AccountId)
-                && entry.Status != JournalStatus.Draft
+                && (entry.Status == JournalStatus.Posted || entry.Status == JournalStatus.Reversed)
                 && (fromDate == null || entry.Date >= fromDate)
                 && (toDate == null || entry.Date <= toDate)
             group line by line.AccountId into g
@@ -186,14 +203,14 @@ public sealed class AccountingReadStore : IAccountingReadStore
             from line in _db.JournalLines
             join entry in _db.JournalEntries on line.JournalEntryId equals entry.Id
             join account in _db.Accounts on line.AccountId equals account.Id
-            where entry.Status != JournalStatus.Draft
+            where (entry.Status == JournalStatus.Posted || entry.Status == JournalStatus.Reversed)
                 && (accountId == null || line.AccountId == accountId)
                 && (fromDate == null || entry.Date >= fromDate)
                 && (toDate == null || entry.Date <= toDate)
             orderby account.Code, entry.Date, entry.EntryNo
             select new GeneralLedgerLineRow(
                 account.Id, account.Code, account.Name, account.Type.ToString(),
-                entry.Date, entry.EntryNo, entry.Source.ToString(), entry.SourceDocumentId, line.Description,
+                entry.Date, entry.EntryNo ?? "", entry.Source.ToString(), entry.SourceDocumentId, line.Description,
                 line.Debit.Amount, line.Credit.Amount);
 
         return await query.ToListAsync(ct);
