@@ -511,6 +511,15 @@ export default {
       ProductionConsume: 'Pemakaian produksi',
       ProductionReceive: 'Hasil produksi',
     },
+    // Asal pergerakan (enum MovementSource) — tampil di kartu stok & riwayat produk.
+    sources: {
+      Manual: 'Manual',
+      Purchasing: 'Pembelian',
+      Sales: 'Penjualan',
+      Adjustment: 'Penyesuaian',
+      Transfer: 'Transfer',
+      Production: 'Produksi',
+    },
   },
   accounting: {
     title: 'Akuntansi',
@@ -524,6 +533,20 @@ export default {
       vat: 'PPN',
       periods: 'Periode',
       accounts: 'Akun',
+    },
+    // Sumber jurnal (enum JournalSource) — tampil di Buku Besar & daftar jurnal.
+    sources: {
+      Manual: 'Manual',
+      SalesInvoice: 'Faktur penjualan',
+      PurchaseInvoice: 'Faktur pembelian',
+      Payment: 'Pembayaran',
+      Shipment: 'Pengiriman',
+      GoodsReceipt: 'Penerimaan barang',
+      StockAdjustment: 'Penyesuaian stok',
+      PeriodClose: 'Tutup periode',
+      SalesReturn: 'Retur penjualan',
+      PurchaseReturn: 'Retur pembelian',
+      Expense: 'Beban',
     },
     coa: {
       title: 'Bagan akun',

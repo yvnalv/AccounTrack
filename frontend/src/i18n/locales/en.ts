@@ -510,6 +510,15 @@ export default {
       ProductionConsume: 'Production use',
       ProductionReceive: 'Production receipt',
     },
+    // Movement origin (MovementSource enum) — shown in the stock card & product history.
+    sources: {
+      Manual: 'Manual',
+      Purchasing: 'Purchasing',
+      Sales: 'Sales',
+      Adjustment: 'Adjustment',
+      Transfer: 'Transfer',
+      Production: 'Production',
+    },
   },
   accounting: {
     title: 'Accounting',
@@ -523,6 +532,20 @@ export default {
       vat: 'VAT (PPN)',
       periods: 'Periods',
       accounts: 'Accounts',
+    },
+    // Journal source (JournalSource enum) — shown in the General Ledger & journal register.
+    sources: {
+      Manual: 'Manual',
+      SalesInvoice: 'Sales invoice',
+      PurchaseInvoice: 'Purchase invoice',
+      Payment: 'Payment',
+      Shipment: 'Shipment',
+      GoodsReceipt: 'Goods receipt',
+      StockAdjustment: 'Stock adjustment',
+      PeriodClose: 'Period close',
+      SalesReturn: 'Sales return',
+      PurchaseReturn: 'Purchase return',
+      Expense: 'Expense',
     },
     coa: {
       title: 'Chart of accounts',

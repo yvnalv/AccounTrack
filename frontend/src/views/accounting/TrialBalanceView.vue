@@ -92,7 +92,7 @@ function pdf() {
           >
             <td class="px-4 py-2.5 text-text-muted tnum">{{ r.accountCode }}</td>
             <td class="px-4 py-2.5 text-text">{{ r.accountName }}</td>
-            <td class="px-4 py-2.5 text-text-muted">{{ r.accountType }}</td>
+            <td class="px-4 py-2.5 text-text-muted">{{ t(`accounting.coa.types.${r.accountType}`) }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ r.debit ? formatMoney(r.debit) : '' }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ r.credit ? formatMoney(r.credit) : '' }}</td>
           </tr>

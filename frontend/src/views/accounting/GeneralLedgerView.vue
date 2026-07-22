@@ -109,7 +109,7 @@ function pdf() {
     <AppCard v-for="acc in report?.accounts ?? []" v-else :key="acc.accountId" :padded="false">
       <div class="flex items-center justify-between border-b border-border px-4 py-2.5">
         <h3 class="text-sm font-semibold text-text">{{ acc.accountCode }} · {{ acc.accountName }}</h3>
-        <span class="text-xs text-text-muted">{{ acc.accountType }}</span>
+        <span class="text-xs text-text-muted">{{ t(`accounting.coa.types.${acc.accountType}`) }}</span>
       </div>
       <table class="w-full text-sm">
         <thead>
@@ -129,7 +129,7 @@ function pdf() {
           </tr>
           <tr v-for="(e, i) in acc.entries" :key="i" class="border-b border-border">
             <td class="px-4 py-2 text-text-muted tnum">{{ e.date }}</td>
-            <td class="px-3 py-2 text-text-muted">{{ e.entryNo }} · {{ e.source }}</td>
+            <td class="px-3 py-2 text-text-muted">{{ e.entryNo }} · {{ t(`accounting.sources.${e.source}`) }}</td>
             <td class="px-3 py-2 text-text">{{ e.description ?? '—' }}</td>
             <td class="px-3 py-2 text-right text-text tnum">{{ e.debit ? formatMoney(e.debit) : '' }}</td>
             <td class="px-3 py-2 text-right text-text tnum">{{ e.credit ? formatMoney(e.credit) : '' }}</td>

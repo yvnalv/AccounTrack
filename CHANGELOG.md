@@ -1,5 +1,23 @@
 # Accountrack Changelog
 
+## [2026-07-22 04:02:33 UTC]
+
+CHG-0142 — Fix: untranslated accounting/inventory enum values in the Indonesian UI
+
+- The static i18n dictionaries were already complete (a key-by-key diff of `en.ts` vs `id.ts`
+  showed 0 missing keys). The untranslated text users saw in Bahasa Indonesia came from **backend
+  enum values rendered raw** in tables, never routed through i18n:
+  - **General Ledger** — the account type (`Asset`/`Liability`/…) and the journal **source**
+    (`SalesInvoice`/`GoodsReceipt`/`StockAdjustment`/…) columns.
+  - **Trial Balance** — the account type column.
+  - **Stock Card** and **Product history** — the movement **source** (`Purchasing`/`Sales`/…).
+- Added two new translation blocks in both locales: `accounting.sources.*` (11 `JournalSource`
+  values) and `inventory.sources.*` (6 `MovementSource` values), and routed the five call sites
+  through `t(...)`. Account types reuse the existing `accounting.coa.types.*` block.
+- Frontend only; no API, schema, or posting change. `vue-tsc --noEmit` clean.
+
+---
+
 ## [2026-07-21 16:15:43 UTC]
 
 CHG-0141 — Docs: dedicated PostgreSQL access guide (psql + pgAdmin over SSH tunnel)

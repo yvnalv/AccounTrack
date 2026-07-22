@@ -130,7 +130,7 @@ onMounted(load)
               <tr v-for="m in movements" :key="m.transactionId" class="border-b border-border last:border-0">
                 <td class="px-4 py-2.5 text-text-muted">{{ m.date }}</td>
                 <td class="px-3 py-2.5 text-text">{{ t(`inventory.types.${m.type}`) }}</td>
-                <td class="px-3 py-2.5 text-text-muted">{{ m.source }}</td>
+                <td class="px-3 py-2.5 text-text-muted">{{ t(`inventory.sources.${m.source}`) }}</td>
                 <td class="px-3 py-2.5 text-right tnum" :class="signedQty(m) < 0 ? 'text-negative' : 'text-positive'">
                   {{ signedQty(m) > 0 ? '+' : '' }}{{ formatNumber(signedQty(m)) }}
                 </td>
