@@ -235,10 +235,11 @@ async function save(mode: 'draft' | 'post') {
           <tbody>
             <tr v-for="(line, i) in lines" :key="i" class="border-b border-border last:border-0">
               <td class="px-4 py-2">
-                <select v-model="line.expenseCategoryId" class="field-input">
-                  <option value="" disabled>{{ t('expenses.fields.selectCategory') }}</option>
-                  <option v-for="o in categoryOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-                </select>
+                <AppSelect
+                  v-model="line.expenseCategoryId"
+                  :options="categoryOptions"
+                  :placeholder="t('expenses.fields.selectCategory')"
+                />
               </td>
               <td class="px-3 py-2"><AppInput v-model="line.description" :placeholder="t('expenses.fields.description')" /></td>
               <td class="px-3 py-2">
