@@ -1,5 +1,29 @@
 # Accountrack Changelog
 
+## [2026-07-22 17:12:35 UTC]
+
+CHG-0145 — Web: searchable dropdowns (type-to-filter combobox)
+
+- Upgraded the shared **`AppSelect`** from a native `<select>` wrapper into a hand-built **searchable
+  combobox** — click and type to filter long lists (products, customers, suppliers, accounts) instead
+  of scrolling. Same `v-model` + `options` props, so it is a **drop-in**: all 16 existing `AppSelect`
+  usages became searchable with no per-form change.
+  - Type-to-filter (client-side, case-insensitive), full **keyboard** control (↑/↓ move, Enter select,
+    Esc/Tab close), a **clearable ✕**, a **"no matches"** empty state, and **bold-highlighted** matched
+    text with a ✓ on the current choice. Styled to the app's field + command-palette idiom (no library
+    dependency); dark-mode and ARIA combobox/listbox roles included. Preserves `:disabled`.
+  - The popup is **teleported to `<body>`** and fixed-positioned from the field's rect, so it is never
+    clipped by a scrolling line-item table or a modal body (the earlier absolute popup was cut off at
+    the table edge). It flips upward when short on space below, tracks the field on scroll/resize, and
+    sits above modals.
+- Migrated the six **data-entry** selects that were still native `<select>` to `AppSelect`: **Sales
+  Order** and **Purchase Order** product line items (price auto-fill re-wired via
+  `@update:model-value`), **Expense Voucher** category line item, and **Inventory** receive
+  (product/warehouse) + transfer (destination) forms.
+- Left the compact list-toolbar filters (`All statuses` / `All customers`, etc.) as native selects for
+  now; converting the long ones is a follow-up (would add a compact size variant).
+- Frontend builds clean (vue-tsc + vite). No backend change.
+
 ## [2026-07-22 13:41:23 UTC]
 
 CHG-0144 — Full bilingual pass: localize the chart of accounts + seeded data; document the both-languages policy

@@ -15,8 +15,9 @@ import InsightCards, { type Insight } from '@/components/ui/InsightCards.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
-import type { Column } from '@/components/ui/types'
+import type { Column, SelectOption } from '@/components/ui/types'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
@@ -210,6 +211,17 @@ async function submit() {
 const productOptions = computed(() =>
   [...products.value.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
 )
+
+// Searchable-select option arrays ({value,label}) for the entry forms below.
+const productSelectOptions = computed<SelectOption[]>(() =>
+  productOptions.value.map((p) => ({ value: p.id, label: p.name })),
+)
+const warehouseSelectOptions = computed<SelectOption[]>(() =>
+  warehouseOptions.value.map((w) => ({ value: w.id, label: w.name })),
+)
+const transferDestinationOptions = computed<SelectOption[]>(() =>
+  transferDestinations.value.map((w) => ({ value: w.id, label: w.name })),
+)
 const receiveOpen = ref(false)
 const receiveSaving = ref(false)
 const receiveError = ref('')
@@ -363,10 +375,11 @@ async function submitReceive() {
             <p class="mt-1 text-xs text-text-muted">{{ t('inventory.transfer.available', { qty: formatNumber(Number(target.onHandQty), 2) }) }}</p>
           </FormField>
           <FormField :label="t('inventory.transfer.to')">
-            <select v-model="form.toWarehouseId" class="field-input">
-              <option value="" disabled>{{ t('inventory.transfer.selectWarehouse') }}</option>
-              <option v-for="w in transferDestinations" :key="w.id" :value="w.id">{{ w.name }}</option>
-            </select>
+            <AppSelect
+              v-model="form.toWarehouseId"
+              :options="transferDestinationOptions"
+              :placeholder="t('inventory.transfer.selectWarehouse')"
+            />
           </FormField>
           <FormField :label="t('inventory.transfer.quantity')"><input v-model.number="form.quantity" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
           <FormField :label="t('inventory.transfer.date')">
@@ -392,16 +405,18 @@ async function submitReceive() {
       <div class="space-y-3">
         <p class="text-sm text-text-muted">{{ t('inventory.receive.subtitle') }}</p>
         <FormField :label="t('inventory.receive.product')">
-          <select v-model="receiveForm.productId" class="field-input">
-            <option value="" disabled>{{ t('inventory.receive.selectProduct') }}</option>
-            <option v-for="p in productOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
-          </select>
+          <AppSelect
+            v-model="receiveForm.productId"
+            :options="productSelectOptions"
+            :placeholder="t('inventory.receive.selectProduct')"
+          />
         </FormField>
         <FormField :label="t('inventory.receive.warehouse')">
-          <select v-model="receiveForm.warehouseId" class="field-input">
-            <option value="" disabled>{{ t('inventory.receive.selectWarehouse') }}</option>
-            <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
-          </select>
+          <AppSelect
+            v-model="receiveForm.warehouseId"
+            :options="warehouseSelectOptions"
+            :placeholder="t('inventory.receive.selectWarehouse')"
+          />
         </FormField>
         <FormField :label="t('inventory.receive.quantity')"><input v-model.number="receiveForm.quantity" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>
         <FormField :label="t('inventory.receive.unitCost')"><input v-model.number="receiveForm.unitCost" type="number" min="0" step="any" class="field-input text-right tnum" /></FormField>

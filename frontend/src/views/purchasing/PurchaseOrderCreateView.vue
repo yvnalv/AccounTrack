@@ -179,10 +179,12 @@ async function submit() {
           <tbody>
             <tr v-for="(line, i) in lines" :key="i" class="border-b border-border last:border-0">
               <td class="px-4 py-2">
-                <select v-model="line.productId" class="field-input" @change="applyPrice(line)">
-                  <option value="" disabled>{{ t('purchasing.form.selectProduct') }}</option>
-                  <option v-for="o in productOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-                </select>
+                <AppSelect
+                  v-model="line.productId"
+                  :options="productOptions"
+                  :placeholder="t('purchasing.form.selectProduct')"
+                  @update:model-value="applyPrice(line)"
+                />
               </td>
               <td class="px-3 py-2"><input v-model.number="line.quantity" type="number" min="0" step="any" class="field-input text-right tnum" /></td>
               <td class="px-3 py-2"><input v-model.number="line.unitPrice" type="number" min="0" step="any" class="field-input text-right tnum" /></td>
