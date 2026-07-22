@@ -38,40 +38,42 @@ watch(() => route.fullPath, () => layout.closeMobile())
 interface NavItem {
   to: RouteLocationRaw
   icon: Component
-  label: string
+  labelKey: string
   exact?: boolean
 }
 
-const allGroups: { label: string; items: NavItem[] }[] = [
+// Static structure (routes/icons/i18n keys only). Labels are resolved inside the computed below so
+// they re-translate reactively when the locale changes — never store resolved t(...) at setup time.
+const allGroups: { labelKey: string; items: NavItem[] }[] = [
   {
-    label: t('nav.sections.main'),
-    items: [{ to: { name: 'dashboard' }, icon: LayoutDashboard, label: t('nav.dashboard'), exact: true }],
+    labelKey: 'nav.sections.main',
+    items: [{ to: { name: 'dashboard' }, icon: LayoutDashboard, labelKey: 'nav.dashboard', exact: true }],
   },
   {
-    label: t('nav.sections.operations'),
+    labelKey: 'nav.sections.operations',
     items: [
-      { to: { name: 'sales' }, icon: ShoppingCart, label: t('nav.sales') },
-      { to: { name: 'purchasing' }, icon: Truck, label: t('nav.purchasing') },
-      { to: { name: 'inventory' }, icon: Boxes, label: t('nav.inventory') },
-      { to: { name: 'expenses' }, icon: Receipt, label: t('nav.expenses') },
-      { to: { name: 'accounting' }, icon: BookOpen, label: t('nav.accounting') },
+      { to: { name: 'sales' }, icon: ShoppingCart, labelKey: 'nav.sales' },
+      { to: { name: 'purchasing' }, icon: Truck, labelKey: 'nav.purchasing' },
+      { to: { name: 'inventory' }, icon: Boxes, labelKey: 'nav.inventory' },
+      { to: { name: 'expenses' }, icon: Receipt, labelKey: 'nav.expenses' },
+      { to: { name: 'accounting' }, icon: BookOpen, labelKey: 'nav.accounting' },
     ],
   },
   {
-    label: t('nav.sections.masterData'),
+    labelKey: 'nav.sections.masterData',
     items: [
-      { to: { name: 'masterDataProducts' }, icon: Package, label: t('nav.products') },
-      { to: { name: 'masterDataCustomers' }, icon: Users, label: t('nav.customers') },
-      { to: { name: 'masterDataSuppliers' }, icon: Building2, label: t('nav.suppliers') },
-      { to: { name: 'masterDataWarehouses' }, icon: Warehouse, label: t('nav.warehouses') },
-      { to: { name: 'masterData' }, icon: SlidersHorizontal, label: t('nav.setup') },
+      { to: { name: 'masterDataProducts' }, icon: Package, labelKey: 'nav.products' },
+      { to: { name: 'masterDataCustomers' }, icon: Users, labelKey: 'nav.customers' },
+      { to: { name: 'masterDataSuppliers' }, icon: Building2, labelKey: 'nav.suppliers' },
+      { to: { name: 'masterDataWarehouses' }, icon: Warehouse, labelKey: 'nav.warehouses' },
+      { to: { name: 'masterData' }, icon: SlidersHorizontal, labelKey: 'nav.setup' },
     ],
   },
   {
-    label: t('nav.sections.system'),
+    labelKey: 'nav.sections.system',
     items: [
-      { to: { name: 'approvals' }, icon: CheckSquare, label: t('nav.approvals') },
-      { to: { name: 'settings' }, icon: Settings, label: t('nav.settings') },
+      { to: { name: 'approvals' }, icon: CheckSquare, labelKey: 'nav.approvals' },
+      { to: { name: 'settings' }, icon: Settings, labelKey: 'nav.settings' },
     ],
   },
 ]
@@ -85,7 +87,10 @@ function canSee(item: NavItem): boolean {
 
 const groups = computed(() =>
   allGroups
-    .map((g) => ({ label: g.label, items: g.items.filter(canSee) }))
+    .map((g) => ({
+      label: t(g.labelKey),
+      items: g.items.filter(canSee).map((i) => ({ ...i, label: t(i.labelKey) })),
+    }))
     .filter((g) => g.items.length > 0),
 )
 </script>

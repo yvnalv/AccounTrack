@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const model = defineModel<string>()
-withDefaults(defineProps<{ type?: 'text' | 'date' | 'email'; placeholder?: string }>(), {
+withDefaults(defineProps<{ type?: 'text' | 'date' | 'email' | 'number'; placeholder?: string }>(), {
   type: 'text',
 })
 </script>

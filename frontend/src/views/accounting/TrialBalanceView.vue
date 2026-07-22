@@ -3,8 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
+import { localizedAccountName } from '@/lib/coa'
 import { downloadFile } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
+import type { Locale } from '@/i18n'
 import type { TrialBalance } from '@/types/reports'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppCard from '@/components/ui/AppCard.vue'
@@ -12,7 +14,8 @@ import AppInput from '@/components/ui/AppInput.vue'
 import FormField from '@/components/ui/FormField.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const loc = computed(() => locale.value as Locale)
 const router = useRouter()
 const report = ref<TrialBalance | null>(null)
 const loading = ref(true)
@@ -91,7 +94,7 @@ function pdf() {
             @keydown.space.prevent="drill(r.accountCode)"
           >
             <td class="px-4 py-2.5 text-text-muted tnum">{{ r.accountCode }}</td>
-            <td class="px-4 py-2.5 text-text">{{ r.accountName }}</td>
+            <td class="px-4 py-2.5 text-text">{{ localizedAccountName({ code: r.accountCode, name: r.accountName }, loc) }}</td>
             <td class="px-4 py-2.5 text-text-muted">{{ t(`accounting.coa.types.${r.accountType}`) }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ r.debit ? formatMoney(r.debit) : '' }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ r.credit ? formatMoney(r.credit) : '' }}</td>

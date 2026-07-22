@@ -39,13 +39,6 @@ public static class AccountingDataSeeder
 
     private static async Task SeedChartAsync(AccountingDbContext db, Guid tenantId, Guid companyId, CancellationToken ct)
     {
-        var hasAccounts = await db.Accounts.IgnoreQueryFilters()
-            .AnyAsync(a => a.CompanyId == companyId && !a.IsDeleted, ct);
-        if (hasAccounts)
-        {
-            return;
-        }
-
         (string Code, string Name, AccountType Type, bool Control, ControlType Ct)[] chart =
         {
             ("1000", "Cash", AccountType.Asset, false, ControlType.None),
@@ -58,7 +51,17 @@ public static class AccountingDataSeeder
             ("2150", "Goods Received / Invoice Received", AccountType.Liability, false, ControlType.None),
             ("2300", "VAT Output (PPN Keluaran)", AccountType.Liability, false, ControlType.None),
             ("2400", "Customer Advances", AccountType.Liability, false, ControlType.None),
+            // Financing (ADR-0040).
+            ("2500", "Bank Loan Payable", AccountType.Liability, false, ControlType.None),
+            ("2600", "Dividends Payable", AccountType.Liability, false, ControlType.None),
+            // Equity — both sole-proprietor and PT structures (ADR-0040).
+            ("3000", "Owner's Capital (Modal Pemilik)", AccountType.Equity, false, ControlType.None),
+            ("3100", "Additional Paid-in Capital (Agio Saham)", AccountType.Equity, false, ControlType.None),
+            ("3200", "Owner's Drawings (Prive)", AccountType.Equity, false, ControlType.None),
+            ("3300", "Share Capital (Modal Saham)", AccountType.Equity, false, ControlType.None),
+            ("3400", "Dividends Declared", AccountType.Equity, false, ControlType.None),
             ("3900", "Retained Earnings", AccountType.Equity, false, ControlType.None),
+            ("3950", "Opening Balance Equity", AccountType.Equity, false, ControlType.None),
             ("4000", "Sales Revenue", AccountType.Revenue, false, ControlType.None),
             ("5000", "Cost of Goods Sold", AccountType.Expense, false, ControlType.None),
             ("5100", "Inventory Variance", AccountType.Expense, false, ControlType.None),
@@ -71,8 +74,21 @@ public static class AccountingDataSeeder
             ("7900", "Rounding Difference", AccountType.Expense, false, ControlType.None),
         };
 
+        // Per-code idempotency (not all-or-nothing): add only the codes a company is missing, so new
+        // default accounts (e.g. equity/loan — ADR-0040) backfill onto companies seeded before they existed.
+        var existingCodes = await db.Accounts.IgnoreQueryFilters()
+            .Where(a => a.CompanyId == companyId && !a.IsDeleted)
+            .Select(a => a.Code)
+            .ToListAsync(ct);
+        var existing = existingCodes.ToHashSet();
+
         foreach (var a in chart)
         {
+            if (existing.Contains(a.Code))
+            {
+                continue;
+            }
+
             var account = Account.Create(a.Code, a.Name, a.Type, isControlAccount: a.Control, controlType: a.Ct, isSystem: true);
             account.TenantId = tenantId;
             account.CompanyId = companyId;
@@ -89,13 +105,6 @@ public static class AccountingDataSeeder
     /// </summary>
     private static async Task SeedPostingRulesAsync(AccountingDbContext db, Guid tenantId, Guid companyId, CancellationToken ct)
     {
-        var hasRules = await db.PostingRules.IgnoreQueryFilters()
-            .AnyAsync(r => r.CompanyId == companyId && !r.IsDeleted, ct);
-        if (hasRules)
-        {
-            return;
-        }
-
         (string Key, string AccountCode)[] defaults =
         {
             (PostingRuleKeys.ArControl, "1100"),
@@ -111,6 +120,12 @@ public static class AccountingDataSeeder
             (PostingRuleKeys.CustomerAdvance, "2400"),
             (PostingRuleKeys.SupplierAdvance, "1400"),
             (PostingRuleKeys.RetainedEarnings, "3900"),
+            // Equity & financing defaults for the guided Cash & Bank flows (ADR-0040).
+            (PostingRuleKeys.OwnerCapital, "3000"),
+            (PostingRuleKeys.OwnerDrawings, "3200"),
+            (PostingRuleKeys.ShareCapital, "3300"),
+            (PostingRuleKeys.LoanPayable, "2500"),
+            (PostingRuleKeys.OpeningBalanceEquity, "3950"),
             // Expense categories (ADR-0030). Keys match Expenses module's seeded categories.
             ("EXPENSE.ELECTRICITY", "6000"),
             ("EXPENSE.TRANSPORT", "6100"),
@@ -124,9 +139,21 @@ public static class AccountingDataSeeder
             .Where(a => a.CompanyId == companyId && !a.IsDeleted)
             .ToDictionaryAsync(a => a.Code, a => a.Id, ct);
 
+        // Per-key idempotency: add only the company-wide default rules (AnyEvent, no selectors) that are
+        // missing, so new default keys (equity/loan — ADR-0040) backfill onto already-configured companies
+        // without duplicating or disturbing any rule the user has customized.
+        var existingDefaultKeys = await db.PostingRules.IgnoreQueryFilters()
+            .Where(r => r.CompanyId == companyId && !r.IsDeleted
+                && r.EventType == PostingRule.AnyEvent
+                && r.ProductCategoryId == null && r.WarehouseId == null
+                && r.TaxCodeId == null && r.BankAccountId == null)
+            .Select(r => r.RuleKey)
+            .ToListAsync(ct);
+        var configured = existingDefaultKeys.ToHashSet();
+
         foreach (var (key, code) in defaults)
         {
-            if (!accountsByCode.TryGetValue(code, out var accountId))
+            if (configured.Contains(key) || !accountsByCode.TryGetValue(code, out var accountId))
             {
                 continue;
             }

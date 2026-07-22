@@ -645,9 +645,24 @@ Bahasa Indonesia
 
 Requirements:
 
-* No hardcoded UI text
-* Translation resources required
-* Language switching supported
+* **Every word shown to the user must exist in both English and Bahasa Indonesia.** This covers all
+  menus, page titles, tabs, labels, buttons, table headers, placeholders, tooltips, empty states,
+  toasts, validation/error messages, and status/enum labels — no exceptions, on every page and in
+  every dialog. The only permitted exceptions are proper nouns, currency/number formats, codes, and
+  loan-words / industry terms that are identical or universally used in both languages (e.g. "PPN",
+  "Transfer", "PDF", "Email", "Status", "Total", "Debit").
+* **No hardcoded UI text.** All UI strings go through the i18n layer (`t('…')`); the two locale
+  dictionaries (`frontend/src/i18n/locales/en.ts` and `id.ts`) must stay structurally identical —
+  the same keys in both, with no key missing on either side.
+* **Backend enum values rendered in the UI must be translated** via an i18n map keyed by the enum
+  value (e.g. journal source, account type, movement source), never shown raw.
+* **Seeded reference data shown in the UI must have a localized display mapping.** Names that live in
+  the database but ship as a standard default (chart of accounts, expense categories, and the like)
+  are localized on the client by a code→{en,id} map that overrides a name only while it is still at
+  its seeded default, so a user's own rename is always shown verbatim (see `frontend/src/lib/coa.ts`,
+  `expenseCategories.ts`).
+* Language switching is supported live; localized text must react to a locale change.
+* Adding or changing any user-facing string is not complete until both locales are updated.
 
 ---
 

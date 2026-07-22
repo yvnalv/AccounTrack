@@ -36,6 +36,10 @@ public enum JournalStatus
     Draft = 0,
     Posted = 1,
     Reversed = 2,
+    // Manual journals & guided Cash & Bank flows route through approval (ADR-0040). A held entry is
+    // persisted non-posted so it never affects the GL (balance queries include only Posted + Reversed).
+    PendingApproval = 3,
+    Rejected = 4,
 }
 
 /// <summary>Which subledger an open item belongs to (ADR-0011).</summary>
@@ -67,4 +71,12 @@ public enum JournalSource
     SalesReturn = 8,
     PurchaseReturn = 9,
     Expense = 10,
+    // Guided Cash & Bank flows (ADR-0040) — each source gives the register/audit trail a clear label.
+    CapitalContribution = 11,
+    OwnerDrawing = 12,
+    BankTransfer = 13,
+    MoneyReceipt = 14,
+    MoneyPayment = 15,
+    LoanReceipt = 16,
+    LoanRepayment = 17,
 }

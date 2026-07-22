@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { accountingApi } from '@/lib/accounting'
+import { localizedAccountName } from '@/lib/coa'
 import { formatMoney } from '@/lib/format'
+import type { Locale } from '@/i18n'
 import type { FiscalYear, PeriodBalance } from '@/types/accounting'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppCard from '@/components/ui/AppCard.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const loc = computed(() => locale.value as Locale)
 
 const years = ref<FiscalYear[]>([])
 const loading = ref(true)
@@ -192,7 +195,7 @@ function closeYear(y: FiscalYear) {
             </thead>
             <tbody>
               <tr v-for="b in balances" :key="b.accountCode" class="border-t border-border">
-                <td class="px-3 py-2"><span class="font-mono text-xs text-text-muted">{{ b.accountCode }}</span> {{ b.accountName }}</td>
+                <td class="px-3 py-2"><span class="font-mono text-xs text-text-muted">{{ b.accountCode }}</span> {{ localizedAccountName({ code: b.accountCode, name: b.accountName }, loc) }}</td>
                 <td class="px-3 py-2 text-right tnum">{{ b.debit ? formatMoney(b.debit) : '—' }}</td>
                 <td class="px-3 py-2 text-right tnum">{{ b.credit ? formatMoney(b.credit) : '—' }}</td>
               </tr>

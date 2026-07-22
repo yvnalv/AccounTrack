@@ -1,11 +1,14 @@
-﻿using Accountrack.Accounting.Application.Abstractions;
+﻿using Accountrack.Accounting.Application;
+using Accountrack.Accounting.Application.Abstractions;
 using Accountrack.Accounting.Application.Features;
 using Accountrack.Accounting.Application.Services;
 using Accountrack.Accounting.Infrastructure.Persistence;
 using Accountrack.Accounting.Infrastructure.Seed;
+using Accountrack.Application.Abstractions.Integration;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
 using Accountrack.Infrastructure.Common.Transactions;
 using Accountrack.Modules.Contracts.Accounting;
+using Accountrack.Modules.Contracts.Events;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -50,6 +53,10 @@ public static class DependencyInjection
         services.AddScoped<IJournalPoster, JournalPostingService>();
         services.AddScoped<IPostingRuleResolver, PostingRuleResolver>();
         services.AddScoped<ISubledgerService, SubledgerService>();
+
+        // General Journal + guided Cash & Bank flows, routed through approval (ADR-0040).
+        services.AddScoped<IManualJournalService, ManualJournalService>();
+        services.AddScoped<IIntegrationEventHandler<ApprovalDecided>, ApprovalDecidedConsumer>();
 
         // Public cross-module contracts (consumed by Purchasing/Sales atomic flows).
         services.AddScoped<IGeneralLedgerPoster, GeneralLedgerPoster>();

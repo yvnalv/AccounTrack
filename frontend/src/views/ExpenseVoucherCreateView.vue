@@ -6,8 +6,11 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
 import { expensesApi } from '@/lib/expenses'
 import { masterData } from '@/lib/masterData'
 import { accountingApi, cashAccounts } from '@/lib/accounting'
+import { localizedAccountName } from '@/lib/coa'
+import { localizedCategoryName } from '@/lib/expenseCategories'
 import { useCompanyStore } from '@/stores/company'
 import { formatMoney } from '@/lib/format'
+import type { Locale } from '@/i18n'
 import type { CreateExpenseVoucher, ExpenseCategory } from '@/types/expenses'
 import type { Supplier } from '@/types/masterdata'
 import type { AccountRef } from '@/types/accounting'
@@ -24,7 +27,8 @@ interface LineForm {
   taxed: boolean
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const loc = computed(() => locale.value as Locale)
 const router = useRouter()
 const route = useRoute()
 const company = useCompanyStore()
@@ -53,9 +57,9 @@ const error = ref('')
 const busy = ref<'' | 'draft' | 'post'>('')
 
 const categoryOptions = computed(() =>
-  categories.value.filter((c) => c.isActive).map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
+  categories.value.filter((c) => c.isActive).map((c) => ({ value: c.id, label: `${c.code} — ${localizedCategoryName(c, loc.value)}` })),
 )
-const cashOptions = computed(() => cashAccounts(accounts.value).map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` })))
+const cashOptions = computed(() => cashAccounts(accounts.value).map((a) => ({ value: a.id, label: `${a.code} — ${localizedAccountName(a, loc.value)}` })))
 const supplierOptions = computed(() =>
   suppliers.value.filter((s) => s.isActive).map((s) => ({ value: s.id, label: `${s.code} — ${s.name}` })),
 )

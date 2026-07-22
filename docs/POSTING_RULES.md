@@ -46,6 +46,15 @@ clear configuration error (never a silent wrong account).
 | CustomerAdvance | 2400 Customer Advances |
 | SupplierAdvance | 1400 Supplier Advances |
 | RetainedEarnings | 3900 Retained Earnings |
+| OwnerCapital | 3000 Owner's Capital (Modal Pemilik) |
+| OwnerDrawings | 3200 Owner's Drawings (Prive) |
+| ShareCapital | 3300 Share Capital (Modal Saham) |
+| LoanPayable | 2500 Bank Loan Payable |
+| OpeningBalanceEquity | 3950 Opening Balance Equity |
+
+The equity/financing keys (ADR-0040) back the guided **Cash & Bank** flows and are **not** in the
+posting-rule health check's `Required` set — a company that never records capital or loans does not
+need them. They (and their accounts) are seeded idempotently and backfill onto existing companies.
 
 Selectors let advanced setups override, e.g. `Revenue` for `ProductCategory = Services` → a
 separate service-revenue account; `CashBank` resolved from the payment's chosen bank account.

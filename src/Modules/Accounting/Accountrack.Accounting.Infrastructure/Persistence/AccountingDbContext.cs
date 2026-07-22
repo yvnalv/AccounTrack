@@ -70,7 +70,8 @@ public sealed class AccountingDbContext : BaseDbContext, IAccountingUnitOfWork
         modelBuilder.Entity<JournalEntry>(b =>
         {
             b.ToTable("JournalEntries");
-            b.Property(j => j.EntryNo).HasMaxLength(32);
+            // Nullable: a manual journal has no gapless number until it is posted (ADR-0040).
+            b.Property(j => j.EntryNo).HasMaxLength(32).IsRequired(false);
             b.Property(j => j.Currency).IsRequired().HasMaxLength(3).IsFixedLength();
             b.Property(j => j.Description).IsRequired().HasMaxLength(512);
             b.Property(j => j.Status).HasConversion<int>();

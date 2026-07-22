@@ -23,7 +23,9 @@ public sealed class JournalEntry : TenantOwnedEntity, IAggregateRoot
         Status = JournalStatus.Draft;
     }
 
-    public string EntryNo { get; private set; } = default!;
+    /// <summary>The gapless per-company number, assigned only when the entry is posted (null while a
+    /// manual journal is a draft or awaiting approval — ADR-0040).</summary>
+    public string? EntryNo { get; private set; }
     public DateOnly Date { get; private set; }
     public string Currency { get; private set; } = default!;
     public Guid? FiscalPeriodId { get; private set; }
@@ -34,6 +36,13 @@ public sealed class JournalEntry : TenantOwnedEntity, IAggregateRoot
     public DateTime? PostedAtUtc { get; private set; }
     public Guid? ReversesEntryId { get; private set; }
     public Guid? ReversedByEntryId { get; private set; }
+
+    /// <summary>The approval request raised for a manual journal / guided flow (null when auto-approved
+    /// or for automatic postings from other modules — ADR-0040).</summary>
+    public Guid? ApprovalRequestId { get; private set; }
+
+    /// <summary>A manual journal submitted and waiting for approval; not yet in the GL.</summary>
+    public bool IsAwaitingApproval => Status == JournalStatus.PendingApproval;
 
     public IReadOnlyCollection<JournalLine> Lines => _lines.AsReadOnly();
 
@@ -58,12 +67,36 @@ public sealed class JournalEntry : TenantOwnedEntity, IAggregateRoot
 
     public bool IsBalanced => TotalDebit.Round() == TotalCredit.Round();
 
-    /// <summary>Validates double-entry invariants (BR-ACC-1/2) and marks the entry posted.</summary>
-    public void Post(string entryNo, Guid fiscalPeriodId, DateTime nowUtc)
+    /// <summary>Submits a manual-journal draft for approval; it stays out of the GL until posted (ADR-0040).</summary>
+    public void SubmitForApproval(Guid approvalRequestId)
     {
         if (Status != JournalStatus.Draft)
         {
-            throw new InvalidOperationException("Only a draft journal can be posted.");
+            throw new InvalidOperationException("Only a draft journal can be submitted for approval.");
+        }
+
+        ApprovalRequestId = approvalRequestId;
+        Status = JournalStatus.PendingApproval;
+    }
+
+    /// <summary>Rejects a manual journal that was awaiting approval; it is never posted (ADR-0040).</summary>
+    public void MarkRejected()
+    {
+        if (Status != JournalStatus.PendingApproval)
+        {
+            throw new InvalidOperationException("Only a journal awaiting approval can be rejected.");
+        }
+
+        Status = JournalStatus.Rejected;
+    }
+
+    /// <summary>Validates double-entry invariants (BR-ACC-1/2) and marks the entry posted. Accepts a
+    /// fresh draft (auto-approved / automatic posting) or a journal that was awaiting approval (ADR-0040).</summary>
+    public void Post(string entryNo, Guid fiscalPeriodId, DateTime nowUtc)
+    {
+        if (Status is not (JournalStatus.Draft or JournalStatus.PendingApproval))
+        {
+            throw new InvalidOperationException("Only a draft or pending-approval journal can be posted.");
         }
 
         if (_lines.Count < 2)

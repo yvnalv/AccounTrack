@@ -71,6 +71,17 @@ configurable per company with the stated default.
 - **BR-ACC-12 (config)** Rounding differences post to the Rounding account; default rounding
   half-up to the currency scale.
 - **BR-ACC-13** All financial reports derive from the GL/snapshots, never transactional tables.
+- **BR-ACC-15** A cash/bank transfer must be between two **different** accounts.
+- **BR-ACC-16 (ADR-0040)** A **manual journal** and every guided **Cash & Bank** flow (capital,
+  drawing, transfer, receive/spend money, loan receipt/repayment) is routed through the Approval
+  Workflow: auto-approved and posted when no approval definition matches the `ManualJournal` document
+  type, otherwise held as `PendingApproval` and posted on approval (or `Rejected`). The submitter
+  cannot self-approve (BR-APR-2).
+- **BR-ACC-17 (invariant, ADR-0040)** A journal that is `PendingApproval` or `Rejected` never affects
+  the GL: it has no gapless `EntryNo` until posted, and all balance/report queries include only
+  `Status ∈ {Posted, Reversed}`.
+- **BR-ACC-18 (ADR-0040)** Guided Cash & Bank flows resolve their equity/loan accounts through the
+  posting-rule engine (never hardcoded); the user may override the account per entry.
 
 ## Tax (PPN)
 

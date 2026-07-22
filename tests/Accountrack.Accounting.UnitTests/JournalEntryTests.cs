@@ -88,6 +88,74 @@ public class JournalEntryTests
             .Should().Throw<InvalidOperationException>();
     }
 
+    [Fact]
+    public void Draft_has_no_entry_number_until_posted()
+    {
+        var je = Draft();
+        je.AddLine(Guid.NewGuid(), 100m, 0m);
+        je.AddLine(Guid.NewGuid(), 0m, 100m);
+
+        je.EntryNo.Should().BeNull();
+        je.Post("JE/202606/000001", Guid.NewGuid(), Now);
+        je.EntryNo.Should().Be("JE/202606/000001");
+    }
+
+    [Fact]
+    public void Submitted_journal_awaits_approval_and_stays_out_of_the_gl()
+    {
+        var requestId = Guid.NewGuid();
+        var je = Draft();
+        je.AddLine(Guid.NewGuid(), 100m, 0m);
+        je.AddLine(Guid.NewGuid(), 0m, 100m);
+
+        je.SubmitForApproval(requestId);
+
+        je.Status.Should().Be(JournalStatus.PendingApproval);
+        je.IsAwaitingApproval.Should().BeTrue();
+        je.ApprovalRequestId.Should().Be(requestId);
+        je.EntryNo.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_journal_awaiting_approval_can_be_posted()
+    {
+        var je = Draft();
+        je.AddLine(Guid.NewGuid(), 100m, 0m);
+        je.AddLine(Guid.NewGuid(), 0m, 100m);
+        je.SubmitForApproval(Guid.NewGuid());
+
+        je.Post("JE/202606/000002", Guid.NewGuid(), Now);
+
+        je.Status.Should().Be(JournalStatus.Posted);
+        je.EntryNo.Should().Be("JE/202606/000002");
+    }
+
+    [Fact]
+    public void A_rejected_journal_is_terminal_and_never_posts()
+    {
+        var je = Draft();
+        je.AddLine(Guid.NewGuid(), 100m, 0m);
+        je.AddLine(Guid.NewGuid(), 0m, 100m);
+        je.SubmitForApproval(Guid.NewGuid());
+
+        je.MarkRejected();
+
+        je.Status.Should().Be(JournalStatus.Rejected);
+        FluentActions.Invoking(() => je.Post("X", Guid.NewGuid(), Now))
+            .Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Only_a_pending_journal_can_be_rejected()
+    {
+        var je = Draft();
+        je.AddLine(Guid.NewGuid(), 100m, 0m);
+        je.AddLine(Guid.NewGuid(), 0m, 100m);
+
+        FluentActions.Invoking(() => je.MarkRejected())
+            .Should().Throw<InvalidOperationException>();
+    }
+
     [Theory]
     [InlineData(AccountType.Asset, NormalBalance.Debit)]
     [InlineData(AccountType.Expense, NormalBalance.Debit)]

@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
+import { localizedAccountName } from '@/lib/coa'
 import { downloadFile } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
+import type { Locale } from '@/i18n'
 import type { ProfitAndLoss } from '@/types/reports'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppCard from '@/components/ui/AppCard.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import FormField from '@/components/ui/FormField.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const loc = computed(() => locale.value as Locale)
 const router = useRouter()
 
 function drill(accountCode: string) {
@@ -72,7 +75,7 @@ function pdf() {
           <!-- Revenue -->
           <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.pl.revenue') }}</td></tr>
           <tr v-for="l in report.revenue" :key="'r' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
-            <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
+            <td class="px-4 py-2.5 text-text">{{ localizedAccountName({ code: l.accountCode, name: l.accountName }, loc) }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
           </tr>
           <tr class="border-b border-border font-medium">
@@ -83,7 +86,7 @@ function pdf() {
           <!-- Expenses -->
           <tr class="bg-surface-2"><td class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted" colspan="2">{{ t('accounting.pl.expenses') }}</td></tr>
           <tr v-for="l in report.expenses" :key="'e' + l.accountCode" class="cursor-pointer border-b border-border transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent" role="button" tabindex="0" :aria-label="t('accounting.drillToLedger') + ': ' + l.accountName" :title="t('accounting.drillToLedger')" @click="drill(l.accountCode)" @keydown.enter="drill(l.accountCode)" @keydown.space.prevent="drill(l.accountCode)">
-            <td class="px-4 py-2.5 text-text">{{ l.accountName }}</td>
+            <td class="px-4 py-2.5 text-text">{{ localizedAccountName({ code: l.accountCode, name: l.accountName }, loc) }}</td>
             <td class="px-4 py-2.5 text-right text-text tnum">{{ formatMoney(l.amount) }}</td>
           </tr>
           <tr class="border-b border-border font-medium">

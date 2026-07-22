@@ -4,9 +4,20 @@ import type {
   AgingReport,
   CloseFiscalYearResult,
   FiscalYear,
+  JournalEntry,
+  JournalRegisterItem,
+  ManualJournalResult,
   PeriodBalance,
   SubledgerOpenItem,
 } from '@/types/accounting'
+
+/** A line posted to the manual-journal endpoint. */
+export interface PostJournalLine {
+  accountId: string
+  debit: number
+  credit: number
+  description?: string | null
+}
 
 export const accountingApi = {
   /** Open (unsettled) AR items for a customer. */
@@ -37,6 +48,31 @@ export const accountingApi = {
   rebuildPeriodBalances: (id: string) => unwrap(http.post(`/fiscal-periods/${id}/balances/rebuild`, {})),
   closeFiscalYear: (id: string) =>
     unwrap<CloseFiscalYearResult>(http.post(`/fiscal-years/${id}/close`, {})),
+
+  // General journal (ADR-0040)
+  journalEntries: (params?: { fromDate?: string; toDate?: string }) =>
+    unwrap<JournalRegisterItem[]>(http.get('/journal-entries', { params })),
+  journalEntry: (id: string) => unwrap<JournalEntry>(http.get(`/journal-entries/${id}`)),
+  postJournal: (body: { date: string; description: string; lines: PostJournalLine[] }) =>
+    unwrap<ManualJournalResult>(http.post('/journal-entries', body)),
+  reverseJournal: (id: string, body: { date?: string | null; reason?: string | null }) =>
+    unwrap(http.post(`/journal-entries/${id}/reverse`, body)),
+
+  // Guided Cash & Bank flows (ADR-0040)
+  capitalContribution: (body: { date: string; amount: number; cashAccountId: string; equityAccountId?: string | null; memo?: string | null }) =>
+    unwrap<ManualJournalResult>(http.post('/cash-bank/capital', body)),
+  ownerDrawing: (body: { date: string; amount: number; cashAccountId: string; drawingsAccountId?: string | null; memo?: string | null }) =>
+    unwrap<ManualJournalResult>(http.post('/cash-bank/owner-drawing', body)),
+  bankTransfer: (body: { date: string; amount: number; fromAccountId: string; toAccountId: string; memo?: string | null }) =>
+    unwrap<ManualJournalResult>(http.post('/cash-bank/transfer', body)),
+  receiveMoney: (body: { date: string; amount: number; cashAccountId: string; creditAccountId: string; memo?: string | null }) =>
+    unwrap<ManualJournalResult>(http.post('/cash-bank/receive', body)),
+  spendMoney: (body: { date: string; amount: number; cashAccountId: string; debitAccountId: string; memo?: string | null }) =>
+    unwrap<ManualJournalResult>(http.post('/cash-bank/spend', body)),
+  loanReceipt: (body: { date: string; amount: number; cashAccountId: string; loanAccountId?: string | null; memo?: string | null }) =>
+    unwrap<ManualJournalResult>(http.post('/cash-bank/loan-receipt', body)),
+  loanRepayment: (body: { date: string; principal: number; interest: number; cashAccountId: string; loanAccountId?: string | null; interestAccountId?: string | null; memo?: string | null }) =>
+    unwrap<ManualJournalResult>(http.post('/cash-bank/loan-repayment', body)),
 }
 
 /** Cash/bank GL accounts (code band 10xx, postable) — what a payment can deposit to. */

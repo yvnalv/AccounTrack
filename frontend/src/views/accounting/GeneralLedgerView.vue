@@ -4,8 +4,10 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { reportsApi } from '@/lib/reports'
 import { accountingApi } from '@/lib/accounting'
+import { accountOptionLabel, localizedAccountName } from '@/lib/coa'
 import { downloadFile } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
+import type { Locale } from '@/i18n'
 import type { GeneralLedger } from '@/types/reports'
 import type { AccountRef } from '@/types/accounting'
 import type { SelectOption } from '@/components/ui/types'
@@ -15,7 +17,8 @@ import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const loc = computed(() => locale.value as Locale)
 const route = useRoute()
 
 // Format dates from the LOCAL calendar (never mix local + toISOString/UTC, which can invert the
@@ -37,7 +40,7 @@ const loading = ref(true)
 // are not directly postable — so we do NOT filter by allowPosting here.
 const accountOptions = computed<SelectOption[]>(() => [
   { value: '', label: t('accounting.gl.allAccounts') },
-  ...accounts.value.map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` })),
+  ...accounts.value.map((a) => ({ value: a.id, label: accountOptionLabel(a, loc.value) })),
 ])
 
 async function load() {
@@ -108,7 +111,7 @@ function pdf() {
 
     <AppCard v-for="acc in report?.accounts ?? []" v-else :key="acc.accountId" :padded="false">
       <div class="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <h3 class="text-sm font-semibold text-text">{{ acc.accountCode }} · {{ acc.accountName }}</h3>
+        <h3 class="text-sm font-semibold text-text">{{ acc.accountCode }} · {{ localizedAccountName({ code: acc.accountCode, name: acc.accountName }, loc) }}</h3>
         <span class="text-xs text-text-muted">{{ t(`accounting.coa.types.${acc.accountType}`) }}</span>
       </div>
       <table class="w-full text-sm">

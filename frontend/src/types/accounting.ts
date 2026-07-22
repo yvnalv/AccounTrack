@@ -77,3 +77,48 @@ export interface PeriodBalance {
   debit: number
   credit: number
 }
+
+/** A row in the general-journal register (ADR-0040). */
+export interface JournalRegisterItem {
+  id: string
+  entryNo: string | null
+  date: string
+  source: string
+  status: string
+  description: string
+  amount: number
+}
+
+export interface JournalLine {
+  accountId: string
+  debit: number
+  credit: number
+  description: string | null
+}
+
+export interface JournalEntry {
+  id: string
+  entryNo: string | null
+  date: string
+  currency: string
+  status: string
+  source: string
+  description: string
+  totalDebit: number
+  totalCredit: number
+  lines: JournalLine[]
+}
+
+/** Outcome of a manual journal / guided flow: posted now or waiting for approval. */
+export interface ManualJournalResult {
+  id: string
+  status: string
+}
+
+/** A line entered in the New Journal form (strings for the amount inputs). */
+export interface JournalLineInput {
+  accountId: string
+  debit: string
+  credit: string
+  description: string
+}

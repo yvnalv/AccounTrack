@@ -12,9 +12,13 @@ namespace Accountrack.Accounting.Application.Features;
 
 public sealed record PostJournalLine(Guid AccountId, decimal Debit, decimal Credit, string? Description);
 
-/// <summary>Posts a manual, balanced journal entry into the active company's books.</summary>
+/// <summary>
+/// Posts a manual, balanced journal into the active company's books, routed through the Approval
+/// Workflow (ADR-0040): auto-approved and posted now when no rule matches, otherwise held for approval.
+/// </summary>
 public sealed record PostJournalCommand(
-    DateOnly Date, string Description, IReadOnlyList<PostJournalLine> Lines) : ICommand<Guid>, IIdempotentCommand;
+    DateOnly Date, string Description, IReadOnlyList<PostJournalLine> Lines)
+    : ICommand<ManualJournalResult>, IIdempotentCommand;
 
 public sealed class PostJournalCommandValidator : AbstractValidator<PostJournalCommand>
 {
@@ -28,46 +32,37 @@ public sealed class PostJournalCommandValidator : AbstractValidator<PostJournalC
     }
 }
 
-public sealed class PostJournalCommandHandler : ICommandHandler<PostJournalCommand, Guid>
+public sealed class PostJournalCommandHandler : ICommandHandler<PostJournalCommand, ManualJournalResult>
 {
-    private readonly IJournalPoster _poster;
-    private readonly ICompanyDirectory _companies;
-    private readonly ITenantContext _tenant;
-    private readonly IAccountingUnitOfWork _uow;
+    private readonly IManualJournalService _service;
 
-    public PostJournalCommandHandler(
-        IJournalPoster poster, ICompanyDirectory companies, ITenantContext tenant, IAccountingUnitOfWork uow)
+    public PostJournalCommandHandler(IManualJournalService service) => _service = service;
+
+    public Task<Result<ManualJournalResult>> Handle(PostJournalCommand request, CancellationToken ct)
     {
-        _poster = poster;
-        _companies = companies;
-        _tenant = tenant;
-        _uow = uow;
+        var lines = request.Lines
+            .Select(l => new ManualJournalLine(l.AccountId, l.Debit, l.Credit, l.Description))
+            .ToList();
+        return _service.SubmitAsync(request.Date, request.Description, JournalSource.Manual, lines, ct);
     }
+}
 
-    public async Task<Result<Guid>> Handle(PostJournalCommand request, CancellationToken cancellationToken)
+/// <summary>The general-journal register (ADR-0040): all non-draft journals over an optional date range.</summary>
+public sealed record GetJournalEntriesQuery(DateOnly? FromDate, DateOnly? ToDate)
+    : IQuery<IReadOnlyList<JournalRegisterItemDto>>;
+
+public sealed class GetJournalEntriesHandler : IQueryHandler<GetJournalEntriesQuery, IReadOnlyList<JournalRegisterItemDto>>
+{
+    private readonly IAccountingReadStore _store;
+
+    public GetJournalEntriesHandler(IAccountingReadStore store) => _store = store;
+
+    public async Task<Result<IReadOnlyList<JournalRegisterItemDto>>> Handle(GetJournalEntriesQuery request, CancellationToken ct)
     {
-        var company = await _companies.GetAsync(_tenant.CompanyId, cancellationToken);
-        if (company is null)
-        {
-            return Error.NotFound("ACCOUNTING.COMPANY_NOT_FOUND", "Active company not found.");
-        }
-
-        var draft = JournalEntry.CreateDraft(
-            request.Date, company.FunctionalCurrency, JournalSource.Manual, null, request.Description.Trim());
-
-        foreach (var line in request.Lines)
-        {
-            draft.AddLine(line.AccountId, line.Debit, line.Credit, line.Description);
-        }
-
-        var result = await _poster.PostAsync(draft, cancellationToken);
-        if (result.IsFailure)
-        {
-            return result.Error;
-        }
-
-        await _uow.SaveChangesAsync(cancellationToken);
-        return result.Value;
+        var rows = await _store.GetJournalRegisterAsync(request.FromDate, request.ToDate, ct);
+        return Result.Success<IReadOnlyList<JournalRegisterItemDto>>(rows
+            .Select(r => new JournalRegisterItemDto(r.Id, r.EntryNo, r.Date, r.Source, r.Status, r.Description, r.Amount))
+            .ToList());
     }
 }
 

@@ -19,8 +19,12 @@ public sealed record CloseFiscalYearResult(Guid? JournalEntryId, decimal NetInco
 public sealed record JournalLineDto(Guid AccountId, decimal Debit, decimal Credit, string? Description);
 
 public sealed record JournalEntryDto(
-    Guid Id, string EntryNo, DateOnly Date, string Currency, string Status, string Source,
+    Guid Id, string? EntryNo, DateOnly Date, string Currency, string Status, string Source,
     string Description, decimal TotalDebit, decimal TotalCredit, IReadOnlyList<JournalLineDto> Lines);
+
+/// <summary>A row in the general-journal register (ADR-0040). EntryNo is null while awaiting approval.</summary>
+public sealed record JournalRegisterItemDto(
+    Guid Id, string? EntryNo, DateOnly Date, string Source, string Status, string Description, decimal Amount);
 
 public sealed record PostingRuleDto(
     Guid Id, string EventType, string RuleKey, Guid AccountId, string AccountCode, string AccountName,

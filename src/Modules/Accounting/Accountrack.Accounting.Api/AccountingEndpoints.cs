@@ -79,17 +79,45 @@ public static class AccountingEndpoints
         // --- Journals ---
         var journals = app.MapGroup("/api/v1/journal-entries").WithTags("Journals").RequireAuthorization();
 
+        journals.MapGet("/", async (DateOnly? fromDate, DateOnly? toDate, ISender sender, CancellationToken ct) =>
+            (await sender.Send(new GetJournalEntriesQuery(fromDate, toDate), ct)).ToHttpResult())
+            .RequireAuthorization("Accounting.View").WithName("GetJournalEntries");
+
         journals.MapGet("/{id:guid}", async (Guid id, ISender sender, CancellationToken ct) =>
             (await sender.Send(new GetJournalEntryQuery(id), ct)).ToHttpResult())
             .RequireAuthorization("Accounting.View").WithName("GetJournalEntry");
 
         journals.MapPost("/", async (PostJournalCommand cmd, ISender sender, CancellationToken ct) =>
-            (await sender.Send(cmd, ct)).ToCreatedResult("/api/v1/journal-entries"))
+            (await sender.Send(cmd, ct)).ToHttpResult())
             .RequireAuthorization("Accounting.Post").WithName("PostJournal");
 
         journals.MapPost("/{id:guid}/reverse", async (Guid id, ReverseRequest body, ISender sender, CancellationToken ct) =>
             (await sender.Send(new ReverseJournalCommand(id, body.Date, body.Reason), ct)).ToHttpResult())
             .RequireAuthorization("Accounting.Post").WithName("ReverseJournal");
+
+        // --- Cash & Bank guided flows (ADR-0040) ---
+        var cashBank = app.MapGroup("/api/v1/cash-bank").WithTags("Cash & Bank").RequireAuthorization("Accounting.Post");
+
+        cashBank.MapPost("/capital", async (RecordCapitalContributionCommand cmd, ISender sender, CancellationToken ct) =>
+            (await sender.Send(cmd, ct)).ToHttpResult()).WithName("RecordCapitalContribution");
+
+        cashBank.MapPost("/owner-drawing", async (RecordOwnerDrawingCommand cmd, ISender sender, CancellationToken ct) =>
+            (await sender.Send(cmd, ct)).ToHttpResult()).WithName("RecordOwnerDrawing");
+
+        cashBank.MapPost("/transfer", async (RecordBankTransferCommand cmd, ISender sender, CancellationToken ct) =>
+            (await sender.Send(cmd, ct)).ToHttpResult()).WithName("RecordBankTransfer");
+
+        cashBank.MapPost("/receive", async (RecordMoneyReceiptCommand cmd, ISender sender, CancellationToken ct) =>
+            (await sender.Send(cmd, ct)).ToHttpResult()).WithName("RecordMoneyReceipt");
+
+        cashBank.MapPost("/spend", async (RecordMoneySpentCommand cmd, ISender sender, CancellationToken ct) =>
+            (await sender.Send(cmd, ct)).ToHttpResult()).WithName("RecordMoneySpent");
+
+        cashBank.MapPost("/loan-receipt", async (RecordLoanReceiptCommand cmd, ISender sender, CancellationToken ct) =>
+            (await sender.Send(cmd, ct)).ToHttpResult()).WithName("RecordLoanReceipt");
+
+        cashBank.MapPost("/loan-repayment", async (RecordLoanRepaymentCommand cmd, ISender sender, CancellationToken ct) =>
+            (await sender.Send(cmd, ct)).ToHttpResult()).WithName("RecordLoanRepayment");
 
         // --- Reports ---
         var reports = app.MapGroup("/api/v1/reports").WithTags("Reports").RequireAuthorization("Accounting.View");
