@@ -66,6 +66,48 @@ public class SubscribeTests
     }
 
     [Fact]
+    public async Task Checkout_with_a_plan_code_switches_the_plan_and_bills_the_new_one()
+    {
+        // On Starter, upgrading to Business at checkout.
+        var starter = Plan.Create("STARTER-MONTHLY", "Starter", BillingInterval.Monthly, 149_000, 2, 59_000, 1, "IDR", "{}");
+        var business = BusinessPlan();
+        var sub = Subscription.StartTrial(starter.Id, starter.Interval, PaymentMode.Invoice,
+            new DateOnly(2026, 7, 10), new DateOnly(2026, 7, 24));
+
+        _subscriptions.GetForCurrentTenantAsync(Arg.Any<CancellationToken>()).Returns(sub);
+        _plans.GetByCodeAsync("BUSINESS-MONTHLY", Arg.Any<CancellationToken>()).Returns(business);
+        _invoices.CountForCurrentTenantAsync(Arg.Any<CancellationToken>()).Returns(0);
+
+        BillingInvoice? added = null;
+        _invoices.When(r => r.Add(Arg.Any<BillingInvoice>())).Do(ci => added = ci.Arg<BillingInvoice>());
+        _gateway.CreateInvoiceAsync(Arg.Any<CreateGatewayInvoiceRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(new GatewayInvoice("xnd-1", "https://pay/xnd-1", "PENDING")));
+
+        var result = await Handler().Handle(new SubscribeCommand("business-monthly"), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        sub.PlanId.Should().Be(business.Id, "the subscription switched to the chosen plan");
+        result.Value.AmountMinor.Should().Be(499_000, "billed at the new plan's price");
+        added!.SubtotalMinor.Should().Be(499_000);
+    }
+
+    [Fact]
+    public async Task Checkout_with_an_unknown_plan_code_is_rejected()
+    {
+        var plan = BusinessPlan();
+        var sub = Subscription.StartTrial(plan.Id, plan.Interval, PaymentMode.Invoice,
+            new DateOnly(2026, 7, 10), new DateOnly(2026, 7, 24));
+        _subscriptions.GetForCurrentTenantAsync(Arg.Any<CancellationToken>()).Returns(sub);
+        _plans.GetByCodeAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((Plan?)null);
+
+        var result = await Handler().Handle(new SubscribeCommand("NOPE"), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("BILLING.PLAN_NOT_FOUND");
+        await _gateway.DidNotReceive().CreateInvoiceAsync(Arg.Any<CreateGatewayInvoiceRequest>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Checkout_without_a_subscription_is_rejected()
     {
         _subscriptions.GetForCurrentTenantAsync(Arg.Any<CancellationToken>()).Returns((Subscription?)null);

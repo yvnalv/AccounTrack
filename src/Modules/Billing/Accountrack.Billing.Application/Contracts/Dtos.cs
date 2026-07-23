@@ -20,6 +20,18 @@ public sealed record PlanDto(
 /// <summary>Result of starting checkout: where to pay and for how much.</summary>
 public sealed record CheckoutDto(Guid BillingInvoiceId, string PayUrl, long AmountMinor, string Currency);
 
+/// <summary>A billing invoice Accountrack issued to the tenant, for the billing history (§9).</summary>
+public sealed record BillingInvoiceDto(
+    Guid Id,
+    string Number,
+    DateOnly PeriodStart,
+    DateOnly PeriodEnd,
+    long TotalMinor,
+    string Currency,
+    BillingInvoiceStatus Status,
+    DateOnly DueDate,
+    DateTime? PaidAt);
+
 /// <summary>The current tenant's subscription. Null when the tenant has never subscribed.</summary>
 public sealed record SubscriptionDto(
     Guid Id,

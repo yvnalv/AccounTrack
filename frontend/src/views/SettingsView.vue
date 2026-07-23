@@ -18,6 +18,7 @@ import RolesManager from '@/components/settings/RolesManager.vue'
 import UsersManager from '@/components/settings/UsersManager.vue'
 import OutboxDeadLetters from '@/components/settings/OutboxDeadLetters.vue'
 import AuditTrail from '@/components/settings/AuditTrail.vue'
+import BillingManager from '@/components/settings/BillingManager.vue'
 
 const { t, locale } = useI18n()
 const auth = useAuthStore()
@@ -29,6 +30,7 @@ const canManageRoles = computed(() => auth.has('Admin.Roles'))
 const canManageUsers = computed(() => auth.has('Admin.Users'))
 const canManageApprovals = computed(() => auth.has('Approval.Manage'))
 const canViewAudit = computed(() => auth.has('Audit.View'))
+const canViewBilling = computed(() => auth.has('Billing.View'))
 
 // One tab per settings category; admin-only tabs appear only with the matching permission.
 const tabs = computed(() =>
@@ -38,6 +40,7 @@ const tabs = computed(() =>
     { key: 'roles', label: t('settings.roles.title'), show: canManageRoles.value },
     { key: 'events', label: t('settings.outbox.title'), show: canManageApprovals.value },
     { key: 'audit', label: t('settings.audit.title'), show: canViewAudit.value },
+    { key: 'billing', label: t('billing.title'), show: canViewBilling.value },
     { key: 'profile', label: t('settings.profile.title'), show: true },
     { key: 'preferences', label: t('settings.prefs.title'), show: true },
   ].filter((tab) => tab.show),
@@ -252,6 +255,9 @@ function setLocale(next: string | undefined) {
     <AppCard v-if="activeTab === 'audit'" :title="t('settings.audit.title')">
       <AuditTrail />
     </AppCard>
+
+    <!-- Billing — its own sections/cards, so no wrapping AppCard title. -->
+    <BillingManager v-if="activeTab === 'billing'" />
 
     <!-- Profile -->
     <AppCard v-if="activeTab === 'profile'" :title="t('settings.profile.title')">

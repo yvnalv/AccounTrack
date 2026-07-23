@@ -1,5 +1,32 @@
 # Accountrack Changelog
 
+## [2026-07-23 17:42:15 UTC]
+
+CHG-0149 — Billing module — Phase 1 Slice 4 (Settings → Billing UI)
+
+- The tenant-facing billing screen (SUBSCRIPTION_BILLING.md §12), completing Phase 1: a new
+  **Settings → Billing** tab (`Billing.View`-gated) where an admin sees their subscription, picks/switches
+  a plan, pays, and reviews invoices. All on existing endpoints plus one small addition.
+- **Backend:** `GET /api/v1/billing/invoices` (`Billing.View`) — the tenant's billing history, newest
+  first. `POST /billing/subscription/checkout` now takes an **optional `planCode`** so a user can
+  **upgrade/downgrade** — it switches the subscription to the chosen plan (`Subscription.ChangePlan`,
+  immediate; proration/downgrade-timing remain Phase 2, §6.3) and bills the new plan. No schema change.
+- **Frontend (`BillingManager.vue`):**
+  - **Current-subscription card** — plan, status badge, trial-ends/renews dates, billing cycle, and a
+    **Pay now** button when not yet active.
+  - **Plan cards with a Monthly/Annual toggle** (the standard pricing-page pattern): the six seeded plans
+    are grouped into three tiers × the toggle, so prices and the /month·/year label switch live; a
+    "Save 2 months" hint on Annual.
+  - **Actionable CTAs** contextual to the current plan: **Start free trial** (no subscription),
+    **Upgrade / Downgrade / Switch billing cycle** (other plans) → checkout to that plan, and a
+    highlighted "Current" ring + "Your current plan" on the active one. CTAs align to the card bottom.
+  - **Invoice history** table; a **read-only/locked banner** for past-due/expired (§7). Full en + id i18n.
+- **Tests:** Billing.UnitTests now 38 (+2 — checkout switches to a chosen plan; unknown plan rejected).
+  Frontend builds clean (vue-tsc + vite); full backend suite green.
+- **Phase 1 billing is now feature-complete** (plans, trial, entitlement guard, checkout, webhook, UI).
+  Deferred to later phases: tokenized auto-charge + dunning, proration, plan-switch timing, invoice PDF,
+  and the cross-tenant back-office/MRR views.
+
 ## [2026-07-23 16:53:13 UTC]
 
 CHG-0148 — Fix: Xendit checkout 400 — omit blank optional invoice fields
