@@ -99,4 +99,22 @@ public sealed class SubscriptionRepository : ISubscriptionRepository
 
     public Task<Subscription?> GetForCurrentTenantAsync(CancellationToken ct) =>
         _db.Subscriptions.FirstOrDefaultAsync(ct);
+
+    public Task<Subscription?> GetByIdIgnoringFiltersAsync(Guid id, CancellationToken ct) =>
+        _db.Subscriptions.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Id == id, ct);
+}
+
+public sealed class BillingInvoiceRepository : IBillingInvoiceRepository
+{
+    private readonly BillingDbContext _db;
+    public BillingInvoiceRepository(BillingDbContext db) => _db = db;
+
+    public void Add(BillingInvoice invoice) => _db.BillingInvoices.Add(invoice);
+
+    public Task<int> CountForCurrentTenantAsync(CancellationToken ct) =>
+        _db.BillingInvoices.CountAsync(ct);
+
+    public Task<BillingInvoice?> GetByGatewayInvoiceIdIgnoringFiltersAsync(string gatewayInvoiceId, CancellationToken ct) =>
+        _db.BillingInvoices.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(i => i.GatewayInvoiceId == gatewayInvoiceId, ct);
 }

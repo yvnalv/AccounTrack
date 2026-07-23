@@ -1,5 +1,39 @@
 # Accountrack Changelog
 
+## [2026-07-23 15:28:54 UTC]
+
+CHG-0146 — Billing module — Phase 1 Slice 3 (Xendit adapter + hosted checkout + payment webhook)
+
+- Implements SUBSCRIPTION_BILLING.md §4/§5 (invoice-based checkout + webhook activation), completing the
+  paying half of Phase 1 after the trial/guard (CHG-0140). A tenant can now pick a plan, get a Xendit
+  hosted pay page, pay it, and have the subscription activate automatically. **No schema change** — the
+  gateway fields already existed on `BillingInvoice`/`Subscription` from Slice 1.
+- **`IPaymentGateway` port** (Billing.Application.Abstractions) + **`XenditGateway`** adapter
+  (Billing.Infrastructure): creates a hosted invoice via Xendit's **Invoices API**, authenticating with
+  **HTTP Basic** (secret key as username, blank password). IDR amounts are whole rupiah. Behind the port
+  so a second provider is mechanical (ADR-0039).
+- **Checkout:** `POST /api/v1/billing/subscription/checkout` (`Billing.Manage`) bills the subscription's
+  plan for the next period — creates a `BillingInvoice` (draft→open), calls the gateway, returns the
+  **pay-URL** + amount. Requires an existing subscription (start a trial first).
+- **Webhook (source of truth for "paid", §5):** `POST /api/v1/billing/webhooks/xendit` — **anonymous but
+  authenticated** by the per-account `x-callback-token` (constant-time compare; unverified → 401 and no
+  effect). **Idempotent** via `platform.InboxState` keyed on the gateway invoice id, because Xendit
+  retries up to 6× (a replay must not double-activate). On a paid invoice it marks the `BillingInvoice`
+  paid and flips the `Subscription` to `active` for the period. The handler has no ambient tenant, so it
+  loads the invoice + subscription **bypassing the tenant query filter** (a reviewed admin path, Rule 33);
+  the route is exempt from the subscription-enforcement middleware.
+- **Config (secrets via environment, never source):** `Billing:Xendit:SecretKey`,
+  `Billing:Xendit:CallbackToken`, `BaseUrl` (default `https://api.xendit.co`), optional success/failure
+  redirect URLs. `appsettings.json` documents the non-secret keys; the gateway degrades gracefully with a
+  clear error when unconfigured.
+- **Tests:** 10 new (`Accountrack.Billing.UnitTests` now 31) — the webhook's paid-activates, forged/missing
+  token rejection, replay idempotency, non-paid/unknown-invoice acknowledgement; checkout's happy path
+  (open invoice + pay-URL + correct amount), no-subscription rejection, and gateway-failure surfacing.
+  Full solution green: build clean, all suites pass, 39 arch tests.
+- **Manual step to go live on sandbox:** set the two Xendit **Test Mode** secrets on the VPS and point the
+  dashboard "Invoice paid" webhook at `https://<domain>/api/v1/billing/webhooks/xendit`. No PT/bank needed
+  for sandbox.
+
 ## [2026-07-22 17:12:35 UTC]
 
 CHG-0145 — Web: searchable dropdowns (type-to-filter combobox)

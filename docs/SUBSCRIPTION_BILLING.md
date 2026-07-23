@@ -335,8 +335,15 @@ the platform back-office (cross-tenant), not in any tenant's dashboard.
     middleware blocking business **writes** when past-due/unpaid/expired. **Dark-launched** —
     `Billing:Entitlements:Enforce` defaults to **false**, and a tenant with **no subscription** is
     always unrestricted, so enabling billing can never lock out existing customers.
-  - 🔜 **Slice 3 — Xendit adapter:** `IPaymentGateway` + hosted checkout + idempotent webhooks
-    (needs a free Xendit sandbox signup; no PT/bank account required to build).
+  - ✅ **Slice 3 — Xendit adapter + hosted checkout + webhook (CHG-0146):** `IPaymentGateway` port +
+    `XenditGateway` (Invoices API, HTTP Basic with the secret key); `POST /billing/subscription/checkout`
+    creates a `BillingInvoice` + hosted Xendit invoice and returns the pay-URL; `POST /billing/webhooks/xendit`
+    (anonymous, `x-callback-token`-verified, idempotent via `platform.InboxState`) is the **source of truth
+    for "paid"** — it marks the invoice paid and activates the subscription. Secrets via config
+    (`Billing:Xendit:SecretKey` / `CallbackToken`), never source. **Config to set on the VPS** (from the
+    Xendit **Test Mode** dashboard): `ACCOUNTRACK_XENDIT_SECRET_KEY` (`xnd_development_…`),
+    `ACCOUNTRACK_XENDIT_CALLBACK_TOKEN`; set the dashboard webhook URL for "Invoice paid" to
+    `https://<domain>/api/v1/billing/webhooks/xendit`.
   - 🔜 **Slice 4 — Billing UI + invoice PDF** (pause for the UI/UX discussion first).
 - **Phase 2 — Auto-charge & dunning:** tokenized card/e-wallet auto-charge, proration on upgrade, dunning
   retries + emails, annual cycle + discount, seat add-ons.

@@ -46,6 +46,14 @@ services:
       Seed__Enabled: ${SEED_ENABLED:-true}
       Seed__AdminEmail: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
       Seed__AdminPassword: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      # Billing / Xendit (SUBSCRIPTION_BILLING.md). Optional — leave the Xendit secrets blank until you
+      # wire up payments; checkout returns a clear error while unconfigured. Entitlement enforcement is
+      # off by default (dark launch) and only ever restricts tenants that actually hold a subscription.
+      Billing__Entitlements__Enforce: ${BILLING_ENFORCE:-false}
+      Billing__Xendit__SecretKey: ${XENDIT_SECRET_KEY:-}
+      Billing__Xendit__CallbackToken: ${XENDIT_CALLBACK_TOKEN:-}
+      Billing__Xendit__SuccessRedirectUrl: ${XENDIT_SUCCESS_URL:-}
+      Billing__Xendit__FailureRedirectUrl: ${XENDIT_FAILURE_URL:-}
     depends_on:
       db:
         condition: service_healthy
