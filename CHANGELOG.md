@@ -1,5 +1,23 @@
 # Accountrack Changelog
 
+## [2026-07-23 16:53:13 UTC]
+
+CHG-0148 — Fix: Xendit checkout 400 — omit blank optional invoice fields
+
+- **Bug:** `POST /billing/subscription/checkout` failed with `BILLING.GATEWAY_ERROR: HTTP 400`. Xendit's
+  Invoices API rejected the request with `API_VALIDATION_ERROR` on three optional fields the adapter was
+  sending as empty/null: `success_redirect_url`/`failure_redirect_url` ("not allowed to be empty" — the
+  deployment default supplies `""` when the env var is unset) and `payer_email` ("must be a string" — we
+  sent `null`).
+- **Fix:** `XenditGateway` now **omits** blank optional fields from the request body entirely — blank
+  values are normalised to null and the serializer is configured with
+  `DefaultIgnoreCondition = WhenWritingNull`, so an absent redirect/email is left out rather than sent as
+  `""`/`null`. Provided values are still included.
+- **Tests:** new `XenditGatewayTests` (5) using a capturing `HttpMessageHandler` — blank optionals
+  omitted, empty-string config treated as blank, provided optionals included, HTTP Basic auth header
+  (secret key + blank password), and unconfigured-gateway fails fast without calling out.
+  `Accountrack.Billing.UnitTests` now 36; full suite green.
+- No schema change. Deploy, then checkout returns a real pay-URL.
 ## [2026-07-23 16:45:56 UTC]
 
 CHG-0147 — Fix: every tenant's Administrator gets newly-added permissions (no more 403 after a feature ships) (BR-SEC-4)

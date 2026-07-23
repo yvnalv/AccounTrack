@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Accountrack.Billing.Application.Abstractions;
 using Accountrack.Billing.Application.Features;
@@ -18,6 +19,12 @@ namespace Accountrack.Billing.Infrastructure.Payments;
 /// </summary>
 public sealed class XenditGateway : IPaymentGateway
 {
+    // Omit null properties from the request body: Xendit rejects optional fields sent as empty/null
+    // (e.g. `success_redirect_url` "not allowed to be empty", `payer_email` "must be a string"), so a
+    // blank optional value must be absent from the JSON rather than present as "" or null.
+    private static readonly JsonSerializerOptions JsonOptions =
+        new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+
     private readonly HttpClient _http;
     private readonly XenditOptions _options;
     private readonly ILogger<XenditGateway> _logger;
@@ -42,15 +49,16 @@ public sealed class XenditGateway : IPaymentGateway
             Amount: request.AmountMinor,
             Currency: request.Currency,
             Description: request.Description,
-            PayerEmail: request.PayerEmail,
-            SuccessRedirectUrl: request.SuccessRedirectUrl ?? _options.SuccessRedirectUrl,
-            FailureRedirectUrl: request.FailureRedirectUrl ?? _options.FailureRedirectUrl);
+            // Optional fields: send only when non-blank; otherwise omit (see JsonOptions).
+            PayerEmail: Blank(request.PayerEmail),
+            SuccessRedirectUrl: Blank(request.SuccessRedirectUrl ?? _options.SuccessRedirectUrl),
+            FailureRedirectUrl: Blank(request.FailureRedirectUrl ?? _options.FailureRedirectUrl));
 
         try
         {
             using var msg = new HttpRequestMessage(HttpMethod.Post, "/v2/invoices")
             {
-                Content = JsonContent.Create(body),
+                Content = JsonContent.Create(body, options: JsonOptions),
             };
             // Basic auth: secret key as username, blank password.
             var basic = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_options.SecretKey}:"));
@@ -79,6 +87,9 @@ public sealed class XenditGateway : IPaymentGateway
             return BillingErrors.GatewayError(ex.Message);
         }
     }
+
+    /// <summary>Normalises a blank/whitespace optional value to <c>null</c> so it is omitted from the body.</summary>
+    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
     // --- Xendit Invoices API DTOs (snake_case) ---
 
