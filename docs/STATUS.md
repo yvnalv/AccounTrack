@@ -8,8 +8,16 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-22 (last change **CHG-0143**)
+- **As of:** 2026-07-23 (last change **CHG-0146**)
 - **Build:** green — backend `net8.0`; **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Billing Slice 3 — Xendit adapter + hosted checkout + payment webhook (CHG-0146)** — a tenant
+  can pick a plan, get a Xendit hosted pay page (`POST /billing/subscription/checkout`), pay, and have the
+  subscription auto-activate via the `POST /billing/webhooks/xendit` webhook (anonymous but
+  `x-callback-token`-verified, idempotent via `platform.InboxState`, the source of truth for "paid").
+  `IPaymentGateway` port + `XenditGateway` (Invoices API, HTTP Basic). Secrets via config
+  (`Billing:Xendit:SecretKey`/`CallbackToken`). No schema change. Billing.UnitTests 31. **To activate on
+  sandbox:** set the two Xendit Test-Mode secrets on the VPS + point the dashboard webhook at the URL
+  above. Next: Slice 4 (Billing UI — pause for UI/UX discussion).
   Latest: **General Journal + guided Cash & Bank flows + equity/loan chart of accounts (CHG-0143,
   ADR-0040)** — two new tabs under Accounting (i18n-named "Journals"/"Jurnal Umum" and "Cash &
   Bank"/"Kas & Bank"). A manual balanced-journal register + form + reverse, and seven guided flows

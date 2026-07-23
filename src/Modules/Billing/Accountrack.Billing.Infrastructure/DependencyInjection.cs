@@ -1,5 +1,6 @@
 using Accountrack.Billing.Application.Abstractions;
 using Accountrack.Billing.Application.Features;
+using Accountrack.Billing.Infrastructure.Payments;
 using Accountrack.Billing.Infrastructure.Persistence;
 using Accountrack.Billing.Infrastructure.Seed;
 using Accountrack.Infrastructure.Common.Persistence.Interceptors;
@@ -38,11 +39,23 @@ public static class DependencyInjection
         services.AddScoped<IBillingUnitOfWork>(sp => sp.GetRequiredService<BillingDbContext>());
         services.AddScoped<IPlanRepository, PlanRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        services.AddScoped<IBillingInvoiceRepository, BillingInvoiceRepository>();
 
         // Resolves what the calling tenant's plan/subscription permits (SUBSCRIPTION_BILLING.md §7).
         // Consumed by the host's enforcement middleware and by modules honouring plan limits.
         services.AddScoped<Accountrack.Modules.Contracts.Billing.ITenantEntitlements,
             Accountrack.Billing.Application.Features.EntitlementResolver>();
+
+        // Payment gateway (SUBSCRIPTION_BILLING.md §3, ADR-0039). Xendit behind the IPaymentGateway port;
+        // secrets come from configuration (Billing:Xendit:*), never source.
+        services.Configure<XenditOptions>(configuration.GetSection(XenditOptions.SectionName));
+        services.AddScoped<IXenditWebhookVerifier, XenditWebhookVerifier>();
+        services.AddHttpClient<IPaymentGateway, XenditGateway>((sp, http) =>
+        {
+            var opts = configuration.GetSection(XenditOptions.SectionName).Get<XenditOptions>() ?? new XenditOptions();
+            http.BaseAddress = new Uri(opts.BaseUrl);
+            http.Timeout = TimeSpan.FromSeconds(30);
+        });
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(GetPlansQuery).Assembly));
 

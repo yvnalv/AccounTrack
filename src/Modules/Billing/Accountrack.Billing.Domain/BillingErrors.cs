@@ -26,4 +26,15 @@ public static class BillingErrors
 
     public static readonly Error AlreadySubscribed = Error.Conflict(
         "BILLING.ALREADY_SUBSCRIBED", "This organization already has a subscription.");
+
+    public static readonly Error NoSubscription = Error.Conflict(
+        "BILLING.NO_SUBSCRIPTION", "Start a trial before checking out.");
+
+    /// <summary>The payment gateway rejected or failed the request.</summary>
+    public static Error GatewayError(string detail) => new(
+        "BILLING.GATEWAY_ERROR", $"The payment provider could not be reached: {detail}");
+
+    /// <summary>A webhook arrived without a valid <c>x-callback-token</c> — treated as hostile (§8).</summary>
+    public static readonly Error WebhookUnauthorized = Error.Unauthorized(
+        "BILLING.WEBHOOK_UNAUTHORIZED", "Invalid webhook signature.");
 }
