@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Billing.Domain: how Accountrack charges its own tenants (SUBSCRIPTION_BILLING.md, ADR-0039).
+       Our commercial ledger — never posts into a tenant's GL. Pure (SharedKernel only). -->
+  <PropertyGroup>
+    <RootNamespace>Accountrack.Billing.Domain</RootNamespace>
+    <AssemblyName>Accountrack.Billing.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Accountrack.SharedKernel\Accountrack.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>
