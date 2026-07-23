@@ -326,6 +326,18 @@ the platform back-office (cross-tenant), not in any tenant's dashboard.
 - **Phase 1 — MVP billing:** Plans, Subscription, hosted checkout (one gateway), **invoice-based** cycle,
   webhook activation (idempotent), entitlement guard (hard lock + plan limits), billing invoice PDF,
   Settings → Billing screen, 14-day trial. Manual bank-transfer fallback optional.
+  Delivered in slices:
+  - ✅ **Slice 1 — foundation (CHG-0138):** `billing.` schema, global `Plan` catalog, tenant-scoped
+    `Subscription`/`BillingInvoice`, read-only API, `Billing.View`/`Billing.Manage`.
+  - ✅ **Slice 2 — entitlement guard + trial (CHG-0140):** `ITenantEntitlements` contract +
+    `EntitlementResolver` (status → access level, plan limits, feature flags);
+    `POST /billing/subscription/trial` (14-day, no card) and `GET /billing/entitlements`; host
+    middleware blocking business **writes** when past-due/unpaid/expired. **Dark-launched** —
+    `Billing:Entitlements:Enforce` defaults to **false**, and a tenant with **no subscription** is
+    always unrestricted, so enabling billing can never lock out existing customers.
+  - 🔜 **Slice 3 — Xendit adapter:** `IPaymentGateway` + hosted checkout + idempotent webhooks
+    (needs a free Xendit sandbox signup; no PT/bank account required to build).
+  - 🔜 **Slice 4 — Billing UI + invoice PDF** (pause for the UI/UX discussion first).
 - **Phase 2 — Auto-charge & dunning:** tokenized card/e-wallet auto-charge, proration on upgrade, dunning
   retries + emails, annual cycle + discount, seat add-ons.
 - **Phase 3 — Growth:** coupons/promos, referrals, tax/e-Faktur automation, multi-gateway, back-office MRR

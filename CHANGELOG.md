@@ -174,6 +174,45 @@ Two bugs found from a report that receiving against a purchase order failed with
 
 ---
 
+## [2026-07-21 15:31:15 UTC]
+
+CHG-0140 — Billing module — Phase 1 Slice 2 (entitlement guard + 14-day trial)
+
+- Implements SUBSCRIPTION_BILLING.md §7 (entitlement enforcement) and §6.2 (free trial), continuing
+  Phase 1 after the Slice-1 foundation (CHG-0138, ADR-0039).
+- **`ITenantEntitlements` contract** (Modules.Contracts): `TenantAccessLevel` (Full / ReadOnly /
+  Locked) + `TenantEntitlements` (plan code, status, seat/company caps, feature flags, `CanWrite`,
+  `HasFeature`). Lives in contracts so the host and other modules can honour plan limits without
+  depending on Billing internals (ADR-0007, Rule 27).
+- **`EntitlementResolver`** (Billing.Application) projects subscription + plan onto entitlements:
+  - Status → access level: Trialing/Active/**Canceled** → Full (a cancellation keeps access until the
+    period actually ends); **PastDue → ReadOnly** (decided 2026-07-11: pressure to pay without risking
+    data loss); Unpaid/Expired → Locked.
+  - `MaxUsers` = plan included seats + purchased extras; `MaxCompanies` from the plan (null =
+    unlimited); feature flags parsed from the plan's JSON, case-insensitive, unknown flags off.
+  - A **malformed feature blob degrades to "no features"** rather than revoking access.
+- **Trial:** `POST /api/v1/billing/subscription/trial` (`Billing.Manage`) starts a **14-day, no-card**
+  trial on a plan — rejects a second subscription, an unknown plan, or a retired plan. No gateway
+  involved (payment collection lands in Slice 3). `GET /api/v1/billing/entitlements` (`Billing.View`)
+  exposes entitlements so the SPA can gate UI; the backend remains the hard wall (SECURITY.md §2).
+- **Host enforcement middleware** blocks business **writes** when the tenant cannot write. Deliberately
+  narrow, because a mistake here locks paying customers out of their own data:
+  - only mutating verbs are blocked (reads/exports always pass, so data can always be retrieved);
+  - `/auth`, `/billing`, `/health`, `/swagger` are always exempt, so a locked tenant can still sign in
+    and pay to recover;
+  - runs after authn/authz, so a request RBAC would reject never triggers a billing lookup.
+  - **Safe rollout:** `Billing:Entitlements:Enforce` defaults to **false** (dark launch), and a tenant
+    with **no subscription is unrestricted (grandfathered)** — every tenant predating billing keeps
+    working, so switching billing on cannot lock out existing customers.
+- Entitlements are **orthogonal to RBAC**: RBAC answers "may this user do X", entitlements answer "is
+  this tenant's plan paid and inclusive of X". Both must pass.
+- **Tests:** new `Accountrack.Billing.UnitTests` project (21 tests) covering the full status→access
+  matrix, the grandfathering safety property, plan-limit/feature projection, malformed-feature
+  degradation, and the trial command's four outcomes. Full solution green: build clean, **413 passing**.
+- Follow-up (not blocking): cache the per-request entitlement lookup once enforcement is enabled.
+
+---
+
 ## [2026-07-11 15:59:04 UTC]
 
 CHG-0138 — Billing module — Phase 1 foundation (schema + plan catalog + subscription read model)

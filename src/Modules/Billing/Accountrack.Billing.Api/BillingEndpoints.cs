@@ -28,8 +28,24 @@ public static class BillingEndpoints
                 Send(s.Send(new GetMySubscriptionQuery(), ct)))
             .RequireAuthorization("Billing.View").WithName("GetMySubscription");
 
+        // What the tenant's plan currently permits, so the SPA can gate UI and show billing banners.
+        // The backend stays the hard wall (SECURITY.md §2) — this is a convenience projection.
+        group.MapGet("/entitlements", (ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetMyEntitlementsQuery(), ct)))
+            .RequireAuthorization("Billing.View").WithName("GetMyEntitlements");
+
+        // Start the free trial on a plan (no card, no gateway — §6.2).
+        group.MapPost("/subscription/trial", (StartTrialBody b, ISender s, CancellationToken ct) =>
+                Created(s.Send(new StartTrialCommand(b.PlanCode), ct), "/api/v1/billing/subscription"))
+            .RequireAuthorization("Billing.Manage").WithName("StartBillingTrial");
+
         return app;
     }
 
     private static async Task<IResult> Send<T>(Task<Result<T>> task) => (await task).ToHttpResult();
+
+    private static async Task<IResult> Created<T>(Task<Result<T>> task, string location) =>
+        (await task).ToCreatedResult(location);
 }
+
+public sealed record StartTrialBody(string PlanCode);

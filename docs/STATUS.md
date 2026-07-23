@@ -21,6 +21,14 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
   default CoA gains equity (owner + PT) and loan accounts, seeded idempotently so existing companies
   backfill. Accounting unit tests 53 passing; frontend vue-tsc clean.
 - **Build (pre-existing):** backend `net8.0` (388 tests before this change).
+  Latest: **Billing Slice 2 — entitlement guard + 14-day trial (CHG-0140)** — `ITenantEntitlements`
+  contract + `EntitlementResolver` (status → Full/ReadOnly/Locked, seat & company caps, plan feature
+  flags); `POST /billing/subscription/trial` (14-day, no card) and `GET /billing/entitlements`; host
+  middleware blocking business **writes** when past-due/unpaid/expired (reads/exports always pass;
+  `/auth` + `/billing` always exempt so a locked tenant can recover). **Dark-launched:**
+  `Billing:Entitlements:Enforce` defaults **false** and a tenant with **no subscription is
+  unrestricted**, so enabling billing cannot lock out existing customers. New `Billing.UnitTests`
+  (21 tests). Next: Slice 3 (Xendit adapter — needs only a free sandbox signup).
   Latest: **Billing module — Phase 1 foundation (CHG-0138, ADR-0039)** — a new `Modules/Billing/` bounded
   context (how Accountrack charges its own tenants; SUBSCRIPTION_BILLING.md §12 Slice 1). Global `Plan`
   catalog + tenant-scoped `Subscription`/`BillingInvoice`; standalone `billing.` schema that **never posts

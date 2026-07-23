@@ -147,6 +147,10 @@ builder.Services.AddAuthorization();
 // Brute-force / credential-stuffing protection for the anonymous auth endpoints (SECURITY.md §5).
 builder.Services.AddAuthRateLimiting(builder.Configuration);
 
+// Subscription entitlement guard (SUBSCRIPTION_BILLING.md §7). Off by default — dark-launched until
+// plans/checkout are live; tenants without a subscription are always unrestricted.
+builder.Services.AddSubscriptionEnforcement(builder.Configuration);
+
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -166,6 +170,10 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After authn/authz: the tenant is known, and a request RBAC would reject never reaches a billing
+// lookup. Blocks business writes when the tenant's subscription is past-due/unpaid/expired.
+app.UseSubscriptionEnforcement();
 
 app.MapHealthChecks("/health");
 

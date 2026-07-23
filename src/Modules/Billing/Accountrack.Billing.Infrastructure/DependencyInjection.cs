@@ -39,6 +39,11 @@ public static class DependencyInjection
         services.AddScoped<IPlanRepository, PlanRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 
+        // Resolves what the calling tenant's plan/subscription permits (SUBSCRIPTION_BILLING.md §7).
+        // Consumed by the host's enforcement middleware and by modules honouring plan limits.
+        services.AddScoped<Accountrack.Modules.Contracts.Billing.ITenantEntitlements,
+            Accountrack.Billing.Application.Features.EntitlementResolver>();
+
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(GetPlansQuery).Assembly));
 
         return services;
