@@ -18,6 +18,25 @@ CHG-0148 — Fix: Xendit checkout 400 — omit blank optional invoice fields
   (secret key + blank password), and unconfigured-gateway fails fast without calling out.
   `Accountrack.Billing.UnitTests` now 36; full suite green.
 - No schema change. Deploy, then checkout returns a real pay-URL.
+## [2026-07-23 16:45:56 UTC]
+
+CHG-0147 — Fix: every tenant's Administrator gets newly-added permissions (no more 403 after a feature ships) (BR-SEC-4)
+
+- **Bug:** a self-registered organization's **Administrator** role got a **403** on any feature whose
+  permission was added to the catalog *after* the org signed up — because role→permission grants are a
+  per-tenant snapshot taken at registration, and the "admin holds every permission" backfill only ran
+  (a) when dev seeding was enabled and (b) for the **dev tenant only**. In production (seeding off) and
+  for every real org it never ran. Surfaced as 403s on `POST /billing/subscription/{trial,checkout}`
+  after Billing shipped (`Billing.View`/`Billing.Manage` added in CHG-0138).
+- **Fix (BR-SEC-4):** `EnsureAdminHasAllPermissionsAsync` now grants every catalog permission to the
+  Administrator role of **every tenant**, and runs **unconditionally** on startup (moved out of the
+  `Seed:Enabled` block) — so it repairs existing orgs in production too. Idempotent: only missing
+  `(role, permission)` rows are inserted, so a complete role is untouched and it is safe every boot.
+  Rows are inserted directly (not via the Role aggregate) to avoid an optimistic-concurrency bump on the
+  unchanged Role. Cross-tenant admin write, startup-only (Rule 33).
+- On the next deploy this auto-grants `Billing.*` (and any future permission) to all existing
+  Administrators; each admin must **re-login** once for the fresh permission to appear in their JWT.
+- Docs: **BR-SEC-4** added to BUSINESS_RULES.md. Build clean; full suite green.
 
 ## [2026-07-23 15:28:54 UTC]
 
