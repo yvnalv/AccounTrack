@@ -6,6 +6,24 @@ using Accountrack.SharedKernel.Results;
 
 namespace Accountrack.Billing.Application.Features;
 
+/// <summary>The calling tenant's billing invoices, newest first (billing history).</summary>
+public sealed record GetMyInvoicesQuery : IQuery<IReadOnlyList<BillingInvoiceDto>>;
+
+public sealed class GetMyInvoicesHandler : IQueryHandler<GetMyInvoicesQuery, IReadOnlyList<BillingInvoiceDto>>
+{
+    private readonly IBillingInvoiceRepository _invoices;
+    public GetMyInvoicesHandler(IBillingInvoiceRepository invoices) => _invoices = invoices;
+
+    public async Task<Result<IReadOnlyList<BillingInvoiceDto>>> Handle(GetMyInvoicesQuery request, CancellationToken ct)
+    {
+        var items = await _invoices.ListForCurrentTenantAsync(ct);
+        return Result.Success<IReadOnlyList<BillingInvoiceDto>>(items
+            .Select(i => new BillingInvoiceDto(
+                i.Id, i.Number, i.PeriodStart, i.PeriodEnd, i.TotalMinor, i.Currency, i.Status, i.DueDate, i.PaidAt))
+            .ToList());
+    }
+}
+
 /// <summary>Public pricing page: the active, public plans (SUBSCRIPTION_BILLING.md §9).</summary>
 public sealed record GetPlansQuery : IQuery<IReadOnlyList<PlanDto>>;
 

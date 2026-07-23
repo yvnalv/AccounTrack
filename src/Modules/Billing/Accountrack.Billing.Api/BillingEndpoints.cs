@@ -35,14 +35,20 @@ public static class BillingEndpoints
                 Send(s.Send(new GetMyEntitlementsQuery(), ct)))
             .RequireAuthorization("Billing.View").WithName("GetMyEntitlements");
 
+        // The tenant's billing invoices, newest first (billing history).
+        group.MapGet("/invoices", (ISender s, CancellationToken ct) =>
+                Send(s.Send(new GetMyInvoicesQuery(), ct)))
+            .RequireAuthorization("Billing.View").WithName("GetMyBillingInvoices");
+
         // Start the free trial on a plan (no card, no gateway — §6.2).
         group.MapPost("/subscription/trial", (StartTrialBody b, ISender s, CancellationToken ct) =>
                 Created(s.Send(new StartTrialCommand(b.PlanCode), ct), "/api/v1/billing/subscription"))
             .RequireAuthorization("Billing.Manage").WithName("StartBillingTrial");
 
-        // Start checkout: bill the subscription's plan for the next period, return the hosted pay URL.
-        group.MapPost("/subscription/checkout", (ISender s, CancellationToken ct) =>
-                Send(s.Send(new SubscribeCommand(), ct)))
+        // Start checkout: bill the subscription's plan (or an optionally chosen plan to upgrade/downgrade)
+        // for the next period, and return the hosted pay URL.
+        group.MapPost("/subscription/checkout", (CheckoutBody? b, ISender s, CancellationToken ct) =>
+                Send(s.Send(new SubscribeCommand(b?.PlanCode), ct)))
             .RequireAuthorization("Billing.Manage").WithName("StartBillingCheckout");
 
         // Xendit payment webhook — the source of truth for "paid" (§5). Anonymous but authenticated by the
@@ -67,6 +73,9 @@ public static class BillingEndpoints
 }
 
 public sealed record StartTrialBody(string PlanCode);
+
+/// <summary>Optional target plan for checkout — present when upgrading/downgrading, absent to bill the current plan.</summary>
+public sealed record CheckoutBody(string? PlanCode);
 
 /// <summary>The subset of Xendit's invoice-webhook body we act on (SUBSCRIPTION_BILLING.md §5).</summary>
 public sealed record XenditWebhookPayload(

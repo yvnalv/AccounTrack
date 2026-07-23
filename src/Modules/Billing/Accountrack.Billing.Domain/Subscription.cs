@@ -57,6 +57,16 @@ public sealed class Subscription : TenantScopedEntity, IAggregateRoot
         new(planId, SubscriptionStatus.Trialing, interval, extraSeats: 0, paymentMode, trialEndsAt,
             currentPeriodStart: today, currentPeriodEnd: trialEndsAt);
 
+    /// <summary>
+    /// Switches to a different plan. Immediate for this phase; proration and
+    /// downgrade-at-period-end (§6.3) are a later phase. The tenant then pays for the new plan's period.
+    /// </summary>
+    public void ChangePlan(Guid planId, BillingInterval interval)
+    {
+        PlanId = planId;
+        Interval = interval;
+    }
+
     /// <summary>Marks the subscription active for a paid period (driven by the payment webhook, §5).</summary>
     public void Activate(DateOnly periodStart, DateOnly periodEnd)
     {

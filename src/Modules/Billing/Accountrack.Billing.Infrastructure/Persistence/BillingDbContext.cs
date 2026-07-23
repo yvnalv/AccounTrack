@@ -114,6 +114,10 @@ public sealed class BillingInvoiceRepository : IBillingInvoiceRepository
     public Task<int> CountForCurrentTenantAsync(CancellationToken ct) =>
         _db.BillingInvoices.CountAsync(ct);
 
+    public async Task<IReadOnlyList<BillingInvoice>> ListForCurrentTenantAsync(CancellationToken ct) =>
+        await _db.BillingInvoices.OrderByDescending(i => i.PeriodStart).ThenByDescending(i => i.Number)
+            .ToListAsync(ct);
+
     public Task<BillingInvoice?> GetByGatewayInvoiceIdIgnoringFiltersAsync(string gatewayInvoiceId, CancellationToken ct) =>
         _db.BillingInvoices.IgnoreQueryFilters()
             .FirstOrDefaultAsync(i => i.GatewayInvoiceId == gatewayInvoiceId, ct);

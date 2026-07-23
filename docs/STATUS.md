@@ -8,8 +8,16 @@ context. Complements: [ROADMAP.md](ROADMAP.md) (the plan), [`../CHANGELOG.md`](.
 
 ## Snapshot
 
-- **As of:** 2026-07-23 (last change **CHG-0146**)
+- **As of:** 2026-07-23 (last change **CHG-0149**)
 - **Build:** green — backend `net8.0`; **frontend** `frontend/` builds (vue-tsc + vite).
+  Latest: **Billing Slice 4 — Settings → Billing UI (CHG-0149)** — a `Billing.View`-gated Settings tab:
+  current-subscription card (status + trial/renews + Pay now), **plan cards with a Monthly/Annual toggle**
+  (three tiers, live reprice, "Save 2 months"), contextual CTAs (**Start trial / Upgrade / Downgrade /
+  Switch billing cycle** → checkout to that plan), and an invoice-history table + past-due banner. New
+  `GET /billing/invoices`; checkout now takes an optional `planCode` (upgrade/downgrade, immediate switch;
+  proration is Phase 2). Billing.UnitTests 38. **Phase 1 billing feature-complete** (plans, trial, guard,
+  checkout, webhook, UI) — end-to-end payment verified on the Xendit sandbox. Next: Phase 2 (auto-charge +
+  dunning, proration, invoice PDF, back-office MRR).
   Latest: **Billing Slice 3 — Xendit adapter + hosted checkout + payment webhook (CHG-0146)** — a tenant
   can pick a plan, get a Xendit hosted pay page (`POST /billing/subscription/checkout`), pay, and have the
   subscription auto-activate via the `POST /billing/webhooks/xendit` webhook (anonymous but

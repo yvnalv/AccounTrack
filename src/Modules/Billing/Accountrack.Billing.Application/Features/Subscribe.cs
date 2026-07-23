@@ -12,9 +12,10 @@ namespace Accountrack.Billing.Application.Features;
 /// subscription's current plan for the next period by creating a <see cref="BillingInvoice"/> and a
 /// hosted gateway invoice, and returns the pay URL. The subscription activates only when the
 /// <b>webhook</b> confirms payment (the source of truth, §5) — never here, never on the browser redirect.
-/// Requires an existing subscription (start a trial first).
+/// Requires an existing subscription (start a trial first). An optional <paramref name="PlanCode"/>
+/// switches the subscription to a different plan (upgrade/downgrade) before billing it.
 /// </summary>
-public sealed record SubscribeCommand : ICommand<CheckoutDto>;
+public sealed record SubscribeCommand(string? PlanCode = null) : ICommand<CheckoutDto>;
 
 public sealed class SubscribeHandler : ICommandHandler<SubscribeCommand, CheckoutDto>
 {
@@ -45,10 +46,33 @@ public sealed class SubscribeHandler : ICommandHandler<SubscribeCommand, Checkou
             return BillingErrors.NoSubscription;
         }
 
-        var plan = await _plans.GetByIdAsync(subscription.PlanId, ct);
-        if (plan is null)
+        Plan? plan;
+        if (!string.IsNullOrWhiteSpace(request.PlanCode))
         {
-            return BillingErrors.PlanNotFound;
+            // Switching to a chosen plan (upgrade/downgrade) before paying.
+            plan = await _plans.GetByCodeAsync(request.PlanCode.Trim().ToUpperInvariant(), ct);
+            if (plan is null)
+            {
+                return BillingErrors.PlanNotFound;
+            }
+
+            if (!plan.IsActive)
+            {
+                return BillingErrors.PlanNotAvailable;
+            }
+
+            if (plan.Id != subscription.PlanId)
+            {
+                subscription.ChangePlan(plan.Id, plan.Interval);
+            }
+        }
+        else
+        {
+            plan = await _plans.GetByIdAsync(subscription.PlanId, ct);
+            if (plan is null)
+            {
+                return BillingErrors.PlanNotFound;
+            }
         }
 
         var today = DateOnly.FromDateTime(_clock.UtcNow);

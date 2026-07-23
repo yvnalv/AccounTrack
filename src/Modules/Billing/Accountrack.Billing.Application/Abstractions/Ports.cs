@@ -33,6 +33,9 @@ public interface IBillingInvoiceRepository
     /// <summary>Count of this tenant's invoices, for a per-tenant document number.</summary>
     Task<int> CountForCurrentTenantAsync(CancellationToken ct);
 
+    /// <summary>This tenant's billing invoices, newest first (billing history).</summary>
+    Task<IReadOnlyList<BillingInvoice>> ListForCurrentTenantAsync(CancellationToken ct);
+
     /// <summary>
     /// A billing invoice by its gateway invoice id, <b>bypassing the tenant query filter</b> — used by
     /// the anonymous, signature-verified payment webhook (no ambient tenant; reviewed admin path, Rule 33).
