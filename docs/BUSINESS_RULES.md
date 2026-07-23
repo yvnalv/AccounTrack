@@ -241,6 +241,12 @@ configurable per company with the stated default.
 - **BR-SEC-2 (invariant)** Cross-tenant data access is impossible (enforced by query filters +
   context).
 - **BR-SEC-3** Permissions are configurable data; none are hardcoded.
+- **BR-SEC-4 (invariant)** Every tenant's seeded **Administrator** role always holds the **full permission
+  catalog**. Because grants are a per-tenant snapshot taken when the organization signs up, this invariant
+  must survive later additions to the catalog: a startup backfill grants any missing permissions to every
+  Administrator role of every tenant, idempotently and unconditionally (including in production where dev
+  seeding is off). Without it, an organization that signed up before a permission existed gets a **403** on
+  the newly-shipped feature (e.g. Billing). Implemented in `IdentityDataSeeder` (CHG-0147).
 
 > When a rule changes, update this file, the enforcing code's referenced `BR-` id, the relevant
 > tests, and (if architectural) DECISIONS.md.

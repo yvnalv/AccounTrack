@@ -39,11 +39,15 @@ public static class IdentityDataSeeder
         if (settings.Enabled)
         {
             await SeedDevAdminAsync(db, passwordHasher, settings, ct);
-            // Keep the system Administrator role current as new permissions are added to the catalog.
-            await EnsureAdminHasAllPermissionsAsync(db, ct);
             // Seed the standard non-admin roles for the dev tenant (idempotent).
             await EnsureStandardRolesAsync(db, DevTenantId, ct);
         }
+
+        // Keep EVERY tenant's Administrator role current as new permissions are added to the catalog
+        // (BR-SEC-4). Runs unconditionally — including in production where dev seeding is off — so a
+        // permission introduced after an organization signed up still reaches its Administrator. Without
+        // this, a self-registered org's admin gets a 403 on any newly-shipped feature (e.g. Billing).
+        await EnsureAdminHasAllPermissionsAsync(db, ct);
     }
 
     /// <summary>Creates any missing standard non-admin roles (Accountant, Sales, …) for a tenant.</summary>
@@ -85,41 +89,57 @@ public static class IdentityDataSeeder
     /// Grants any catalog permissions the system Administrator role is missing (e.g. permissions
     /// added in a later release), so the admin stays fully privileged across upgrades.
     /// </summary>
+    /// <summary>
+    /// Grants every catalog permission to the <b>Administrator</b> role of <b>every tenant</b> (BR-SEC-4):
+    /// the dev tenant and every self-registered organization. The invariant "an Administrator always holds
+    /// the full permission catalog" must survive permission additions, so this backfills the grants missing
+    /// from each admin role. Idempotent — only missing <c>(role, permission)</c> rows are inserted (a role
+    /// already complete is untouched, so it is safe to run on every startup). Cross-tenant admin write,
+    /// startup-only (Rule 33). Rows are inserted directly rather than via the Role aggregate to avoid an
+    /// optimistic-concurrency bump on the unchanged Role.
+    /// </summary>
     private static async Task EnsureAdminHasAllPermissionsAsync(IdentityDbContext db, CancellationToken ct)
     {
-        // Scope to the dev tenant: with public sign-up, other tenants also have an Administrator role,
-        // so an unfiltered FirstOrDefault could grant new permissions to the wrong tenant's admin.
-        var adminRoleId = await db.Roles
+        var adminRoleIds = await db.Roles
             .IgnoreQueryFilters()
-            .Where(r => r.TenantId == DevTenantId && r.Name == SystemRoles.Administrator && r.IsSystem && !r.IsDeleted)
+            .Where(r => r.Name == SystemRoles.Administrator && r.IsSystem && !r.IsDeleted)
             .Select(r => r.Id)
-            .FirstOrDefaultAsync(ct);
-        if (adminRoleId == Guid.Empty)
+            .ToListAsync(ct);
+        if (adminRoleIds.Count == 0)
         {
             return;
         }
-
-        // Insert only the missing role-permission rows; never load/mutate the Role aggregate
-        // (avoids an optimistic-concurrency update on the unchanged Role row).
-        var granted = await db.RolePermissions
-            .IgnoreQueryFilters()
-            .Where(rp => rp.RoleId == adminRoleId && !rp.IsDeleted)
-            .Select(rp => rp.PermissionId)
-            .ToListAsync(ct);
 
         var allPermissionIds = await db.Permissions.IgnoreQueryFilters().Select(p => p.Id).ToListAsync(ct);
-        var missing = allPermissionIds.Except(granted).ToList();
-        if (missing.Count == 0)
+
+        // Grants that already exist for these admin roles, grouped per role.
+        var existing = await db.RolePermissions
+            .IgnoreQueryFilters()
+            .Where(rp => adminRoleIds.Contains(rp.RoleId) && !rp.IsDeleted)
+            .Select(rp => new { rp.RoleId, rp.PermissionId })
+            .ToListAsync(ct);
+        var grantedByRole = existing
+            .GroupBy(g => g.RoleId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.PermissionId).ToHashSet());
+
+        var inserted = false;
+        foreach (var roleId in adminRoleIds)
         {
-            return;
+            var have = grantedByRole.TryGetValue(roleId, out var set) ? set : new HashSet<Guid>();
+            foreach (var permissionId in allPermissionIds)
+            {
+                if (have.Add(permissionId))
+                {
+                    db.RolePermissions.Add(new RolePermission(roleId, permissionId));
+                    inserted = true;
+                }
+            }
         }
 
-        foreach (var permissionId in missing)
+        if (inserted)
         {
-            db.RolePermissions.Add(new RolePermission(adminRoleId, permissionId));
+            await db.SaveChangesAsync(ct);
         }
-
-        await db.SaveChangesAsync(ct);
     }
 
     private static async Task SeedPermissionsAsync(IdentityDbContext db, CancellationToken ct)
