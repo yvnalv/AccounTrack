@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Billing\Accountrack.Billing.Domain\Accountrack.Billing.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Billing\Accountrack.Billing.Application\Accountrack.Billing.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Billing\Accountrack.Billing.Infrastructure\Accountrack.Billing.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
